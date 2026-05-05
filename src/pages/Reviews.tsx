@@ -1,6 +1,8 @@
-import { FileText, Download, Bookmark, Clock, Eye } from "lucide-react";
+import { useState, useEffect } from "react";
+import { FileText, Download, Bookmark, Clock, Eye, Loader2 } from "lucide-react";
+import { supabase } from "../lib/supabase";
 
-const REVIEWS = [
+const STATIC_REVIEWS = [
   {
     id: 1,
     title: "ملخص مهارات اللغة العربية",
@@ -28,6 +30,37 @@ const REVIEWS = [
 ];
 
 export default function Reviews() {
+  const [reviewsList, setReviewsList] = useState(STATIC_REVIEWS);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    async function fetchReviews() {
+      if (!supabase) return;
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('reviews')
+          .select('*');
+        
+        if (data && !error && data.length > 0) {
+          const mapped = data.map(r => ({
+            id: r.id,
+            title: r.title,
+            desc: r.description || r.desc,
+            date: r.file_date || r.date,
+            author: r.author,
+            readTime: r.read_time || r.readTime
+          }));
+          setReviewsList([...STATIC_REVIEWS, ...mapped]);
+        }
+      } catch (err) {
+        console.error("Supabase Error:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchReviews();
+  }, []);
   return (
     <div className="max-w-6xl mx-auto px-4 py-20">
       <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-16 border-b border-neutral-100 pb-12">
@@ -42,7 +75,7 @@ export default function Reviews() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {REVIEWS.map((r) => (
+        {reviewsList.map((r) => (
           <article key={r.id} className="bg-white rounded-3xl border border-neutral-100 overflow-hidden flex flex-col group hover:shadow-xl hover:shadow-neutral-500/5 transition-all">
             <div className="h-48 bg-neutral-100 relative overflow-hidden">
                <div className="absolute inset-0 bg-gradient-to-tr from-neutral-200 to-transparent group-hover:scale-110 transition-transform duration-500" />

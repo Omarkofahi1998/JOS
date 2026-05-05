@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { CheckCircle2, Clock, Search, ChevronDown, ShieldCheck } from "lucide-react";
+import { useState, useEffect } from "react";
+import { CheckCircle2, Clock, Search, ChevronDown, ShieldCheck, Loader2 } from "lucide-react";
+import { supabase } from "../lib/supabase";
 
 interface Question {
   id: number;
@@ -10,7 +11,7 @@ interface Question {
   image?: string;
 }
 
-const ALL_QUESTIONS: Question[] = [
+const STATIC_QUESTIONS: Question[] = [
   // --- ثقافة عامة (Arabic) ---
   { id: 101, text: "تعتبر 'هيئة الخدمة والإدارة العامة' هي الخلف القانوني والواقعي لـ:", options: ["وزارة العمل", "ديوان الخدمة المدنية", "معهد الإدارة العامة", "وزارة تطوير القطاع العام"], correct: 1, major: "عام" },
   { id: 102, text: "كم مرة يتم انعقاد الدورة العادية لمجلس الأمة الأردني في السنة؟", options: ["مرة واحدة", "مرتين", "ثلاث مرات", "عند الحاجة فقط"], correct: 0, major: "عام" },
@@ -112,10 +113,40 @@ const MAJORS = [
 ];
 
 export default function MockExams() {
-  const [started, setStarted] = useState(false);
   const [selectedMajor, setSelectedMajor] = useState<string>("عام");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [majorSearch, setMajorSearch] = useState("");
+  const [questionsList, setQuestionsList] = useState<Question[]>(STATIC_QUESTIONS);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    async function fetchQuestions() {
+      if (!supabase) return;
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('questions')
+          .select('*');
+        
+        if (data && !error && data.length > 0) {
+          const mapped = data.map(q => ({
+            id: q.id,
+            text: q.text,
+            options: q.options,
+            correct: q.correct,
+            major: q.major,
+            image: q.image_url || q.image
+          }));
+          setQuestionsList(prev => [...prev, ...mapped]); // Append or replace? Let's merge unique by ID if possible, but for simplicity we'll just merge
+        }
+      } catch (err) {
+        console.error("Supabase Error:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchQuestions();
+  }, []);
 
   const selectMajor = (id: string) => {
     setSelectedMajor(id);
@@ -123,9 +154,9 @@ export default function MockExams() {
   };
 
   const prepareExam = () => {
-    let filtered = ALL_QUESTIONS.filter(q => q.major === selectedMajor).sort(() => 0.5 - Math.random()).slice(0, 15);
+    let filtered = questionsList.filter(q => q.major === selectedMajor).sort(() => 0.5 - Math.random()).slice(0, 15);
     if (filtered.length === 0) {
-      filtered = ALL_QUESTIONS.filter(q => q.major === "عام").slice(0, 10);
+      filtered = questionsList.filter(q => q.major === "عام").slice(0, 10);
     }
     
     // Store data for the detached window

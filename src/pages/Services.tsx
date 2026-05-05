@@ -1,7 +1,9 @@
+import { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { FileUser, Settings, Briefcase, UserCheck, MessageSquare, Sparkles, ArrowLeft, Users, Send } from "lucide-react";
+import { FileUser, Settings, Briefcase, UserCheck, MessageSquare, Sparkles, ArrowLeft, Users, Send, Loader2 } from "lucide-react";
+import { supabase } from "../lib/supabase";
 
-const SERVICES = [
+const STATIC_SERVICES = [
   {
     title: "تصميم وتعديل السيرة الذاتية (ATS)",
     desc: "نصمم لك سيرة ذاتية احترافية تتوافق مع أنظمة الفرز الآلي (ATS) لزيادة فرصك في القبول.",
@@ -41,6 +43,35 @@ const SERVICES = [
 ];
 
 export default function Services() {
+  const [servicesList, setServicesList] = useState(STATIC_SERVICES);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    async function fetchServices() {
+      if (!supabase) return;
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('services')
+          .select('*');
+        
+        if (data && !error && data.length > 0) {
+          const mapped = data.map(s => ({
+            title: s.title,
+            desc: s.description,
+            icon: <Settings className="w-10 h-10 text-slate-600" />,
+            color: "bg-slate-50"
+          }));
+          setServicesList([...STATIC_SERVICES, ...mapped]);
+        }
+      } catch (err) {
+        console.error("Supabase Error:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchServices();
+  }, []);
   return (
     <div className="space-y-20 pb-20 overflow-hidden">
       {/* Header Section */}
@@ -70,7 +101,7 @@ export default function Services() {
       {/* Services Grid */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-wrap gap-4 mb-16 justify-center">
-          {SERVICES.map((s, i) => (
+          {servicesList.map((s, i) => (
             <a 
               key={i} 
               href={`#service-${i}`}
@@ -82,7 +113,7 @@ export default function Services() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {SERVICES.map((s, i) => (
+          {servicesList.map((s, i) => (
             <motion.div
               key={i}
               id={`service-${i}`}
@@ -125,34 +156,34 @@ export default function Services() {
                 نحن نبحث دائماً عن الكفاءات التدريبية المتميزة في جميع التخصصات الأردنية. إذا كنت تملك الخبرة والشغف لنقل المعرفة ومساعدة الأجيال القادمة، فنحن نرحب بك معنا.
               </p>
               
-              <div className="space-y-6 mb-10">
+              <div className="space-y-4 mb-10">
                 {[
                   "إيصال معرفتك لآلاف الطلاب والباحثين عن العمل.",
                   "منصة تقنية متطورة لتقديم محتواك التدريبي.",
                   "بيئة عمل احترافية ومرنة تدعم الإبداع.",
                   "فرصة للمساهمة في بناء بنوك الأسئلة التخصصية."
                 ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-3 justify-end text-slate-700 font-bold">
-                    <span>{item}</span>
-                    <div className="w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center shrink-0">
+                  <div key={i} className="flex items-start gap-4 justify-end text-slate-700">
+                    <span className="text-base font-medium leading-relaxed pt-0.5">{item}</span>
+                    <div className="w-6 h-6 bg-red-50 text-red-600 rounded-full flex items-center justify-center shrink-0 mt-1">
                       <ArrowLeft className="w-3.5 h-3.5" />
                     </div>
                   </div>
                 ))}
               </div>
 
-              <button className="bg-red-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-red-700 transition-all flex items-center gap-3 ml-auto shadow-lg shadow-red-600/20">
+              <button className="bg-red-600 text-white px-10 py-4 rounded-2xl font-black hover:bg-red-700 transition-all flex items-center gap-3 ml-auto shadow-xl shadow-red-600/20 active:scale-95">
                 قدم طلب انضمام كمدرب
                 <Send className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="relative">
-              <div className="aspect-square bg-white rounded-[3rem] shadow-2xl overflow-hidden border-8 border-white group">
+            <div className="relative max-w-xl mx-auto lg:mr-0 lg:ml-auto w-full">
+              <div className="aspect-[4/5] md:aspect-square lg:aspect-square bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border-8 border-white group relative">
                 <img 
                   src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=2070&auto=format&fit=crop" 
                   alt="Join as a teacher" 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 ease-out"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent flex items-end p-10">
                   <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 w-full">

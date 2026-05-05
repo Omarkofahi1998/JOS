@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { Search, ChevronDown, Loader2, FileText, Download, Calendar, HardDrive } from "lucide-react";
+import { supabase } from "../lib/supabase";
 
 interface QuestionFile {
   title: string;
@@ -11,7 +12,8 @@ interface QuestionFile {
   url: string;
 }
 
-const QUESTION_FILES: QuestionFile[] = [
+const STATIC_QUESTION_FILES: QuestionFile[] = [
+  // ... Keep static files as fallback ...
   // --- مختبرات (English - Question Banks) ---
   { 
     category: "مختبرات", 
@@ -208,7 +210,39 @@ export default function Questions() {
   const [activeCategory, setActiveCategory] = useState("مختبرات");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [catSearch, setCatSearch] = useState("");
+  const [filesList, setFilesList] = useState<QuestionFile[]>(STATIC_QUESTION_FILES);
+  const [isSupabaseLoading, setIsSupabaseLoading] = useState(false);
   const location = useLocation();
+
+  useEffect(() => {
+    async function fetchFiles() {
+      if (!supabase) return;
+      setIsSupabaseLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('question_files')
+          .select('*');
+        
+        if (data && !error && data.length > 0) {
+          // Map DB keys to component keys if they differ
+          const mapped = data.map(item => ({
+            title: item.title,
+            category: item.category,
+            date: item.file_date || item.date,
+            size: item.file_size || item.size,
+            downloadCount: item.download_count || 0,
+            url: item.url
+          }));
+          setFilesList(mapped);
+        }
+      } catch (err) {
+        console.error("Error fetching from Supabase:", err);
+      } finally {
+        setIsSupabaseLoading(false);
+      }
+    }
+    fetchFiles();
+  }, []);
 
   const filteredCategories = CATEGORIES.filter(cat => 
     cat.toLowerCase().includes(catSearch.toLowerCase())
@@ -234,7 +268,7 @@ export default function Questions() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const filtered = QUESTION_FILES.filter(f => {
+  const filtered = filesList.filter(f => {
     const matchesSearch = f.title.includes(debouncedTerm) || f.category.includes(debouncedTerm);
     const matchesCategory = f.category === activeCategory;
     return matchesSearch && matchesCategory;
