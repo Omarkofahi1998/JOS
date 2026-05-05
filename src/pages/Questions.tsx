@@ -9,31 +9,36 @@ interface QnA {
 }
 
 const QUESTIONS: QnA[] = [
-  {
-    category: "الإدارة العامة",
-    question: "ما هي المبادئ الأساسية للخدمة المدنية؟",
-    answer: "تشمل الجدارة، التكافؤ في الفرص، النزاهة، الشركية، والمساءلة.",
-  },
-  {
-    category: "مهارات الحاسوب",
-    question: "ما هي وظيفة الـ RAM في جهاز الحاسوب؟",
-    answer: "هي ذاكرة الوصول العشوائي وتستخدم لتخزين البيانات المؤقتة التي يحتاجها المعالج أثناء التشغيل.",
-  },
-  {
-    category: "الثقافة الوطنية",
-    question: "متى استقلت المملكة الأردنية الهاشمية؟",
-    answer: "في الخامس والعشرين من أيار عام 1946م.",
-  },
-  {
-    category: "اللغة العربية",
-    question: "ما هي كان وأخواتها؟",
-    answer: "هي أفعال ناسخة تدخل على المبتدأ والخبر؛ فترفع المبتدأ ويسمى اسمها، وتنصب الخبر ويسمى خبرها.",
-  },
+  // مختبرات
+  { category: "مختبرات", question: "ما هو الدور الرئيسي للهيموجلوبين في جسم الإنسان؟", answer: "نقل الأكسجين من الرئتين إلى أنسجة الجسم ونقل ثاني أكسيد الكربون من الأنسجة إلى الرئتين." },
+  { category: "مختبرات", question: "ما هو الفرق بين مصل الدم (Serum) وبلازما الدم؟", answer: "البلازما تحتوي على عوامل التجلط (مثل الفيبرينوجين)، بينما المصل هو الجزء السائل المتبقي من الدم بعد حدوث التجلط (أي بلازما بدون عوامل تجلط)." },
+  
+  // تمريض
+  { category: "تمريض", question: "كيف يتم التعامل مع مريض يعاني من هبوط حاد في السكر؟", answer: "إذا كان واعياً، يتم إعطاؤه سوائل سكرية فوراً. إذا كان فاقداً للوعي، يتم تجنّب وضع أي شيء في فمه واستدعاء الطوارئ لإعطائه الجلوكوز وريدياً." },
+  
+  // قانون
+  { category: "قانون", question: "من هم أصحاب الحق في اقتراح القوانين في المملكة؟", answer: "مجلس الوزراء وكيلا مجلسي الأعيان والنواب (بما لا يقل عن عشرة أعضاء)." },
+  { category: "قانون", question: "ما هي المحكمة المختصة بالفصل في صحة نيابة أعضاء مجلس النواب؟", answer: "محكمة الاستئناف التي تقع الدائرة الانتخابية للمرشح ضمن اختصاصها." },
+  
+  // معلم صف
+  { category: "معلم صف", question: "ما هي الأهداف السلوكية (SMART)؟", answer: "هي أهداف يجب أن تكون محددة، قابلة للقياس، قابلة للتحقيق، واقعية، ومحددة بزمن." },
+
+  // إدارة عامة
+  { category: "الإدارة العامة", question: "ما هو نظام 'إسأل' في هيئة الخدمة والإدارة العامة؟", answer: "هو نظام إلكتروني مخصص لاستفسارات وشكاوي المتقدمين لطلبات التوظيف والنتائج." },
 ];
+
+const CATEGORIES = ["الكل", "مختبرات", "تمريض", "قانون", "معلم صف", "IT", "الإدارة العامة"];
 
 export default function Questions() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeCategory, setActiveCategory] = useState("الكل");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [catSearch, setCatSearch] = useState("");
   const location = useLocation();
+
+  const filteredCategories = CATEGORIES.filter(cat => 
+    cat.toLowerCase().includes(catSearch.toLowerCase())
+  );
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -55,9 +60,11 @@ export default function Questions() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const filtered = QUESTIONS.filter(q => 
-    q.question.includes(debouncedTerm) || q.answer.includes(debouncedTerm) || q.category.includes(debouncedTerm)
-  );
+  const filtered = QUESTIONS.filter(q => {
+    const matchesSearch = q.question.includes(debouncedTerm) || q.answer.includes(debouncedTerm) || q.category.includes(debouncedTerm);
+    const matchesCategory = activeCategory === "الكل" || q.category === activeCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-20">
@@ -85,6 +92,66 @@ export default function Questions() {
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
+
+      {/* Select Category (Specialty) Dropdown */}
+      <div className="max-w-md mx-auto mb-10 relative">
+        <label className="block text-sm font-bold text-slate-400 mb-2 mr-2">اختر التخصص:</label>
+        <button
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          className="w-full h-12 bg-white border border-slate-200 rounded-xl px-5 flex items-center justify-between shadow-sm hover:border-red-600 transition-all text-slate-800 font-bold"
+        >
+          {activeCategory}
+          <ChevronDown className={`w-5 h-5 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+        </button>
+
+        {isDropdownOpen && (
+          <div className="absolute top-full right-0 left-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl z-[100] overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-3 border-b border-slate-50 bg-slate-50/50">
+              <div className="relative">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="ابحث عن تخصص..."
+                  className="w-full h-10 pr-9 pl-4 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-red-600 transition-all"
+                  value={catSearch}
+                  onChange={(e) => setCatSearch(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+            </div>
+            <div className="max-h-60 overflow-y-auto">
+              {filteredCategories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => {
+                    setActiveCategory(cat);
+                    setIsDropdownOpen(false);
+                  }}
+                  className={`w-full p-4 text-right hover:bg-slate-50 transition-colors flex items-center justify-between ${
+                    activeCategory === cat ? 'bg-red-50 text-red-600 font-bold' : 'text-slate-600'
+                  }`}
+                >
+                  {cat}
+                  {activeCategory === cat && <div className="w-1.5 h-1.5 rounded-full bg-red-600" />}
+                </button>
+              ))}
+              {filteredCategories.length === 0 && (
+                <div className="p-8 text-center text-slate-400 text-sm italic">
+                  لا توجد تخصصات تطابق بحثك
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Backdrop for closing dropdown */}
+      {isDropdownOpen && (
+        <div 
+          className="fixed inset-0 z-[90]" 
+          onClick={() => setIsDropdownOpen(false)}
+        />
+      )}
 
       {/* List */}
       <div className="space-y-4">
