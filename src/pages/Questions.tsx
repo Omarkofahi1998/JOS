@@ -68,8 +68,8 @@ export default function Questions() {
             <Search className="w-5 h-5" />
           )}
         </div>
-        <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none z-20">
-          <div className="w-9 h-9 bg-red-600 rounded-lg flex items-center justify-center text-white font-black text-sm shadow-sm ring-2 ring-white">JO</div>
+        <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none z-20">
+          <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center text-white font-black text-sm shadow-lg shadow-red-600/20 ring-4 ring-white">JO</div>
         </div>
         <input
           type="text"

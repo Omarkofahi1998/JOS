@@ -6,11 +6,15 @@ import { motion, AnimatePresence } from "motion/react";
 function Logo() {
   return (
     <div className="flex items-center gap-2 group">
-      <div className="relative w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center shadow-lg shadow-red-600/20 group-hover:scale-110 transition-all duration-300">
-        <span className="text-white font-black text-xl tracking-tighter">JO</span>
-        <div className="absolute -top-1 -right-1 w-5 h-5 bg-white rounded-md shadow-sm flex items-center justify-center border border-slate-100">
-           <Sparkles className="w-3 h-3 text-red-600" />
+      <div className="relative w-14 h-14 bg-red-600 rounded-xl flex items-center justify-center shadow-xl shadow-red-600/30 group-hover:rotate-12 transition-all duration-500 overflow-hidden">
+        {/* Flag Stripes Decoration */}
+        <div className="absolute inset-0 flex flex-col">
+          <div className="h-1/3 bg-black/10" />
+          <div className="h-1/3 bg-white/10" />
+          <div className="h-1/3 bg-green-600/10" />
         </div>
+        <span className="text-white font-black text-2xl tracking-tighter relative z-10">JO</span>
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/20 to-transparent pointer-events-none" />
       </div>
     </div>
   );
@@ -38,8 +42,8 @@ export default function Layout({ children }: { children: ReactNode }) {
             <Link to="/" className="flex items-center gap-3">
               <Logo />
               <div className="hidden sm:block">
-                <span className="text-xl font-bold text-blue-900 block leading-tight">JO Students</span>
-                <span className="text-xs text-slate-500 font-medium tracking-wide">المنصة التعليمية للمتقدمين</span>
+                <span className="text-2xl font-black text-blue-900 block leading-tight tracking-tight italic">JO Students</span>
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">المنصة التعليمية الأولى</span>
               </div>
             </Link>
 
