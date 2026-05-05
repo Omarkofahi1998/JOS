@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Search, HelpCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, HelpCircle, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 interface QnA {
@@ -33,10 +33,21 @@ const QUESTIONS: QnA[] = [
 
 export default function Questions() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedTerm, setDebouncedTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
 
+  useEffect(() => {
+    setIsLoading(true);
+    const timer = setTimeout(() => {
+      setDebouncedTerm(searchTerm);
+      setIsLoading(false);
+    }, 500); // 500ms debounce
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   const filtered = QUESTIONS.filter(q => 
-    q.question.includes(searchTerm) || q.answer.includes(searchTerm) || q.category.includes(searchTerm)
+    q.question.includes(debouncedTerm) || q.answer.includes(debouncedTerm) || q.category.includes(debouncedTerm)
   );
 
   return (
@@ -51,15 +62,19 @@ export default function Questions() {
       {/* Search */}
       <div className="relative max-w-2xl mx-auto mb-16 group">
         <div className="absolute inset-y-0 right-6 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors z-20">
-          <Search className="w-5 h-5" />
+          {isLoading ? (
+            <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+          ) : (
+            <Search className="w-5 h-5" />
+          )}
         </div>
-        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none opacity-20 group-focus-within:opacity-100 transition-opacity z-20">
-          <div className="w-8 h-8 bg-blue-900 rounded-lg flex items-center justify-center text-white font-black text-xs">JO</div>
+        <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none z-20">
+          <div className="w-9 h-9 bg-red-600 rounded-lg flex items-center justify-center text-white font-black text-sm shadow-sm ring-2 ring-white">JO</div>
         </div>
         <input
           type="text"
           placeholder="ابحث عن سؤال أو كلمة مفتاحية..."
-          className="w-full h-18 pr-16 pl-14 rounded-2xl bg-white border border-slate-200 shadow-sm focus:outline-none focus:ring-8 focus:ring-blue-500/5 focus:border-blue-500 transition-all text-lg font-medium"
+          className="w-full h-18 pr-16 pl-16 rounded-2xl bg-white border border-slate-200 shadow-sm focus:outline-none focus:ring-8 focus:ring-blue-500/5 focus:border-blue-500 transition-all text-lg font-medium"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />

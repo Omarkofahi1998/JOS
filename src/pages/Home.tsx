@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { ArrowLeft, BookOpen, CheckCircle, Clock, Star, Users } from "lucide-react";
+import { ArrowLeft, BookOpen, CheckCircle, Clock, Star, Users, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function Home() {
@@ -46,10 +46,17 @@ export default function Home() {
       color: "bg-indigo-50",
     },
     {
-      title: "إرشاد مهني",
+      title: "خدمات مهنية",
+      desc: "تصميم سير ذاتية بنظام ATS، تدريب على المقابلات، واستشارات مهنية متخصصة.",
+      icon: <Sparkles className="w-8 h-8 text-purple-600" />,
+      path: "/services",
+      color: "bg-purple-50",
+    },
+    {
+      title: "إرشاد التوظيف",
       desc: "نصائح حول كيفية التعامل مع المقابلات الشخصية والاختبارات السيكومترية.",
       icon: <ArrowLeft className="w-8 h-8 text-slate-600" />,
-      path: "/reviews",
+      path: "/services",
       color: "bg-slate-50",
     },
   ];
@@ -57,40 +64,40 @@ export default function Home() {
   return (
     <div className="space-y-20 pb-20">
       {/* Hero Section */}
-      <section className="relative min-h-[500px] md:h-[700px] overflow-hidden flex items-center bg-white border-b border-slate-100 py-12 md:py-0">
+      <section className="relative min-h-[600px] md:h-[800px] overflow-hidden flex items-center bg-white border-b border-slate-100 py-12 md:py-0">
         {/* Background Image / Overlay */}
         <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-white/80 md:bg-white/60 z-10" />
+          <div className="absolute inset-0 bg-white/70 md:bg-white/40 z-10" />
           <img 
-            src="https://images.unsplash.com/photo-1517048676732-d65bc937f952?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80" 
+            src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80" 
             alt="Collaboration Context" 
-            className="w-full h-full object-cover grayscale opacity-20"
+            className="w-full h-full object-cover scale-110"
           />
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20 w-full">
-          <div className="max-w-2xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20 w-full mt-10 md:mt-0">
+          <div className="max-w-3xl">
             <motion.span
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-blue-100 text-blue-800 text-[10px] md:text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-6 inline-block"
+              className="bg-red-600 text-white text-[10px] md:text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-widest mb-6 inline-block shadow-lg shadow-red-600/20"
             >
-              مرحباً بك في البوابة التعليمية
+              المنصة رقم #1 للمتقدمين في الأردن
             </motion.span>
             <motion.h1
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="text-3xl md:text-6xl font-black leading-tight mb-6 md:mb-8 text-slate-900"
+              className="text-4xl md:text-7xl font-black leading-tight mb-6 md:mb-10 text-slate-900 drop-shadow-sm"
             >
-              طريقك مع <span className="text-blue-900 underline decoration-blue-200 underline-offset-8">JO Students</span> للتميز الحكومي
+              طريقك مع <span className="text-red-600">JO Students</span> <br className="hidden md:block" /> للتميز والنجاح الحكومي
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-base md:text-lg text-slate-600 mb-8 md:mb-10 leading-relaxed font-light"
+              className="text-lg md:text-xl text-slate-700 mb-8 md:mb-12 leading-relaxed font-medium md:max-w-2xl"
             >
-              نقدم لك كافة الأدوات والأسئلة التدريبية المعتمدة لضمان نجاحك في المسار المهني في الخدمة العامة من خلال منصة JO Students.
+              نوفر لك كافة الأدوات، الامتحانات التجريبية، والخدمات المهنية المتكاملة لضمان تفوقك في امتحان ديوان الخدمة (هيئة الخدمة العامة).
             </motion.p>
             <motion.div
               initial={{ opacity: 0, x: 20 }}
@@ -100,10 +107,16 @@ export default function Home() {
             >
               <Link
                 to="/mock-exams"
-                className="bg-blue-900 text-white px-8 py-4 rounded-lg font-bold text-center text-base md:text-lg hover:bg-blue-800 transition-all flex items-center justify-center gap-2 group shadow-lg shadow-blue-900/20"
+                className="bg-red-600 text-white px-8 py-5 rounded-xl font-bold text-center text-base md:text-lg hover:bg-slate-900 transition-all flex items-center justify-center gap-3 group shadow-xl shadow-red-600/30"
               >
-                دخول المتقدمين
-                <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                ابدأ رحلة النجاح الآن
+                <ArrowLeft className="w-5 h-5 group-hover:-translate-x-2 transition-transform" />
+              </Link>
+              <Link
+                to="/services"
+                className="bg-white/80 backdrop-blur-md border border-slate-200 text-slate-900 px-8 py-5 rounded-xl font-bold text-center text-base md:text-lg hover:bg-white transition-all shadow-lg"
+              >
+                استعرض خدماتنا المهنية
               </Link>
             </motion.div>
           </div>
