@@ -1,0 +1,34 @@
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Tajawal", ui-sans-serif, system-ui, sans-serif;
+  --color-primary: var(--color-blue-900);
+}
+
+@layer base {
+  html {
+    direction: rtl;
+    font-family: var(--font-sans);
+    background-color: var(--color-slate-50);
+    color: var(--color-slate-800);
+  }
+}
+
+.markdown-body {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Moving Jordan Flag Colors Background */
+@keyframes flag-gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animated-jordan-bg {
+  background: linear-gradient(-45deg, #00000022, #ffffff22, #007a3d22, #ce112622);
+  background-size: 400% 400%;
+  animation: flag-gradient 15s ease infinite;
+}
