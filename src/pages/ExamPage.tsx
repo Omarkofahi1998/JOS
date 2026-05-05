@@ -9,6 +9,7 @@ interface Question {
   options: string[];
   correct: number;
   major: string;
+  image?: string;
 }
 
 export default function ExamPage() {
@@ -268,9 +269,15 @@ export default function ExamPage() {
                   </div>
                 </div>
 
-                <h2 className="text-3xl font-bold text-slate-900 mb-16 leading-relaxed text-right md:pr-4 border-r-8 border-red-600">
+                <h2 className="text-3xl font-bold text-slate-900 mb-10 leading-relaxed text-right md:pr-4 border-r-8 border-red-600">
                   {q.text}
                 </h2>
+
+                {q.image && (
+                  <div className="mb-10 rounded-2xl overflow-hidden border border-slate-200 bg-slate-50">
+                    <img src={q.image} alt="Question Visual Context" className="w-full max-h-96 object-contain mx-auto shadow-inner" />
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 gap-5">
                   {q.options.map((opt, idx) => (

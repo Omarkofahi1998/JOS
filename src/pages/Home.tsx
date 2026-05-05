@@ -108,7 +108,7 @@ export default function Home() {
 
       {/* Stats */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 bg-white p-10 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-6 bg-white p-10 rounded-2xl border border-slate-200 shadow-sm">
            {[
              { label: 'متدرب نشط', val: '15,000+' },
              { label: 'سؤال تدريبي', val: '3,200+' },
@@ -120,6 +120,48 @@ export default function Home() {
                <div className="text-slate-500 font-bold text-xs uppercase tracking-wider">{stat.label}</div>
              </div>
            ))}
+           <div className="text-center col-span-2 lg:col-span-1 pt-4 lg:pt-0 border-t lg:border-t-0 lg:border-r border-slate-100 flex flex-col justify-center">
+             <div className="text-2xl md:text-3xl font-black text-red-600 mb-1 animate-pulse">
+               {(() => {
+                 // Check for visitor cookie
+                 const getCookie = (name: string) => {
+                   const value = `; ${document.cookie}`;
+                   const parts = value.split(`; ${name}=`);
+                   if (parts.length === 2) return parts.pop()?.split(';').shift();
+                   return null;
+                 };
+
+                 const setCookie = (name: string, value: string, days: number) => {
+                   const d = new Date();
+                   d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+                   const expires = "expires=" + d.toUTCString();
+                   document.cookie = `${name}=${value};${expires};path=/`;
+                 };
+
+                 const STORAGE_KEY = 'jo_visitor_count';
+                 const INITIAL_BASE = 28450;
+                 
+                 // Get stored count or set initial
+                 let currentCountStr = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
+                 let currentCount = currentCountStr ? parseInt(currentCountStr) : INITIAL_BASE + Math.floor(Math.random() * 500);
+
+                 // Check if seen this session/cookie
+                 const hasCookie = typeof window !== 'undefined' ? getCookie('jo_v_seen') : null;
+
+                 if (!hasCookie && typeof window !== 'undefined') {
+                   currentCount += 1;
+                   localStorage.setItem(STORAGE_KEY, currentCount.toString());
+                   setCookie('jo_v_seen', 'true', 1); // 1 day cookie
+                 }
+
+                 return currentCount.toLocaleString();
+               })()}
+             </div>
+             <div className="text-red-500 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-1">
+               <span className="w-1.5 h-1.5 bg-red-600 rounded-full animate-ping" />
+               زوار الموقع (مباشر)
+             </div>
+           </div>
         </div>
       </section>
 

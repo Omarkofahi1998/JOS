@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { FileUser, Settings, Briefcase, UserCheck, MessageSquare, Sparkles, ArrowLeft } from "lucide-react";
+import { FileUser, Settings, Briefcase, UserCheck, MessageSquare, Sparkles, ArrowLeft, Users, Send } from "lucide-react";
 
 const SERVICES = [
   {
@@ -105,6 +105,74 @@ export default function Services() {
               </button>
             </motion.div>
           ))}
+        </div>
+      </section>
+
+      {/* Join Us Section */}
+      <section className="bg-slate-50 py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div className="text-right">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 text-red-600 rounded-full text-sm font-black mb-6">
+                <Sparkles className="w-4 h-4" />
+                <span>فرصة للانضمام إلينا</span>
+              </div>
+              <h2 className="text-3xl md:text-5xl font-black text-slate-900 mb-6 leading-tight">
+                هل أنت معلم أو مدرب محترف؟ <br />
+                <span className="text-red-600">انضم إلى فريق الخبراء لدينا</span>
+              </h2>
+              <p className="text-slate-600 text-lg mb-8 leading-relaxed max-w-xl ml-auto">
+                نحن نبحث دائماً عن الكفاءات التدريبية المتميزة في جميع التخصصات الأردنية. إذا كنت تملك الخبرة والشغف لنقل المعرفة ومساعدة الأجيال القادمة، فنحن نرحب بك معنا.
+              </p>
+              
+              <div className="space-y-6 mb-10">
+                {[
+                  "إيصال معرفتك لآلاف الطلاب والباحثين عن العمل.",
+                  "منصة تقنية متطورة لتقديم محتواك التدريبي.",
+                  "بيئة عمل احترافية ومرنة تدعم الإبداع.",
+                  "فرصة للمساهمة في بناء بنوك الأسئلة التخصصية."
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-3 justify-end text-slate-700 font-bold">
+                    <span>{item}</span>
+                    <div className="w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center shrink-0">
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button className="bg-red-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-red-700 transition-all flex items-center gap-3 ml-auto shadow-lg shadow-red-600/20">
+                قدم طلب انضمام كمدرب
+                <Send className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="relative">
+              <div className="aspect-square bg-white rounded-[3rem] shadow-2xl overflow-hidden border-8 border-white group">
+                <img 
+                  src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=2070&auto=format&fit=crop" 
+                  alt="Join as a teacher" 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent flex items-end p-10">
+                  <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 w-full">
+                    <div className="flex items-center gap-4 text-white">
+                      <div className="w-12 h-12 bg-red-600 rounded-xl flex items-center justify-center">
+                        <Users className="w-6 h-6" />
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold">انضم لأكثر من 50 مدرب</div>
+                        <div className="text-white/60 text-sm">في مختلف التخصصات الأردنية</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {/* Floating Decoration */}
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-yellow-400 rounded-full mix-blend-multiply opacity-70 animate-blob" />
+              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-blue-400 rounded-full mix-blend-multiply opacity-70 animate-blob animation-delay-2000" />
+            </div>
+          </div>
         </div>
       </section>
 
