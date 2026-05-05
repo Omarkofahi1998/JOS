@@ -119,14 +119,14 @@ export default function MockExams() {
           <div className="flex flex-col gap-4">
             <button
               onClick={startExam}
-              className="bg-blue-900 text-white px-8 py-4 rounded-lg font-bold hover:bg-slate-900 transition-all flex items-center justify-center gap-2"
+              className="bg-red-600 text-white px-8 py-4 rounded-lg font-bold hover:bg-slate-900 transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-600/20"
             >
               <RotateCcw className="w-5 h-5" />
               إعادة المحاولة
             </button>
             <button
               onClick={() => setStarted(false)}
-              className="text-slate-500 font-bold hover:text-blue-900 transition-colors"
+              className="text-slate-500 font-bold hover:text-red-600 transition-colors"
             >
               العودة للرئيسية
             </button>
@@ -151,7 +151,7 @@ export default function MockExams() {
         </div>
         <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
           <div
-            className="h-full bg-blue-900 rounded-full"
+            className="h-full bg-red-600 rounded-full"
             style={{ width: `${((currentIdx + 1) / SAMPLE_QUESTIONS.length) * 100}%` }}
           />
         </div>
@@ -195,7 +195,11 @@ export default function MockExams() {
           <button
             onClick={next}
             disabled={answers[currentIdx] === undefined}
-            className="bg-blue-900 text-white px-10 py-4 rounded-lg font-bold hover:bg-slate-950 disabled:bg-slate-200 disabled:cursor-not-allowed transition-all flex items-center gap-2 group"
+            className={`px-10 py-4 rounded-lg font-bold transition-all flex items-center gap-2 group shadow-lg ${
+              currentIdx === SAMPLE_QUESTIONS.length - 1 
+                ? "bg-green-600 hover:bg-green-700 text-white shadow-green-600/20" 
+                : "bg-red-600 hover:bg-slate-900 text-white shadow-red-600/20"
+            } disabled:bg-slate-200 disabled:shadow-none disabled:cursor-not-allowed`}
           >
             {currentIdx === SAMPLE_QUESTIONS.length - 1 ? "إنهاء الامتحان" : "التالي"}
             <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />

@@ -99,7 +99,7 @@ export default function Services() {
               <p className="text-slate-600 leading-relaxed text-base mb-8">
                 {s.desc}
               </p>
-              <button className="flex items-center gap-2 text-blue-900 font-bold hover:gap-4 transition-all">
+              <button className="flex items-center gap-2 text-red-600 font-bold hover:gap-4 transition-all">
                 طلب الخدمة
                 <ArrowLeft className="w-5 h-5" />
               </button>
@@ -110,14 +110,14 @@ export default function Services() {
 
       {/* Info Banner */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-blue-600 rounded-3xl p-10 md:p-16 text-white flex flex-col md:flex-row items-center justify-between gap-10">
-          <div className="max-w-2xl">
+        <div className="bg-green-700 rounded-3xl p-10 md:p-16 text-white flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="max-w-2xl text-right">
             <h2 className="text-3xl font-bold mb-4">هل تحتاج إلى خدمة مخصصة؟</h2>
-            <p className="text-blue-100 text-lg">
+            <p className="text-green-50 text-lg">
               فريقنا من الخبراء جاهز لمساعدتك في أي استفسار يخص مسارك المهني أو امتحاناتك القادمة. تواصل معنا الآن للحصول على استشارة مجانية.
             </p>
           </div>
-          <button className="bg-white text-blue-600 px-10 py-5 rounded-xl font-bold text-lg hover:bg-slate-100 transition-all whitespace-nowrap shadow-xl">
+          <button className="bg-white text-green-700 px-10 py-5 rounded-xl font-bold text-lg hover:bg-slate-100 transition-all whitespace-nowrap shadow-xl">
             تواصل مع الخبراء
           </button>
         </div>

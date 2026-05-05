@@ -50,8 +50,12 @@ export default function Home() {
   return (
     <div className="space-y-20 pb-20 bg-slate-50">
       {/* Hero Section */}
-      <section className="relative h-[600px] flex items-center bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+      <section className="relative h-[600px] flex items-center bg-white border-b border-slate-200 overflow-hidden">
+        {/* Abstract National Colors Decoration */}
+        <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-red-600/5 to-transparent pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-1/3 h-full bg-gradient-to-r from-green-600/5 to-transparent pointer-events-none" />
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="text-right">
               <div className="flex items-center gap-2 mb-6 justify-end">
@@ -78,7 +82,7 @@ export default function Home() {
                 </Link>
                 <Link
                   to="/services"
-                  className="bg-white border-2 border-slate-200 text-slate-900 px-8 py-4 rounded-xl font-bold text-lg hover:border-red-600 transition-all"
+                  className="bg-green-700 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-green-800 transition-all shadow-lg shadow-green-700/10"
                 >
                   الخدمات المهنية
                 </Link>
@@ -159,8 +163,8 @@ export default function Home() {
             انضم إلى آلاف المتقدمين الناجحين وابدأ التدريب الآن مع بنك الأسئلة الأحدث والخدمات الأكثر احترافية.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/mock-exams" className="bg-red-600 text-white px-10 py-4 rounded-xl font-bold text-lg hover:bg-white hover:text-slate-900 transition-all">التسجيل في الامتحانات</Link>
-            <Link to="/services" className="bg-white/10 text-white border border-white/20 px-10 py-4 rounded-xl font-bold text-lg hover:bg-white/20 transition-all">تواصل معنا</Link>
+            <Link to="/mock-exams" className="bg-red-600 text-white px-10 py-4 rounded-xl font-bold text-lg hover:bg-white hover:text-slate-900 transition-all shadow-xl shadow-red-600/20">التسجيل في الامتحانات</Link>
+            <Link to="/services" className="bg-green-600 text-white px-10 py-4 rounded-xl font-bold text-lg hover:bg-white hover:text-slate-900 transition-all shadow-xl shadow-green-600/20">تواصل معنا</Link>
           </div>
         </div>
       </section>

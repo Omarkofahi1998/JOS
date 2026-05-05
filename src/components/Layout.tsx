@@ -1,22 +1,37 @@
-import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Home, BookOpen, HelpCircle, FileText, ExternalLink, Sparkles, ChevronDown } from "lucide-react";
-import { useState, ReactNode } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Menu, X, Home, BookOpen, HelpCircle, FileText, ExternalLink, Sparkles, ChevronDown, Search } from "lucide-react";
+import React, { useState, ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
 function Logo() {
   return (
-    <div className="flex items-center gap-2 group">
-      <div className="relative w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center shadow-md shadow-red-600/20">
-        <span className="text-white font-black text-lg tracking-tighter relative z-10">JO</span>
+    <motion.div 
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      className="flex items-center gap-2 group cursor-pointer"
+    >
+      <div className="relative w-9 h-9 bg-slate-900 rounded-lg flex items-center justify-center shadow-md overflow-hidden">
+        <div className="absolute inset-0 jordan-flag-gradient opacity-20" />
+        <span className="text-white font-bold text-base tracking-tighter relative z-10">JO</span>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
 export default function Layout({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/questions?search=${encodeURIComponent(searchQuery)}`);
+      setSearchQuery("");
+      setIsOpen(false);
+    }
+  };
 
   const navItems = [
     { name: "الرئيسية", path: "/", icon: <Home className="w-4 h-4" /> },
@@ -26,61 +41,60 @@ export default function Layout({ children }: { children: ReactNode }) {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800" dir="rtl">
+    <div className="min-h-screen flex flex-col font-sans text-slate-800 jordan-flag-gradient-soft" dir="rtl">
+      {/* National Identity Bar */}
+      <div className="h-1.5 w-full jordan-flag-accent sticky top-0 z-[60] shadow-sm" />
+      
       {/* Navbar */}
-      <nav className="bg-white border-b border-slate-200 sticky top-0 z-50">
+      <nav className="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-1.5 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
+          <div className="flex justify-between h-16 items-center gap-4">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2">
+            <Link to="/" className="flex items-center gap-2 shrink-0">
               <Logo />
-              <div className="hidden sm:block">
-                <span className="text-xl font-bold text-slate-900 block leading-tight">JO Students</span>
-                <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">المنصة التعليمية الأولى</span>
+              <div className="hidden lg:block">
+                <span className="text-lg font-bold text-slate-900 block leading-tight">JO Students</span>
               </div>
             </Link>
 
-            {/* Desktop Nav Dropdown */}
-            <div className="hidden md:flex items-center gap-6">
-              <div className="relative">
-                <button 
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center gap-2 bg-slate-900 text-white px-6 py-2 rounded-full font-bold hover:bg-red-600 transition-all shadow-lg shadow-slate-900/10"
-                >
-                  <Menu className="w-4 h-4" />
-                  اكتشف المنصة
-                  <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
+            {/* General Search Bar */}
+            <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-sm relative group">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-red-600 transition-colors" />
+              <input 
+                type="text" 
+                placeholder="ابحث هنا عن أسئلة أو مواضيع..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg pr-10 pl-4 py-2 text-sm focus:outline-none focus:border-red-600 focus:bg-white transition-all"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </form>
 
-                {isDropdownOpen && (
-                  <div
-                    onMouseLeave={() => setIsDropdownOpen(false)}
-                    className="absolute top-full right-0 mt-2 w-60 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50 overflow-hidden"
-                  >
-                    <div className="px-4 py-2 text-[10px] uppercase font-bold text-slate-400 tracking-widest border-b border-slate-50 mb-1">القائمة الرئيسية</div>
-                    {navItems.map((item) => (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        onClick={() => setIsDropdownOpen(false)}
-                        className={`flex items-center gap-3 px-4 py-2.5 text-sm font-bold transition-all hover:bg-slate-50 ${
-                          location.pathname === item.path ? "text-red-600 bg-red-50/50" : "text-slate-600"
-                        }`}
-                      >
-                        <span className={`${location.pathname === item.path ? "text-red-600" : "text-slate-400"}`}>
-                          {item.icon}
-                        </span>
-                        {item.name}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <Link to="/services" className="text-slate-600 font-bold hover:text-red-600 transition-colors">اتصل بنا</Link>
+            <div className="hidden md:flex items-center gap-1">
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all relative ${
+                    location.pathname === item.path ? "text-red-600" : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  <span className="relative z-10">{item.name}</span>
+                  {location.pathname === item.path && (
+                    <motion.div 
+                      layoutId="nav-active"
+                      className="absolute inset-0 bg-red-50 rounded-lg -z-0"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    />
+                  )}
+                  {location.pathname !== item.path && (
+                    <div className="absolute inset-0 bg-slate-100 opacity-0 hover:opacity-100 rounded-lg -z-0 transition-opacity" />
+                  )}
+                </Link>
+              ))}
             </div>
 
             {/* Mobile menu button */}
-            <div className="md:hidden">
+            <div className="md:hidden flex items-center gap-2">
               <button
                 onClick={() => setIsOpen(!isOpen)}
                 className="p-2 rounded-lg text-neutral-600 hover:bg-neutral-100 transition-colors"
@@ -95,22 +109,34 @@ export default function Layout({ children }: { children: ReactNode }) {
         {/* Mobile Nav */}
         {isOpen && (
           <div className="md:hidden border-t border-neutral-100 bg-white shadow-lg">
-            <div className="px-4 py-4 space-y-1">
-              {navItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setIsOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold ${
-                    location.pathname === item.path
-                      ? "bg-red-50 text-red-600"
-                      : "text-slate-600 hover:bg-slate-50"
-                  }`}
-                >
-                  {item.icon}
-                  {item.name}
-                </Link>
-              ))}
+            <div className="px-4 py-4 space-y-4">
+              <form onSubmit={handleSearch} className="relative group">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input 
+                  type="text" 
+                  placeholder="ابحث..."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg pr-10 pl-4 py-2 text-sm focus:outline-none"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </form>
+              <div className="space-y-1">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setIsOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold ${
+                      location.pathname === item.path
+                        ? "bg-red-50 text-red-600"
+                        : "text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    {item.icon}
+                    {item.name}
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
         )}

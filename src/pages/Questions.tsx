@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Search, HelpCircle, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 
 interface QnA {
@@ -32,6 +33,15 @@ const QUESTIONS: QnA[] = [
 
 export default function Questions() {
   const [searchTerm, setSearchTerm] = useState("");
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const query = params.get("search");
+    if (query) {
+      setSearchTerm(query);
+    }
+  }, [location.search]);
   const [debouncedTerm, setDebouncedTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
@@ -88,12 +98,12 @@ export default function Questions() {
               className="w-full p-6 text-right flex items-center justify-between group"
             >
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-red-50 group-hover:text-red-600 transition-colors">
                   <HelpCircle className="w-5 h-5" />
                 </div>
                 <div>
                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block mb-1">{item.category}</span>
-                  <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-snug">
+                  <h3 className="text-lg font-bold text-slate-900 group-hover:text-red-600 transition-colors leading-snug">
                     {item.question}
                   </h3>
                 </div>
@@ -108,7 +118,7 @@ export default function Questions() {
             {activeIdx === idx && (
               <div className="overflow-hidden">
                 <div className="px-6 pb-6 pr-20">
-                  <div className="p-6 bg-slate-50 rounded-2xl text-slate-600 leading-relaxed border-r-4 border-blue-900">
+                  <div className="p-6 bg-slate-50 rounded-2xl text-slate-600 leading-relaxed border-r-4 border-red-600">
                     {item.answer}
                   </div>
                 </div>

@@ -1,19 +1,43 @@
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Tajawal", ui-sans-serif, system-ui, sans-serif;
-  --color-primary: var(--color-blue-900);
 }
 
 @layer base {
-  html {
-    direction: rtl;
+  body {
     font-family: var(--font-sans);
-    background-color: var(--color-slate-50);
+    background-color: #fcfcfc;
+    /* Subtle national-themed background */
+    background-image: 
+      radial-gradient(circle at 2px 2px, rgba(0,0,0,0.03) 1px, transparent 0),
+      linear-gradient(135deg, rgba(206, 17, 38, 0.01) 0%, rgba(0, 122, 61, 0.01) 100%);
+    background-size: 32px 32px, 100% 100%;
     color: var(--color-slate-800);
     scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
   }
+}
+
+.jordan-flag-gradient-soft {
+  background: linear-gradient(135deg, 
+    rgba(0, 0, 0, 0.05) 0%, 
+    rgba(255, 255, 255, 0.8) 50%, 
+    rgba(0, 122, 61, 0.05) 100%
+  );
+}
+
+.jordan-flag-accent {
+  background: linear-gradient(to right, #000000, #ffffff, #007a3d);
+}
+
+.jordan-flag-gradient-horizontal {
+  background: linear-gradient(to right, 
+    #000000 0%, #000000 33.3%, 
+    #ffffff 33.3%, #ffffff 66.6%, 
+    #007a3d 66.6%, #007a3d 100%
+  );
 }
 
 .markdown-body {
