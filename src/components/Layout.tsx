@@ -6,15 +6,8 @@ import { motion, AnimatePresence } from "motion/react";
 function Logo() {
   return (
     <div className="flex items-center gap-2 group">
-      <div className="relative w-14 h-14 bg-red-600 rounded-xl flex items-center justify-center shadow-xl shadow-red-600/30 group-hover:rotate-12 transition-all duration-500 overflow-hidden">
-        {/* Flag Stripes Decoration */}
-        <div className="absolute inset-0 flex flex-col">
-          <div className="h-1/3 bg-black/10" />
-          <div className="h-1/3 bg-white/10" />
-          <div className="h-1/3 bg-green-600/10" />
-        </div>
-        <span className="text-white font-black text-2xl tracking-tighter relative z-10">JO</span>
-        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/20 to-transparent pointer-events-none" />
+      <div className="relative w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center shadow-md shadow-red-600/20">
+        <span className="text-white font-black text-lg tracking-tighter relative z-10">JO</span>
       </div>
     </div>
   );
@@ -26,25 +19,24 @@ export default function Layout({ children }: { children: ReactNode }) {
   const location = useLocation();
 
   const navItems = [
-    { name: "الرئيسية", path: "/", icon: <Home className="w-5 h-5" /> },
-    { name: "امتحانات تجريبية", path: "/mock-exams", icon: <BookOpen className="w-5 h-5" /> },
-    { name: "اسئلة شاملة", path: "/questions", icon: <HelpCircle className="w-5 h-5" /> },
-    { name: "مراجعات شاملة", path: "/reviews", icon: <FileText className="w-5 h-5" /> },
-    { name: "خدماتنا", path: "/services", icon: <Sparkles className="w-5 h-5" /> },
+    { name: "الرئيسية", path: "/", icon: <Home className="w-4 h-4" /> },
+    { name: "امتحانات تجريبية", path: "/mock-exams", icon: <BookOpen className="w-4 h-4" /> },
+    { name: "بنك الأسئلة", path: "/questions", icon: <HelpCircle className="w-4 h-4" /> },
+    { name: "خدماتنا المهنية", path: "/services", icon: <Sparkles className="w-4 h-4" /> },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800 animated-jordan-bg" dir="rtl">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800" dir="rtl">
       {/* Navbar */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-50">
+      <nav className="bg-white border-b border-slate-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-20 items-center">
+          <div className="flex justify-between h-16 items-center">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-3">
+            <Link to="/" className="flex items-center gap-2">
               <Logo />
               <div className="hidden sm:block">
-                <span className="text-2xl font-black text-blue-900 block leading-tight tracking-tight italic">JO Students</span>
-                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">المنصة التعليمية الأولى</span>
+                <span className="text-xl font-bold text-slate-900 block leading-tight">JO Students</span>
+                <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">المنصة التعليمية الأولى</span>
               </div>
             </Link>
 
@@ -52,42 +44,37 @@ export default function Layout({ children }: { children: ReactNode }) {
             <div className="hidden md:flex items-center gap-6">
               <div className="relative">
                 <button 
-                  onMouseEnter={() => setIsDropdownOpen(true)}
-                  className="flex items-center gap-2 bg-slate-900 text-white px-6 py-2.5 rounded-full font-bold hover:bg-red-600 transition-all shadow-lg shadow-slate-900/10"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="flex items-center gap-2 bg-slate-900 text-white px-6 py-2 rounded-full font-bold hover:bg-red-600 transition-all shadow-lg shadow-slate-900/10"
                 >
-                  <Menu className="w-5 h-5" />
+                  <Menu className="w-4 h-4" />
                   اكتشف المنصة
-                  <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
 
-                <AnimatePresence>
-                  {isDropdownOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      onMouseLeave={() => setIsDropdownOpen(false)}
-                      className="absolute top-full right-0 mt-3 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 py-3 z-50 overflow-hidden"
-                    >
-                      <div className="px-4 py-2 text-[10px] uppercase font-bold text-slate-400 tracking-widest border-b border-slate-50 mb-2">القائمة الرئيسية</div>
-                      {navItems.map((item) => (
-                        <Link
-                          key={item.path}
-                          to={item.path}
-                          onClick={() => setIsDropdownOpen(false)}
-                          className={`flex items-center gap-4 px-5 py-3.5 text-sm font-bold transition-all hover:bg-slate-50 ${
-                            location.pathname === item.path ? "text-red-600 bg-red-50/50" : "text-slate-600"
-                          }`}
-                        >
-                          <span className={`${location.pathname === item.path ? "text-red-600" : "text-slate-400"}`}>
-                            {item.icon}
-                          </span>
-                          {item.name}
-                        </Link>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {isDropdownOpen && (
+                  <div
+                    onMouseLeave={() => setIsDropdownOpen(false)}
+                    className="absolute top-full right-0 mt-2 w-60 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50 overflow-hidden"
+                  >
+                    <div className="px-4 py-2 text-[10px] uppercase font-bold text-slate-400 tracking-widest border-b border-slate-50 mb-1">القائمة الرئيسية</div>
+                    {navItems.map((item) => (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        onClick={() => setIsDropdownOpen(false)}
+                        className={`flex items-center gap-3 px-4 py-2.5 text-sm font-bold transition-all hover:bg-slate-50 ${
+                          location.pathname === item.path ? "text-red-600 bg-red-50/50" : "text-slate-600"
+                        }`}
+                      >
+                        <span className={`${location.pathname === item.path ? "text-red-600" : "text-slate-400"}`}>
+                          {item.icon}
+                        </span>
+                        {item.name}
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
               <Link to="/services" className="text-slate-600 font-bold hover:text-red-600 transition-colors">اتصل بنا</Link>
             </div>
@@ -106,49 +93,32 @@ export default function Layout({ children }: { children: ReactNode }) {
         </div>
 
         {/* Mobile Nav */}
-        <AnimatePresence>
-          {isOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="md:hidden border-t border-neutral-100 bg-white overflow-hidden"
-            >
-              <div className="px-4 py-4 space-y-2">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setIsOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium ${
-                      location.pathname === item.path
-                        ? "bg-blue-50 text-blue-900"
-                        : "text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    {item.icon}
-                    {item.name}
-                  </Link>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {isOpen && (
+          <div className="md:hidden border-t border-neutral-100 bg-white shadow-lg">
+            <div className="px-4 py-4 space-y-1">
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setIsOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold ${
+                    location.pathname === item.path
+                      ? "bg-red-50 text-red-600"
+                      : "text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {item.icon}
+                  {item.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Content */}
       <main className="flex-grow">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            {children}
-          </motion.div>
-        </AnimatePresence>
+        {children}
       </main>
 
       {/* Footer */}

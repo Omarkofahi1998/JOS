@@ -29,7 +29,5 @@
 }
 
 .animated-jordan-bg {
-  background: linear-gradient(-45deg, #00000022, #ffffff22, #007a3d22, #ce112622);
-  background-size: 400% 400%;
-  animation: flag-gradient 15s ease infinite;
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
 }

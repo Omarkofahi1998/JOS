@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, ArrowRight, CheckCircle2, Clock, RotateCcw, Trophy } from "lucide-react";
 
 interface Question {
@@ -68,26 +67,26 @@ export default function MockExams() {
   if (!started) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-20 text-center">
-        <div className="w-20 h-20 bg-blue-100 rounded-3xl flex items-center justify-center text-blue-900 mx-auto mb-8">
-          <Clock className="w-10 h-10" />
+        <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-900 mx-auto mb-6">
+          <Clock className="w-8 h-8" />
         </div>
-        <h1 className="text-4xl font-black text-slate-900 mb-6">الامتحانات التجريبية</h1>
-        <p className="text-slate-500 mb-10 leading-relaxed text-lg">
-          ابدأ تجربة الامتحان التنافسي. يتكون هذا النموذج من اسئلة تحاكي النمط الحقيقي للامتحانات التي تجريها الهيئة.
+        <h1 className="text-3xl font-black text-slate-900 mb-4">الامتحانات التجريبية</h1>
+        <p className="text-slate-500 mb-8 leading-relaxed">
+          ابدأ تجربة الامتحان التنافسي. يتكون هذا النموذج من اسئلة تحاكي النمط الحقيقي للامتحانات.
         </p>
-        <div className="grid grid-cols-2 gap-4 mb-10">
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 text-right">
-            <h3 className="font-bold text-slate-900 mb-1">المدة</h3>
-            <p className="text-slate-500 text-sm">60 دقيقة</p>
+        <div className="grid grid-cols-2 gap-4 mb-8">
+          <div className="bg-white p-5 rounded-xl border border-slate-200 text-right">
+            <h3 className="font-bold text-slate-900 mb-1 text-sm">المدة</h3>
+            <p className="text-slate-500 text-xs text-left">60 دقيقة</p>
           </div>
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 text-right">
-            <h3 className="font-bold text-slate-900 mb-1">عدد الأسئلة</h3>
-            <p className="text-slate-500 text-sm">30 سؤال</p>
+          <div className="bg-white p-5 rounded-xl border border-slate-200 text-right">
+            <h3 className="font-bold text-slate-900 mb-1 text-sm">عدد الأسئلة</h3>
+            <p className="text-slate-500 text-xs text-left">30 سؤال</p>
           </div>
         </div>
         <button
           onClick={startExam}
-          className="bg-blue-900 text-white px-10 py-5 rounded-lg font-bold text-xl hover:bg-slate-900 transition-all shadow-xl shadow-blue-900/20"
+          className="bg-red-600 text-white px-8 py-3 rounded-lg font-bold text-lg hover:bg-slate-900 transition-all shadow-lg shadow-red-600/20"
         >
           ابدأ الامتحان الآن
         </button>
@@ -98,11 +97,7 @@ export default function MockExams() {
   if (finished) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-20 text-center">
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="bg-white p-12 rounded-[2rem] border border-slate-200 shadow-sm"
-        >
+        <div className="bg-white p-12 rounded-[2rem] border border-slate-200 shadow-sm">
           <div className="w-24 h-24 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 mx-auto mb-8">
             <Trophy className="w-12 h-12" />
           </div>
@@ -136,7 +131,7 @@ export default function MockExams() {
               العودة للرئيسية
             </button>
           </div>
-        </motion.div>
+        </div>
       </div>
     );
   }
@@ -155,10 +150,9 @@ export default function MockExams() {
           <span className="text-blue-900 font-mono font-bold">{Math.round(((currentIdx + 1) / SAMPLE_QUESTIONS.length) * 100)}%</span>
         </div>
         <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${((currentIdx + 1) / SAMPLE_QUESTIONS.length) * 100}%` }}
+          <div
             className="h-full bg-blue-900 rounded-full"
+            style={{ width: `${((currentIdx + 1) / SAMPLE_QUESTIONS.length) * 100}%` }}
           />
         </div>
       </div>

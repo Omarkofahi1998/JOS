@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Search, HelpCircle, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
 
 interface QnA {
   question: string;
@@ -60,25 +59,21 @@ export default function Questions() {
       </div>
 
       {/* Search */}
-      <div className="relative max-w-2xl mx-auto mb-16 group">
-        <div className="absolute inset-y-0 right-6 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors z-20">
+      <div className="relative max-w-2xl mx-auto mb-12">
+        <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none text-slate-400">
           {isLoading ? (
-            <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+            <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
             <Search className="w-5 h-5" />
           )}
         </div>
-        <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none z-20">
-          <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center text-white font-black text-sm shadow-lg shadow-red-600/20 ring-4 ring-white">JO</div>
-        </div>
         <input
           type="text"
           placeholder="ابحث عن سؤال أو كلمة مفتاحية..."
-          className="w-full h-18 pr-16 pl-16 rounded-2xl bg-white border border-slate-200 shadow-sm focus:outline-none focus:ring-8 focus:ring-blue-500/5 focus:border-blue-500 transition-all text-lg font-medium"
+          className="w-full h-14 pr-14 pl-6 rounded-xl bg-white border border-slate-200 shadow-sm focus:outline-none focus:border-red-600 transition-all text-base font-medium"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-        <div className="absolute -top-12 -right-8 w-16 h-16 bg-blue-50 rounded-full blur-2xl -z-10 group-focus-within:bg-blue-100 transition-colors" />
       </div>
 
       {/* List */}
@@ -110,22 +105,15 @@ export default function Questions() {
               )}
             </button>
 
-            <AnimatePresence>
-              {activeIdx === idx && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="overflow-hidden"
-                >
-                  <div className="px-6 pb-6 pr-20">
-                    <div className="p-6 bg-slate-50 rounded-2xl text-slate-600 leading-relaxed border-r-4 border-blue-900">
-                      {item.answer}
-                    </div>
+            {activeIdx === idx && (
+              <div className="overflow-hidden">
+                <div className="px-6 pb-6 pr-20">
+                  <div className="p-6 bg-slate-50 rounded-2xl text-slate-600 leading-relaxed border-r-4 border-blue-900">
+                    {item.answer}
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                </div>
+              </div>
+            )}
           </div>
         ))}
         {filtered.length === 0 && (
