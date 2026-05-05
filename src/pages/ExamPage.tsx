@@ -22,9 +22,9 @@ export default function ExamPage() {
   const [timeLeft, setTimeLeft] = useState(1800); // 30 minutes
   const [securityAlert, setSecurityAlert] = useState(false);
 
-  // Initialize Exam from session storage
+  // Initialize Exam from local storage
   useEffect(() => {
-    const rawData = sessionStorage.getItem("current_exam");
+    const rawData = localStorage.getItem("current_exam");
     if (!rawData) {
       window.location.href = "/#/mock-exams";
       return;
@@ -34,6 +34,8 @@ export default function ExamPage() {
       const data = JSON.parse(rawData);
       setQuestions(data.questions);
       setSelectedMajors(data.majors);
+      // Optional: Clear after loading for "security" (one-time use data)
+      // localStorage.removeItem("current_exam"); 
     } catch (e) {
       window.location.href = "/#/mock-exams";
     }
