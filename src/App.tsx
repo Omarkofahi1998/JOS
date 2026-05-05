@@ -6,6 +6,8 @@ import Questions from "./pages/Questions";
 import Reviews from "./pages/Reviews";
 import Services from "./pages/Services";
 import ExamPage from "./pages/ExamPage";
+import AdminLogin from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
 
 export default function App() {
   return (
@@ -23,6 +25,8 @@ export default function App() {
               <Route path="/questions" element={<Questions />} />
               <Route path="/reviews" element={<Reviews />} />
               <Route path="/services" element={<Services />} />
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
             </Routes>
           </Layout>
         } />
