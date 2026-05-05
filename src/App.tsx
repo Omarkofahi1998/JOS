@@ -4,6 +4,7 @@ import Home from "./pages/Home";
 import MockExams from "./pages/MockExams";
 import Questions from "./pages/Questions";
 import Reviews from "./pages/Reviews";
+import Services from "./pages/Services";
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
           <Route path="/mock-exams" element={<MockExams />} />
           <Route path="/questions" element={<Questions />} />
           <Route path="/reviews" element={<Reviews />} />
+          <Route path="/services" element={<Services />} />
         </Routes>
       </Layout>
     </Router>

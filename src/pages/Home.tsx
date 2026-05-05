@@ -12,32 +12,63 @@ export default function Home() {
   const features = [
     {
       title: "امتحانات تجريبية",
-      desc: "حاكي بيئة الامتحان الحقيقي بتوقيت محدد ونظام تصحيح فوري.",
+      desc: "حاكي بيئة الامتحان الحقيقي بتوقيت محدد ونظام تصحيح فوري لتقييم مستواك.",
       icon: <BookOpen className="w-8 h-8 text-blue-900" />,
       path: "/mock-exams",
       color: "bg-blue-50",
     },
     {
+      title: "تنبيهات المواعيد",
+      desc: "خدمة إشعار المتقدمين فور صدور مواعيد الامتحانات أو أسماء المدعوين للمقابلات.",
+      icon: <Clock className="w-8 h-8 text-red-600" />,
+      path: "/",
+      color: "bg-red-50",
+    },
+    {
       title: "اسئلة شاملة",
-      desc: "بنك اسئلة ضخم يغطي كافة التخصصات والمهارات المطلوبة.",
+      desc: "بنك اسئلة ضخم يغطي كافة التخصصات والمهارات المطلوبة للامتحانات التنافسية.",
       icon: <Star className="w-8 h-8 text-green-600" />,
       path: "/questions",
       color: "bg-green-50",
     },
     {
       title: "مراجعات وملخصات",
-      desc: "ملخصات مركزة تساعدك على مراجعة الأساسيات بسرعة.",
+      desc: "ملخصات مركزة تساعدك على مراجعة المواد الأساسية بسرعة وكفاءة.",
       icon: <CheckCircle className="w-8 h-8 text-amber-600" />,
       path: "/reviews",
       color: "bg-amber-50",
+    },
+    {
+      title: "تحليل النتائج",
+      desc: "احصل على تقرير مفصل لنقاط القوة والضعف لديك بعد كل امتحان تجريبي.",
+      icon: <Users className="w-8 h-8 text-indigo-600" />,
+      path: "/mock-exams",
+      color: "bg-indigo-50",
+    },
+    {
+      title: "إرشاد مهني",
+      desc: "نصائح حول كيفية التعامل مع المقابلات الشخصية والاختبارات السيكومترية.",
+      icon: <ArrowLeft className="w-8 h-8 text-slate-600" />,
+      path: "/reviews",
+      color: "bg-slate-50",
     },
   ];
 
   return (
     <div className="space-y-20 pb-20">
       {/* Hero Section */}
-      <section className="relative min-h-[500px] md:h-[600px] overflow-hidden flex items-center bg-white border-b border-slate-100 py-12 md:py-0">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
+      <section className="relative min-h-[500px] md:h-[700px] overflow-hidden flex items-center bg-white border-b border-slate-100 py-12 md:py-0">
+        {/* Background Image / Overlay */}
+        <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 bg-white/80 md:bg-white/60 z-10" />
+          <img 
+            src="https://images.unsplash.com/photo-1517048676732-d65bc937f952?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80" 
+            alt="Collaboration Context" 
+            className="w-full h-full object-cover grayscale opacity-20"
+          />
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20 w-full">
           <div className="max-w-2xl">
             <motion.span
               initial={{ opacity: 0, y: 10 }}
@@ -74,14 +105,6 @@ export default function Home() {
                 دخول المتقدمين
                 <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
               </Link>
-              <a
-                href="https://applyjobs.spac.gov.jo/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-white border border-slate-200 text-slate-600 px-8 py-4 rounded-lg font-bold text-center text-base md:text-lg hover:bg-slate-50 transition-all"
-              >
-                نظام الاستقطاب
-              </a>
             </motion.div>
           </div>
         </div>

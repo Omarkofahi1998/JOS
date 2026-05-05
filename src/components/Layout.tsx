@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Home, BookOpen, HelpCircle, FileText, ExternalLink } from "lucide-react";
+import { Menu, X, Home, BookOpen, HelpCircle, FileText, ExternalLink, Sparkles } from "lucide-react";
 import { useState, ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -25,6 +25,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     { name: "امتحانات تجريبية", path: "/mock-exams", icon: <BookOpen className="w-5 h-5" /> },
     { name: "اسئلة شاملة", path: "/questions", icon: <HelpCircle className="w-5 h-5" /> },
     { name: "مراجعات شاملة", path: "/reviews", icon: <FileText className="w-5 h-5" /> },
+    { name: "خدماتنا", path: "/services", icon: <Sparkles className="w-5 h-5" /> },
   ];
 
   return (
@@ -183,7 +184,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             </div>
           </div>
           <div className="mt-8 text-center text-slate-500 text-xs">
-            © {new Date().getFullYear()} هيئة الخدمة والادارة العامة. جميع الحقوق محفوظة.
+            © {new Date().getFullYear()} JO Students. جميع الحقوق محفوظة.
           </div>
         </div>
       </footer>
