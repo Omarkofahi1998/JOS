@@ -69,15 +69,28 @@ export default function Services() {
 
       {/* Services Grid */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-wrap gap-4 mb-16 justify-center">
+          {SERVICES.map((s, i) => (
+            <a 
+              key={i} 
+              href={`#service-${i}`}
+              className="px-6 py-3 bg-white border border-slate-200 rounded-full text-sm font-bold hover:border-red-600 hover:text-red-600 transition-all shadow-sm"
+            >
+              {s.title}
+            </a>
+          ))}
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {SERVICES.map((s, i) => (
             <motion.div
               key={i}
+              id={`service-${i}`}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="group bg-white p-10 rounded-2xl border border-slate-200 hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-900/5 transition-all text-right relative overflow-hidden"
+              className="group bg-white p-10 rounded-2xl border border-slate-200 hover:border-blue-200 hover:shadow-2xl hover:shadow-blue-900/5 transition-all text-right relative overflow-hidden scroll-mt-24"
             >
               <div className={`w-20 h-20 ${s.color} rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform`}>
                 {s.icon}

@@ -3,31 +3,40 @@ import { ArrowLeft, BookOpen, CheckCircle, Clock, Star, Users, Sparkles } from "
 import { Link } from "react-router-dom";
 
 export default function Home() {
-  const stats = [
-    { label: "متقدم مسجل", value: "+15,000", icon: <Users className="w-5 h-5" /> },
-    { label: "سؤال تدريبي", value: "+2,500", icon: <CheckCircle className="w-5 h-5" /> },
-    { label: "ساعة مراجعة", value: "+500", icon: <Clock className="w-5 h-5" /> },
-  ];
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+  };
 
   const features = [
     {
       title: "امتحانات تجريبية",
       desc: "حاكي بيئة الامتحان الحقيقي بتوقيت محدد ونظام تصحيح فوري لتقييم مستواك.",
-      icon: <BookOpen className="w-8 h-8 text-blue-900" />,
+      icon: <BookOpen className="w-8 h-8 text-red-600" />,
       path: "/mock-exams",
-      color: "bg-blue-50",
+      color: "bg-red-50",
     },
     {
       title: "تنبيهات المواعيد",
       desc: "خدمة إشعار المتقدمين فور صدور مواعيد الامتحانات أو أسماء المدعوين للمقابلات.",
-      icon: <Clock className="w-8 h-8 text-red-600" />,
+      icon: <Clock className="w-8 h-8 text-blue-600" />,
       path: "/",
-      color: "bg-red-50",
+      color: "bg-blue-50",
     },
     {
       title: "اسئلة شاملة",
       desc: "بنك اسئلة ضخم يغطي كافة التخصصات والمهارات المطلوبة للامتحانات التنافسية.",
-      icon: <Star className="w-8 h-8 text-green-600" />,
+      icon: <Star className="w-8 h-8 text-emerald-600" />,
       path: "/questions",
       color: "bg-green-50",
     },
@@ -52,145 +61,193 @@ export default function Home() {
       path: "/services",
       color: "bg-purple-50",
     },
-    {
-      title: "إرشاد التوظيف",
-      desc: "نصائح حول كيفية التعامل مع المقابلات الشخصية والاختبارات السيكومترية.",
-      icon: <ArrowLeft className="w-8 h-8 text-slate-600" />,
-      path: "/services",
-      color: "bg-slate-50",
-    },
   ];
 
   return (
-    <div className="space-y-20 pb-20">
+    <div className="space-y-24 pb-20 overflow-hidden">
       {/* Hero Section */}
-      <section className="relative min-h-[600px] md:h-[800px] overflow-hidden flex items-center bg-white border-b border-slate-100 py-12 md:py-0">
+      <section className="relative min-h-[600px] md:h-[850px] overflow-hidden flex items-center bg-white border-b border-slate-100 py-12 md:py-0">
+        {/* Animated Background Shapes */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <motion.div 
+            animate={{ 
+              scale: [1, 1.2, 1], 
+              rotate: [0, 90, 0],
+              x: [0, 50, 0],
+              y: [0, 30, 0] 
+            }}
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            className="absolute -top-20 -right-20 w-96 h-96 bg-red-100 rounded-full blur-[100px] opacity-40" 
+          />
+          <motion.div 
+            animate={{ 
+              scale: [1, 1.1, 1],
+              x: [0, -40, 0],
+              y: [0, -60, 0]
+            }}
+            transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+            className="absolute -bottom-20 -left-20 w-96 h-96 bg-blue-100 rounded-full blur-[100px] opacity-40" 
+          />
+        </div>
+
         {/* Background Image / Overlay */}
         <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-white/70 md:bg-white/40 z-10" />
+          <div className="absolute inset-0 bg-white/60 md:bg-white/20 z-10" />
           <img 
-            src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80" 
+            src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80" 
             alt="Collaboration Context" 
-            className="w-full h-full object-cover scale-110"
+            className="w-full h-full object-cover grayscale opacity-10"
           />
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20 w-full mt-10 md:mt-0">
           <div className="max-w-3xl">
-            <motion.span
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-red-600 text-white text-[10px] md:text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-widest mb-6 inline-block shadow-lg shadow-red-600/20"
+              className="flex items-center gap-3 mb-8"
             >
-              المنصة رقم #1 للمتقدمين في الأردن
-            </motion.span>
+              <span className="bg-red-600 text-white text-[10px] md:text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-widest shadow-lg shadow-red-600/20">
+                المنصة رقم #1 للمتقدمين في الأردن
+              </span>
+              <div className="w-2 h-2 bg-red-600 rounded-full animate-ping" />
+            </motion.div>
+
             <motion.h1
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="text-4xl md:text-7xl font-black leading-tight mb-6 md:mb-10 text-slate-900 drop-shadow-sm"
+              transition={{ delay: 0.1 }}
+              className="text-5xl md:text-8xl font-black leading-[1.1] mb-8 text-slate-900 drop-shadow-sm"
             >
-              طريقك مع <span className="text-red-600">JO Students</span> <br className="hidden md:block" /> للتميز والنجاح الحكومي
+              طريقك مع <span className="text-red-600">JO Students</span> <br className="hidden md:block" /> للتميز <span className="relative inline-block">الحكومي<div className="absolute bottom-4 left-0 w-full h-4 bg-red-600/10 -z-10" /></span>
             </motion.h1>
+
             <motion.p
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-              className="text-lg md:text-xl text-slate-700 mb-8 md:mb-12 leading-relaxed font-medium md:max-w-2xl"
+              transition={{ delay: 0.2 }}
+              className="text-lg md:text-2xl text-slate-700 mb-10 md:mb-14 leading-relaxed font-medium md:max-w-2xl px-2"
             >
-              نوفر لك كافة الأدوات، الامتحانات التجريبية، والخدمات المهنية المتكاملة لضمان تفوقك في امتحان ديوان الخدمة (هيئة الخدمة العامة).
+              نحن لسنا مجرد منصة، نحن رفيقك المهني. نوفر لك الأمان المعرفي من خلال امتحانات محاكاة وخدمات مهنية متكاملة.
             </motion.p>
+
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              className="flex flex-col sm:flex-row flex-wrap gap-4"
+              transition={{ delay: 0.3 }}
+              className="flex flex-col sm:flex-row flex-wrap gap-5"
             >
               <Link
                 to="/mock-exams"
-                className="bg-red-600 text-white px-8 py-5 rounded-xl font-bold text-center text-base md:text-lg hover:bg-slate-900 transition-all flex items-center justify-center gap-3 group shadow-xl shadow-red-600/30"
+                className="bg-slate-900 text-white px-10 py-5 rounded-2xl font-bold text-center text-lg md:text-xl hover:bg-red-600 transition-all flex items-center justify-center gap-4 group shadow-2xl shadow-slate-900/20"
               >
-                ابدأ رحلة النجاح الآن
-                <ArrowLeft className="w-5 h-5 group-hover:-translate-x-2 transition-transform" />
+                دخول بوابة التدريب
+                <ArrowLeft className="w-6 h-6 group-hover:-translate-x-2 transition-transform" />
               </Link>
               <Link
                 to="/services"
-                className="bg-white/80 backdrop-blur-md border border-slate-200 text-slate-900 px-8 py-5 rounded-xl font-bold text-center text-base md:text-lg hover:bg-white transition-all shadow-lg"
+                className="bg-white border-2 border-slate-200 text-slate-900 px-10 py-5 rounded-2xl font-bold text-center text-lg md:text-xl hover:border-red-600 hover:text-red-600 transition-all shadow-sm"
               >
-                استعرض خدماتنا المهنية
+                استكشف الخدمات المهنية
               </Link>
             </motion.div>
           </div>
         </div>
-        {/* Background Decoration */}
-        <div className="absolute left-[-10%] top-[-20%] w-[600px] h-[600px] bg-blue-50/50 rounded-full blur-[100px] -z-10" />
-        <div className="absolute right-[60%] bottom-0 w-[400px] h-[400px] bg-slate-100 rounded-full blur-[80px] -z-10" />
       </section>
 
-      {/* Stats */}
+      {/* Stats Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-200 flex flex-wrap justify-center md:justify-between gap-12">
-          {stats.map((stat, i) => (
-            <div key={i} className="flex items-center gap-5">
-              <div className="w-14 h-14 bg-slate-50 rounded-xl flex items-center justify-center text-blue-900 ring-1 ring-slate-100">
-                {stat.icon}
-              </div>
-              <div>
-                <div className="text-3xl font-black text-slate-900">{stat.value}</div>
-                <div className="text-sm text-slate-500 font-medium">{stat.label}</div>
-              </div>
-            </div>
-          ))}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 bg-white p-12 rounded-3xl border border-slate-100 shadow-xl shadow-slate-900/5 items-center">
+           {[
+             { label: 'طالب متدرب', val: '15K+' },
+             { label: 'سؤال معتمد', val: '2500+' },
+             { label: 'نسبة النجاح', val: '92%' },
+             { label: 'خدمة مهنية', val: '12' }
+           ].map((stat, i) => (
+             <motion.div 
+               key={i}
+               initial={{ opacity: 0, scale: 0.5 }}
+               whileInView={{ opacity: 1, scale: 1 }}
+               viewport={{ once: true }}
+               className="text-center"
+             >
+               <div className="text-3xl md:text-5xl font-black text-red-600 mb-2">{stat.val}</div>
+               <div className="text-slate-500 font-bold text-sm uppercase tracking-widest">{stat.label}</div>
+             </motion.div>
+           ))}
         </div>
       </section>
 
       {/* Features Grid */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-2xl mx-auto mb-16">
-          <h2 className="text-3xl font-bold text-slate-900 mb-4">ماذا نوفر لك؟</h2>
-          <p className="text-slate-500">مجموعة من الأدوات التعليمية المصممة خصيصاً لتناسب نمط امتحانات هيئة الخدمة والإدارة العامة.</p>
+        <div className="text-center mb-16">
+          <motion.h2 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-3xl md:text-5xl font-black text-slate-900 mb-6"
+          >
+            لماذا يختارنا المتقدمون؟
+          </motion.h2>
+          <div className="w-24 h-1.5 bg-red-600 mx-auto rounded-full" />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-right">
-          {features.map((f, i) => (
-            <Link
-              key={i}
-              to={f.path}
-              className="group bg-white p-8 rounded-xl border border-slate-200 shadow-sm hover:shadow-lg transition-all"
+        <motion.div
+           variants={containerVariants}
+           initial="hidden"
+           whileInView="visible"
+           viewport={{ once: true }}
+           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+        >
+          {features.map((feature, index) => (
+            <motion.div
+              key={index}
+              variants={itemVariants}
+              whileHover={{ y: -10 }}
+              className="bg-white p-10 rounded-3xl border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-slate-900/5 transition-all text-right relative overflow-hidden group border-b-4 border-b-transparent hover:border-b-red-600"
             >
-              <div className={`w-16 h-16 ${f.color} rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-                {f.icon}
+              <div className={`w-16 h-16 ${feature.color} rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform`}>
+                {feature.icon}
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-4">{f.title}</h3>
-              <p className="text-slate-500 text-sm leading-relaxed mb-6">
-                {f.desc}
+              <h3 className="text-2xl font-bold text-slate-900 mb-4">{feature.title}</h3>
+              <p className="text-slate-600 leading-relaxed mb-6 font-medium">
+                {feature.desc}
               </p>
-              <div className="flex items-center gap-2 text-blue-900 font-bold text-sm">
-                استعرض الآن
-                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              </div>
-            </Link>
+              <Link
+                to={feature.path}
+                className="inline-flex items-center gap-2 text-slate-900 font-bold group-hover:text-red-600 transition-colors"
+              >
+                ابدأ الآن
+                <ArrowLeft className="w-4 h-4" />
+              </Link>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </section>
 
-      {/* Call to Action */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-slate-900 rounded-2xl p-12 relative overflow-hidden">
-          <div className="relative z-10 text-center max-w-2xl mx-auto">
-            <h2 className="text-4xl font-bold text-white mb-6">استعد لمستقبلك المهني اليوم</h2>
-            <p className="text-slate-400 mb-10 leading-relaxed">
-              لا تدع الفرصة تفوتك. ابدأ المراجعة والتدريب الآن مع مئات المتقدمين الذين اختاروا منصتنا للتحضير لامتحاناتهم.
+      {/* CTA Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <motion.div 
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="bg-slate-950 rounded-[40px] p-12 md:p-24 text-center overflow-hidden relative"
+        >
+          {/* Background decoration */}
+          <div className="absolute top-0 right-0 w-96 h-96 bg-red-600/10 rounded-full blur-[100px]" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-600/10 rounded-full blur-[100px]" />
+          
+          <div className="relative z-10 max-w-4xl mx-auto">
+            <h2 className="text-4xl md:text-7xl font-black text-white mb-8 leading-tight">جاهز للتميز في مسارك المهني القادم؟</h2>
+            <p className="text-slate-400 text-lg md:text-2xl mb-12 max-w-2xl mx-auto leading-relaxed font-light">
+              انضم إلى آلاف المتقدمين الناجحين وابدأ التدريب اليوم مع بنك الأسئلة الأحدث والخدمات الأكثر احترافية.
             </p>
-            <Link
-              to="/mock-exams"
-              className="inline-flex bg-blue-600 text-white px-10 py-5 rounded-lg font-bold text-lg hover:bg-white hover:text-slate-950 transition-all shadow-lg shadow-blue-600/20"
-            >
-              ابدأ الآن مجاناً
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-6 justify-center">
+              <Link to="/mock-exams" className="bg-red-600 text-white px-12 py-5 rounded-2xl font-bold text-xl hover:bg-red-700 transition-all shadow-xl shadow-red-600/20">التسجيل في الامتحانات</Link>
+              <Link to="/services" className="bg-white/10 backdrop-blur-md text-white border border-white/20 px-12 py-5 rounded-2xl font-bold text-xl hover:bg-white/20 transition-all">باقة الخدمات الكاملة</Link>
+            </div>
           </div>
-          {/* Geometric Accents */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
-        </div>
+        </motion.div>
       </section>
     </div>
   );

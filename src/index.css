@@ -12,6 +12,7 @@
     font-family: var(--font-sans);
     background-color: var(--color-slate-50);
     color: var(--color-slate-800);
+    scroll-behavior: smooth;
   }
 }
 

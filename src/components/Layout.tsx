@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Home, BookOpen, HelpCircle, FileText, ExternalLink, Sparkles } from "lucide-react";
+import { Menu, X, Home, BookOpen, HelpCircle, FileText, ExternalLink, Sparkles, ChevronDown } from "lucide-react";
 import { useState, ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -22,6 +22,7 @@ function Logo() {
 
 export default function Layout({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const location = useLocation();
 
   const navItems = [
@@ -35,7 +36,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800 animated-jordan-bg" dir="rtl">
       {/* Navbar */}
-      <nav className="bg-white border-b border-slate-200 sticky top-0 z-50">
+      <nav className="bg-white/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20 items-center">
             {/* Logo */}
@@ -47,23 +48,48 @@ export default function Layout({ children }: { children: ReactNode }) {
               </div>
             </Link>
 
-            {/* Desktop Nav */}
-            <div className="hidden md:flex items-center gap-2">
-              {navItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`px-4 py-2 text-sm font-semibold transition-all duration-200 flex items-center gap-2 relative ${
-                    location.pathname === item.path
-                      ? "text-blue-900 after:content-[''] after:absolute after:bottom-[-26px] after:left-0 after:right-0 after:h-1 after:bg-blue-900"
-                      : "text-slate-600 hover:text-blue-900"
-                  }`}
+            {/* Desktop Nav Dropdown */}
+            <div className="hidden md:flex items-center gap-6">
+              <div className="relative">
+                <button 
+                  onMouseEnter={() => setIsDropdownOpen(true)}
+                  className="flex items-center gap-2 bg-slate-900 text-white px-6 py-2.5 rounded-full font-bold hover:bg-red-600 transition-all shadow-lg shadow-slate-900/10"
                 >
-                  {location.pathname === item.path && <motion.div layoutId="nav-pill" className="absolute inset-0 bg-blue-50/50 rounded-lg -z-10" />}
-                  {item.icon}
-                  {item.name}
-                </Link>
-              ))}
+                  <Menu className="w-5 h-5" />
+                  اكتشف المنصة
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                <AnimatePresence>
+                  {isDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      onMouseLeave={() => setIsDropdownOpen(false)}
+                      className="absolute top-full right-0 mt-3 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 py-3 z-50 overflow-hidden"
+                    >
+                      <div className="px-4 py-2 text-[10px] uppercase font-bold text-slate-400 tracking-widest border-b border-slate-50 mb-2">القائمة الرئيسية</div>
+                      {navItems.map((item) => (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          onClick={() => setIsDropdownOpen(false)}
+                          className={`flex items-center gap-4 px-5 py-3.5 text-sm font-bold transition-all hover:bg-slate-50 ${
+                            location.pathname === item.path ? "text-red-600 bg-red-50/50" : "text-slate-600"
+                          }`}
+                        >
+                          <span className={`${location.pathname === item.path ? "text-red-600" : "text-slate-400"}`}>
+                            {item.icon}
+                          </span>
+                          {item.name}
+                        </Link>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+              <Link to="/services" className="text-slate-600 font-bold hover:text-red-600 transition-colors">اتصل بنا</Link>
             </div>
 
             {/* Mobile menu button */}
