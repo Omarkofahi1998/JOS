@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle2, Clock, Search, ChevronDown } from "lucide-react";
+import { CheckCircle2, Clock, Search, ChevronDown, ShieldCheck } from "lucide-react";
 import ExamModule from "../components/ExamModule";
 
 interface Question {
@@ -74,19 +74,23 @@ export default function MockExams() {
     } else {
       filtered = ALL_QUESTIONS.filter(q => selectedMajors.includes(q.major)).sort(() => 0.5 - Math.random()).slice(0, 15);
     }
-    setQuestions(filtered);
-    setStarted(true);
+    
+    // Store data for the detached window
+    const examData = {
+      questions: filtered,
+      majors: selectedMajors.map(id => MAJORS.find(m => m.id === id)?.name || id),
+      startTime: new Date().getTime()
+    };
+    sessionStorage.setItem("current_exam", JSON.stringify(examData));
+    
+    // Open in a new secure window
+    const win = window.open("#/exam", "_blank", "noopener,noreferrer");
+    if (win) {
+      win.focus();
+    } else {
+      alert("يرجى السماح بالنوافذ المنبثقة (Popups) لفتح بوابة الامتحان.");
+    }
   };
-
-  if (started) {
-    return (
-      <ExamModule 
-        questions={questions} 
-        selectedMajors={selectedMajors.map(id => MAJORS.find(m => m.id === id)?.name || id)}
-        onClose={() => setStarted(false)} 
-      />
-    );
-  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-20">
@@ -177,12 +181,22 @@ export default function MockExams() {
       )}
 
       <div className="text-center">
-        <button
-          onClick={startExam}
-          className="bg-red-600 text-white px-16 py-5 rounded-2xl font-bold text-xl hover:bg-slate-900 transition-all shadow-2xl shadow-red-600/30 hover:-translate-y-1"
-        >
-          البدء الآن ({selectedMajors.includes("all") ? "جميع الأسئلة" : `${selectedMajors.length} تخصصات`})
-        </button>
+        <div className="inline-flex flex-col items-center gap-6">
+          <button
+            onClick={startExam}
+            className="bg-slate-900 text-white px-20 py-6 rounded-[2rem] font-black text-2xl hover:bg-red-600 transition-all shadow-2xl shadow-slate-900/30 hover:-translate-y-2 group flex items-center gap-4"
+          >
+            <ShieldCheck className="w-8 h-8 text-red-500 group-hover:text-white transition-colors" />
+            الدخول الى الامتحان
+          </button>
+          
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 text-slate-400 text-sm font-bold bg-slate-50 px-6 py-3 rounded-full border border-slate-100">
+              <span className="w-2 h-2 rounded-full bg-green-500" />
+              سيفتح التقييم في نافذة منفصلة لضمان الخصوصية والأمان
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
