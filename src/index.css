@@ -16,6 +16,22 @@
     color: var(--color-slate-800);
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
+    line-height: 1.7; /* Better readability */
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    text-wrap: balance;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+  }
+}
+
+@layer utilities {
+  @media (max-width: 640px) {
+    .mobile-text-snug {
+      line-height: 1.4;
+      letter-spacing: -0.01em;
+    }
   }
 }
 

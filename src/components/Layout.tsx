@@ -10,10 +10,13 @@ function Logo() {
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
       className="flex items-center gap-2 group cursor-pointer"
+      role="img"
+      aria-label="JO Students Logo"
     >
-      <div className="relative w-9 h-9 bg-slate-900 rounded-lg flex items-center justify-center shadow-md overflow-hidden">
+      <div className="relative w-9 h-9 bg-slate-900 rounded-lg flex items-center justify-center shadow-md overflow-hidden ring-2 ring-slate-100">
         <div className="absolute inset-0 jordan-flag-gradient opacity-20" />
-        <span className="text-white font-bold text-base tracking-tighter relative z-10">JO</span>
+        <span className="text-white font-black text-base tracking-tighter relative z-10">JO</span>
+        <div className="absolute top-0 right-0 w-1.5 h-1.5 bg-red-600 rounded-bl-sm" />
       </div>
     </motion.div>
   );
