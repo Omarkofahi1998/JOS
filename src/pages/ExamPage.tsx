@@ -137,8 +137,8 @@ export default function ExamPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans select-none" dir="rtl">
       {/* Secure Header */}
-      <div className="h-16 bg-white border-b border-slate-200 px-5 flex items-center justify-between shadow-sm sticky top-0 z-50">
-        <div className="flex items-center gap-3">
+      <div className="h-16 bg-white border-b border-slate-200 px-4 md:px-5 flex items-center justify-between shadow-sm sticky top-0 z-50">
+        <div className="flex items-center gap-2 md:gap-3">
           <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-red-600/10">
             <ShieldCheck className="w-5 h-5" />
           </div>
@@ -151,13 +151,18 @@ export default function ExamPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-5">
-          <div className="flex flex-col items-end">
+        <div className="flex items-center gap-3 md:gap-5">
+          <div className="hidden sm:flex flex-col items-end">
             <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider">المتبقي</span>
             <div className={`flex items-center gap-1.5 font-mono text-lg font-black leading-none ${timeLeft < 300 ? 'text-red-600 animate-pulse' : 'text-slate-900'}`}>
               <Clock className="w-3.5 h-3.5" />
               {formatTime(timeLeft)}
             </div>
+          </div>
+          
+          <div className="sm:hidden flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
+             <Clock className={`w-3.5 h-3.5 ${timeLeft < 300 ? 'text-red-600 animate-pulse' : 'text-slate-400'}`} />
+             <span className={`text-xs font-black font-mono ${timeLeft < 300 ? 'text-red-600' : 'text-slate-700'}`}>{formatTime(timeLeft)}</span>
           </div>
           
           <div className="h-8 w-px bg-slate-200 mx-1" />
@@ -201,6 +206,14 @@ export default function ExamPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <div className="xl:hidden h-1.5 w-full bg-slate-100 relative overflow-hidden">
+        <motion.div 
+          className="absolute inset-y-0 right-0 bg-red-600"
+          initial={{ width: 0 }}
+          animate={{ width: `${(Object.keys(answers).length / questions.length) * 100}%` }}
+        />
+      </div>
 
       <div className="flex-1 flex overflow-hidden">
         {/* Navigation Sidebar */}

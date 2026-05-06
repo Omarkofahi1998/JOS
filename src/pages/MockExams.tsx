@@ -154,7 +154,7 @@ export default function MockExams() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-20">
+    <div className="max-w-4xl mx-auto px-4 py-10 md:py-20">
       <div className="text-center mb-12">
         <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-900 mx-auto mb-6">
           <Clock className="w-8 h-8" />
@@ -252,7 +252,7 @@ export default function MockExams() {
             target="_blank"
             rel="noopener noreferrer"
             onClick={prepareExam}
-            className="bg-slate-900 text-white px-20 py-6 rounded-[2rem] font-black text-2xl hover:bg-red-600 transition-all shadow-2xl shadow-slate-900/30 hover:-translate-y-2 group flex items-center gap-4 no-underline"
+            className="bg-slate-900 text-white px-8 md:px-20 py-4 md:py-6 rounded-2xl md:rounded-[2rem] font-black text-lg md:text-2xl hover:bg-red-600 transition-all shadow-2xl shadow-slate-900/30 hover:-translate-y-2 group flex items-center gap-4 no-underline"
           >
             <ShieldCheck className="w-8 h-8 text-red-500 group-hover:text-white transition-colors" />
             الدخول الى الامتحان

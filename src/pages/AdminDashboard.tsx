@@ -19,9 +19,18 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'questions' | 'files' | 'services' | 'settings' | 'features' | 'reviews' | 'contacts'>('questions');
   const [subTab, setSubTab] = useState<'add' | 'list' | 'bulk'>('list');
   const [loading, setLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
   const [status, setStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024) setSidebarOpen(false);
+      else setSidebarOpen(true);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Records Lists
   const [questions, setQuestions] = useState<any[]>([]);
@@ -561,12 +570,28 @@ export default function AdminDashboard() {
   if (!session) return null;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-row-reverse overflow-hidden font-sans" dir="rtl">
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col lg:flex-row-reverse overflow-hidden font-sans" dir="rtl">
+      {/* Sidebar Overlay for mobile */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSidebarOpen(false)}
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[55] lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
       <motion.aside 
         initial={false}
-        animate={{ width: sidebarOpen ? 280 : 80 }}
-        className="bg-white border-l border-slate-200 h-screen sticky top-0 flex flex-col z-50 shadow-sm"
+        animate={{ 
+          width: sidebarOpen ? 280 : (window.innerWidth < 1024 ? 0 : 80),
+          x: (sidebarOpen) ? 0 : (window.innerWidth < 1024 ? 280 : 0)
+        }}
+        className={`bg-white border-l border-slate-200 h-screen fixed lg:sticky top-0 flex flex-col z-[60] shadow-sm transition-all overflow-hidden`}
       >
         <div className="p-6 flex items-center justify-between border-b border-slate-50">
           {sidebarOpen && (
@@ -610,14 +635,20 @@ export default function AdminDashboard() {
       </motion.aside>
 
       {/* Main Content */}
-      <main className="flex-1 h-screen overflow-y-auto relative custom-scrollbar">
+      <main className="flex-1 h-screen overflow-y-auto relative custom-scrollbar w-full">
         {/* Top Header */}
-        <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200/50 px-8 py-4 flex items-center justify-between">
-           <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white">
-                 <LayoutDashboard className="w-5 h-5" />
+        <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200/50 px-4 md:px-8 py-4 flex items-center justify-between">
+           <div className="flex items-center gap-3 md:gap-4">
+              <button 
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="lg:hidden p-2 hover:bg-slate-50 rounded-lg text-slate-400"
+              >
+                <Menu className="w-6 h-6" />
+              </button>
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-slate-900 rounded-lg md:rounded-xl flex items-center justify-center text-white shrink-0">
+                 <LayoutDashboard className="w-4 h-4 md:w-5 md:h-5" />
               </div>
-              <h2 className="text-xl font-black text-slate-900">
+              <h2 className="text-base md:text-xl font-black text-slate-900 truncate">
                  {sidebarItems.find(i => i.id === activeTab)?.name}
               </h2>
            </div>
@@ -633,10 +664,10 @@ export default function AdminDashboard() {
           </div>
         </header>
 
-        <div className="p-8 max-w-7xl mx-auto">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto">
           {/* Action Tabs */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex gap-2">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+            <div className="flex flex-wrap gap-2">
               {activeTab !== 'settings' && activeTab !== 'contacts' && (
                 <>
                   <button 
@@ -669,9 +700,9 @@ export default function AdminDashboard() {
               )}
             </div>
             
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             {subTab === 'list' && activeTab === 'questions' && (
-              <div className="flex items-center gap-2 mr-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {showUndo && (
                   <button 
                     onClick={undoLastImport}
@@ -716,7 +747,7 @@ export default function AdminDashboard() {
             )}
             
             {subTab === 'list' && activeTab !== 'settings' && activeTab !== 'contacts' && (
-              <div className="relative w-64">
+              <div className="relative w-full sm:w-64">
                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                  <input 
                    type="text" 
@@ -765,9 +796,9 @@ export default function AdminDashboard() {
                       <thead>
                         <tr className="bg-slate-50 border-b border-slate-200">
                           <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">السجل</th>
-                          <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">التخصص</th>
+                          <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase hidden sm:table-cell">التخصص</th>
                           <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">نص السؤال</th>
-                          <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">الصورة</th>
+                          <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase hidden md:table-cell">الصورة</th>
                           <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase text-center">الإجراءات</th>
                         </tr>
                       </thead>
@@ -781,11 +812,11 @@ export default function AdminDashboard() {
                           }).map((item, idx) => (
                             <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-all group">
                               <td className="px-6 py-4 text-xs font-bold text-slate-400">#{item.id}</td>
-                              <td className="px-6 py-4">
+                              <td className="px-6 py-4 hidden sm:table-cell">
                                 <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-md text-[10px] font-black">{item.major}</span>
                               </td>
-                              <td className="px-6 py-4 text-sm font-bold text-slate-900 max-w-md truncate">{item.text}</td>
-                              <td className="px-6 py-4">
+                              <td className="px-6 py-4 text-sm font-bold text-slate-900 max-w-[150px] sm:max-w-md truncate">{item.text}</td>
+                              <td className="px-6 py-4 hidden md:table-cell">
                                 {item.image_url ? (
                                   <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200">
                                     <img src={item.image_url} alt="" className="w-full h-full object-cover" />

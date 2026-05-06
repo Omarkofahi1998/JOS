@@ -135,7 +135,7 @@ export default function Questions() {
   });
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-16">
+    <div className="max-w-6xl mx-auto px-4 py-10 md:py-16">
       <div className="text-center mb-12">
         <h1 className="text-3xl font-black text-slate-900 mb-3">بنك الأسئلة والملفات</h1>
         <p className="text-slate-500 max-w-xl mx-auto text-sm leading-relaxed">

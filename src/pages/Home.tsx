@@ -102,7 +102,7 @@ export default function Home() {
   return (
     <div className="space-y-20 pb-20 bg-slate-50">
       {/* Hero Section */}
-      <section className="relative h-[600px] flex items-center bg-white border-b border-slate-200 overflow-hidden">
+      <section className="relative min-h-[500px] md:h-[600px] flex items-center bg-white border-b border-slate-200 overflow-hidden py-12 md:py-0">
         {/* Abstract National Colors Decoration */}
         <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-red-600/5 to-transparent pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-1/3 h-full bg-gradient-to-r from-green-600/5 to-transparent pointer-events-none" />
@@ -167,7 +167,7 @@ export default function Home() {
 
       {/* Stats */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-6 bg-white p-10 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 bg-white p-6 md:p-10 rounded-2xl border border-slate-200 shadow-sm">
            {[
              { label: 'متدرب نشط', val: stats.trainees },
              { label: 'سؤال تدريبي', val: stats.questions },
@@ -230,7 +230,7 @@ export default function Home() {
 
       {/* Simple CTA */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-slate-900 rounded-3xl p-12 md:p-16 text-center relative overflow-hidden text-white">
+        <div className="bg-slate-900 rounded-3xl p-8 md:p-16 text-center relative overflow-hidden text-white">
           <h2 className="text-3xl md:text-5xl font-black mb-6">استعد لمستقبلك المهني اليوم</h2>
           <p className="text-slate-400 text-lg mb-10 max-w-2xl mx-auto">
             انضم إلى آلاف المتقدمين الناجحين وابدأ التدريب الآن مع بنك الأسئلة الأحدث والخدمات الأكثر احترافية.
