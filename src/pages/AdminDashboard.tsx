@@ -35,57 +35,116 @@ export default function AdminDashboard() {
   const [imageValid, setImageValid] = useState<boolean | null>(null);
 
   // Export functions
+  const getFilteredQuestions = () => {
+    return questions.filter(item => {
+      const matchesSearch = (item.text || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (item.major || "").toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesMajor = majorFilter !== 'all' ? item.major === majorFilter : true;
+      return matchesSearch && matchesMajor;
+    });
+  };
+
   const exportToExcel = () => {
-    const data = questions.map(q => ({
+    const data = getFilteredQuestions().map(q => ({
       'السؤال': q.text,
-      'الخيارات': q.options.join(' | '),
+      'الخيار 1': q.options[0],
+      'الخيار 2': q.options[1],
+      'الخيار 3': q.options[2],
+      'الخيار 4': q.options[3],
       'الجواب الصحيح': q.options[q.correct],
       'التخصص': q.major,
-      'رابط الصورة': q.image_url || 'لا يوجد'
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Questions");
-    XLSX.writeFile(wb, "jo_students_questions.xlsx");
+    XLSX.writeFile(wb, `jo_students_exam_${majorFilter}.xlsx`);
+  };
+
+  const exportToJSON = () => {
+    const data = getFilteredQuestions();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    saveAs(blob, `jo_students_data_${majorFilter}.json`);
   };
 
   const exportToPDF = () => {
     const doc = new jsPDF('p', 'pt');
-    // For Arabic support in jsPDF, it's tricky without a font file. 
-    // We will use a standard table and warn that Arabic might need a specific font embed.
-    // However, I'll try to provide a basic structure.
-    const tableData = questions.map(q => [
+    const filtered = getFilteredQuestions();
+    
+    doc.setFontSize(20);
+    doc.text("Official Exam Questions - Jo Students", 40, 40);
+    doc.setFontSize(12);
+    doc.text(`Major: ${majorFilter === 'all' ? 'All Majors' : majorFilter}`, 40, 60);
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, 40, 75);
+    doc.line(40, 85, 550, 85);
+
+    const body = filtered.map((q, i) => [
+      `${i + 1}`,
       q.text,
-      q.major,
+      q.options.join('\n'),
       q.options[q.correct]
     ]);
     
     (doc as any).autoTable({
-      head: [['Question', 'Major', 'Correct Answer']],
-      body: tableData,
-      styles: { font: 'helvetica', halign: 'right' }
+      startY: 100,
+      head: [['#', 'Question Content', 'Options', 'Correct']],
+      body: body,
+      styles: { fontSize: 10, cellPadding: 10 },
+      columnStyles: {
+        0: { cellWidth: 30 },
+        1: { cellWidth: 250 },
+        2: { cellWidth: 150 },
+      }
     });
-    doc.save("jo_students_questions.pdf");
+    
+    doc.save(`exam_${majorFilter}.pdf`);
   };
 
   const exportToWord = async () => {
+    const filtered = getFilteredQuestions();
     const doc = new Document({
       sections: [{
         properties: {},
-        children: questions.map(q => new Paragraph({
-          children: [
-            new TextRun({ text: `Question: ${q.text}`, bold: true, size: 24 }),
-            new TextRun({ text: `\nMajor: ${q.major}`, italics: true }),
-            new TextRun({ text: `\nOptions: ${q.options.join(', ')}` }),
-            new TextRun({ text: `\nCorrect: ${q.options[q.correct]}`, color: "008000" }),
-            new TextRun({ text: "\n\n" }),
-          ],
-        })),
+        children: [
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              new TextRun({ text: "نظام جو ستودنتس التعليمي", bold: true, size: 32 }),
+            ],
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              new TextRun({ text: `امتحان تجريبي: ${majorFilter === 'all' ? 'كافة التخصصات' : majorFilter}`, size: 24 }),
+            ],
+          }),
+          new Paragraph({ text: "\n" }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: "اسم الطالب: ___________________________", bold: true }),
+              new TextRun({ text: "\t\tالتاريخ: " + new Date().toLocaleDateString(), bold: true }),
+            ],
+          }),
+          new Paragraph({ text: "\n" }),
+          ...filtered.flatMap((q, i) => [
+            new Paragraph({
+              spacing: { before: 400 },
+              children: [
+                new TextRun({ text: `${i + 1}. ${q.text}`, bold: true, size: 24 }),
+              ],
+            }),
+            ...q.options.map((opt, optIdx) => new Paragraph({
+              indent: { left: 720 },
+              children: [
+                new TextRun({ text: `${String.fromCharCode(65 + optIdx)}) ${opt}`, size: 22 }),
+              ],
+            })),
+          ]),
+        ],
       }],
     });
 
     const blob = await Packer.toBlob(doc);
-    saveAs(blob, "jo_students_questions.docx");
+    saveAs(blob, `exam_${majorFilter}.docx`);
   };
 
   const validateImage = (url: string) => {
@@ -505,8 +564,11 @@ export default function AdminDashboard() {
                 <button onClick={exportToPDF} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all title='تصدير PDF'">
                   <FileText className="w-4 h-4" />
                 </button>
-                <button onClick={exportToWord} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all title='تصدير Word'">
+                <button onClick={exportToWord} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all" title="تصدير Word">
                   <ImageIcon className="w-4 h-4" />
+                </button>
+                <button onClick={exportToJSON} className="p-2 bg-slate-50 text-slate-600 rounded-lg hover:bg-slate-100 transition-all" title="تصدير JSON">
+                  <Settings className="w-4 h-4" />
                 </button>
               </div>
             )}
