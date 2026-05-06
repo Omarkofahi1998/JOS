@@ -2,47 +2,23 @@ import { useState, useEffect } from "react";
 import { FileText, Download, Bookmark, Clock, Eye, Loader2 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
-const STATIC_REVIEWS = [
-  {
-    id: 1,
-    title: "ملخص مهارات اللغة العربية",
-    desc: "شرح مبسط لقواعد النحو والإملاء الأساسية التي تتكرر في الامتحانات.",
-    date: "2024-05-01",
-    author: "اللجنة التعليمية",
-    readTime: "15 دقيقة",
-  },
-  {
-    id: 2,
-    title: "أساسيات الإدارة والخدمة العامة",
-    desc: "دليل شامل للمصطلحات والقوانين الناظمة للعمل في المؤسسات الحكومية.",
-    date: "2024-04-28",
-    author: "خبير إداري",
-    readTime: "20 دقيقة",
-  },
-  {
-    id: 3,
-    title: "تجميعات الذكاء والجدارة (IQ)",
-    desc: "نماذج لأسئلة الذكاء والقدرات المنطقية مع استراتيجيات الحل السريع.",
-    date: "2024-04-25",
-    author: "اللجنة التعليمية",
-    readTime: "10 دقيقة",
-  },
-];
-
 export default function Reviews() {
-  const [reviewsList, setReviewsList] = useState(STATIC_REVIEWS);
-  const [isLoading, setIsLoading] = useState(false);
+  const [reviewsList, setReviewsList] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchReviews() {
-      if (!supabase) return;
+      if (!supabase) {
+        setIsLoading(false);
+        return;
+      }
       setIsLoading(true);
       try {
         const { data, error } = await supabase
           .from('reviews')
           .select('*');
         
-        if (data && !error && data.length > 0) {
+        if (data && !error) {
           const mapped = data.map(r => ({
             id: r.id,
             title: r.title,
@@ -51,7 +27,7 @@ export default function Reviews() {
             author: r.author,
             readTime: r.read_time || r.readTime
           }));
-          setReviewsList([...STATIC_REVIEWS, ...mapped]);
+          setReviewsList(mapped);
         }
       } catch (err) {
         console.error("Supabase Error:", err);

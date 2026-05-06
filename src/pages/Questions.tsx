@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
-import { Search, ChevronDown, Loader2, FileText, Download, Calendar, HardDrive } from "lucide-react";
+import { useParams, useLocation } from "react-router-dom";
+import { Search, ChevronDown, Loader2, FileText, Download, Calendar, HardDrive, Share2, Check } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 interface QuestionFile {
@@ -12,207 +12,56 @@ interface QuestionFile {
   url: string;
 }
 
-const STATIC_QUESTION_FILES: QuestionFile[] = [
-  // ... Keep static files as fallback ...
-  // --- مختبرات (English - Question Banks) ---
-  { 
-    category: "مختبرات", 
-    title: "Clinical Laboratory Science - MCQ Exam Bank (High Quality)", 
-    date: "2024/02/10", 
-    size: "2.8 MB", 
-    downloadCount: 4500, 
-    url: "https://www.meded.pitt.edu/sites/default/files/Laboratory%20Medicine%20Practice%20Guideline.pdf" 
-  },
-  { 
-    category: "مختبرات", 
-    title: "Hematology & Blood Bank - Practice Questions Set", 
-    date: "2024/05/12", 
-    size: "1.9 MB", 
-    downloadCount: 2800, 
-    url: "https://www.cdc.gov/labstandards/pdf/nsqap/nsqap_summary_report_2023.pdf" 
-  },
-  { 
-    category: "مختبرات", 
-    title: "Microbiology & Immunology Exam Samples (Questions only)", 
-    date: "2024/01/20", 
-    size: "3.4 MB", 
-    downloadCount: 5100, 
-    url: "https://www.asm.org/ASM/media/Education/Curriculum%20Guidelines/Microbiology-Question-Bank.pdf" 
-  },
-  { 
-    category: "مختبرات", 
-    title: "Pathology MCQs for Laboratory Specialists", 
-    date: "2024/05/22", 
-    size: "2.1 MB", 
-    downloadCount: 1900, 
-    url: "https://www.who.int/docs/default-source/primary-health-care-conference/lab.pdf" 
-  },
-  
-  // --- تمريض (English - NCLEX/Exam Models) ---
-  { 
-    category: "تمريض", 
-    title: "NCLEX-RN Style Practice Questions - Fundamentals of Nursing", 
-    date: "2024/03/15", 
-    size: "2.1 MB", 
-    downloadCount: 8900, 
-    url: "https://www.ncsbn.org/public-files/2023_RN_Test_Plan_English.pdf" 
-  },
-  { 
-    category: "تمريض", 
-    title: "Surgical & Medical Nursing - Critical Thinking Questions", 
-    date: "2024/04/05", 
-    size: "1.7 MB", 
-    downloadCount: 3200, 
-    url: "https://www.ahrq.gov/sites/default/files/wysiwyg/professionals/education/curriculum-tools/teamstepps/instructor/fundamentals/module2/igcommunication.pdf" 
-  },
-  { 
-    category: "تمريض", 
-    title: "Pediatric and Neonatal Care Exam Bank", 
-    date: "2024/05/18", 
-    size: "1.3 MB", 
-    downloadCount: 2100, 
-    url: "https://www.who.int/docs/default-source/maternal-health/nursing-and-midwifery/nursing-midwifery-strategy.pdf" 
-  },
-  
-  // --- قانون (Arabic - نماذج امتحانات ديوان الخدمة) ---
-  { 
-    category: "قانون", 
-    title: "بنك أسئلة القانون الإداري والخدمة المدنية (نموذج التخصص)", 
-    date: "2024/06/01", 
-    size: "2.2 MB", 
-    downloadCount: 12400, 
-    url: "http://www.csb.gov.jo/web/images/pdf/nizam-2020.pdf" 
-  },
-  { 
-    category: "قانون", 
-    title: "أسئلة مقترحة في الثقافة الدستورية والقانونية - الأردن", 
-    date: "2024/05/20", 
-    size: "1.5 MB", 
-    downloadCount: 7600, 
-    url: "https://www.representatives.jo/sites/default/files/Dostour_Arabic_New.pdf" 
-  },
-  { 
-    category: "قانون", 
-    title: "نموذج امتحان الكفاية القانونية لعام 2023 - شامل", 
-    date: "2023/12/10", 
-    size: "2.6 MB", 
-    downloadCount: 5400, 
-    url: "https://www.moj.gov.jo/ebv4.0/root_storage/ar/eb_list_page/%D8%A7%D9%84%D9%82%D8%A7%D9%86%D9%88%D9%86_%D8%A7%D9%84%D9%85%D8%AF%D9%86%D9%8A.pdf" 
-  },
-  
-  // --- معلم صف (Arabic - كفايات تعليمية) ---
-  { 
-    category: "معلم صف", 
-    title: "بنك أسئلة الكفاية المهنية للمعلمين - تخصص معلم صف", 
-    date: "2024/03/10", 
-    size: "2.9 MB", 
-    downloadCount: 9200, 
-    url: "https://www.moe.gov.jo/sites/default/files/Teacher_Competencies_Framework.pdf" 
-  },
-  { 
-    category: "معلم صف", 
-    title: "نماذج اختبارات التدريس والتربية الحديثة - بنك الأسئلة", 
-    date: "2024/02/28", 
-    size: "1.8 MB", 
-    downloadCount: 4500, 
-    url: "https://www.moe.gov.jo/sites/default/files/Educational_Training_Materials.pdf" 
-  },
-  { 
-    category: "معلم صف", 
-    title: "دليل تقييم أداء المعلم وبنك أسئلة القياس التربوي", 
-    date: "2024/01/15", 
-    size: "3.1 MB", 
-    downloadCount: 3800, 
-    url: "https://www.moe.gov.jo/sites/default/files/Teacher_Evaluation_Protocols.pdf" 
-  },
-
-  // --- IT (English - Certification Banks) ---
-  { 
-    category: "IT", 
-    title: "Networking and System Admin - Practice Exam Bank", 
-    date: "2024/05/19", 
-    size: "2.5 MB", 
-    downloadCount: 6300, 
-    url: "https://nptel.ac.in/content/storage2/courses/106105081/pdf/mod12les33.pdf" 
-  },
-  { 
-    category: "IT", 
-    title: "Database Management Systems - Sample Questions Bank", 
-    date: "2024/04/10", 
-    size: "3.2 MB", 
-    downloadCount: 4100, 
-    url: "https://nptel.ac.in/content/storage2/courses/106106093/Lesson01.pdf" 
-  },
-  { 
-    category: "IT", 
-    title: "Cybersecurity Fundamentals - Practice Exam Questions", 
-    date: "2024/05/12", 
-    size: "1.9 MB", 
-    downloadCount: 2200, 
-    url: "https://csrc.nist.gov/CSRC/media/Publications/sp/800-53/rev-5/final/documents/sp800-53r5-advisory-v2.pdf" 
-  },
-
-  // --- إدارة عامة (Arabic - كفايات إدارية) ---
-  { 
-    category: "الإدارة العامة", 
-    title: "بنك أسئلة الكفايات الإدارية والقيادية - هيئة الخدمة", 
-    date: "2024/06/05", 
-    size: "1.4 MB", 
-    downloadCount: 15600, 
-    url: "http://www.csb.gov.jo/web/images/stories/behavioral%20code-ar.pdf" 
-  },
-  { 
-    category: "الإدارة العامة", 
-    title: "تجميعات أسئلة الإدارة العامة - نماذج سنوات سابقة", 
-    date: "2024/05/25", 
-    size: "2.1 MB", 
-    downloadCount: 8800, 
-    url: "http://www.csb.gov.jo/web/images/stories/behavioral%20code-ar.pdf" 
-  },
-  { 
-    category: "الإدارة العامة", 
-    title: "أسئلة المهارات الرقمية والقيادة لموظفي القطاع العام", 
-    date: "2024/04/30", 
-    size: "1.8 MB", 
-    downloadCount: 4200, 
-    url: "http://www.csb.gov.jo/web/images/stories/behavioral%20code-ar.pdf" 
-  },
-  { 
-    category: "قانون", 
-    title: "نموذج امتحان الكفاية القانونية لعام 2024 - المستوى الأول", 
-    date: "2024/02/12", 
-    size: "1.9 MB", 
-    downloadCount: 3100, 
-    url: "https://www.moj.gov.jo/ebv4.0/root_storage/ar/eb_list_page/law_regulations.pdf" 
-  },
-  { 
-    category: "تمريض", 
-    title: "Nursing Care Plans and practice exam questions", 
-    date: "2024/01/05", 
-    size: "2.4 MB", 
-    downloadCount: 6700, 
-    url: "https://www.who.int/docs/default-source/nursing-midwifery/nursing-and-midwifery-strategy.pdf" 
-  },
-  { 
-    category: "IT", 
-    title: "Full Stack Development Practice Exam and Interview Questions", 
-    date: "2024/05/28", 
-    size: "3.5 MB", 
-    downloadCount: 1500, 
-    url: "https://nptel.ac.in/content/storage2/courses/106105084/pdf/m1l1.pdf" 
-  },
-];
-
 const CATEGORIES = ["مختبرات", "تمريض", "قانون", "معلم صف", "IT", "الإدارة العامة"];
 
 export default function Questions() {
+  const { fileTitle: fileParam } = useParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("مختبرات");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [catSearch, setCatSearch] = useState("");
-  const [filesList, setFilesList] = useState<QuestionFile[]>(STATIC_QUESTION_FILES);
-  const [isSupabaseLoading, setIsSupabaseLoading] = useState(false);
+  const [filesList, setFilesList] = useState<QuestionFile[]>([]);
+  const [isSupabaseLoading, setIsSupabaseLoading] = useState(true);
+  const [sharedId, setSharedId] = useState<string | null>(null);
   const location = useLocation();
+
+  const handleShare = async (title: string) => {
+    const url = `${window.location.origin}/questions/${encodeURIComponent(title)}`;
+    const shareData = {
+      title: "بنك أسئلة - جـو ستودنتس",
+      text: `ألقِ نظرة على هذا الملف في بنك أسئلة جو ستودنتس: ${title}`,
+      url: url
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        copyToClipboard(url, title);
+      }
+    } else {
+      copyToClipboard(url, title);
+    }
+  };
+
+  const copyToClipboard = (url: string, title: string) => {
+    navigator.clipboard.writeText(url);
+    setSharedId(title);
+    setTimeout(() => setSharedId(null), 2000);
+  };
+
+  useEffect(() => {
+    // Handle Shared File from dynamic route or search params
+    if (fileParam) {
+      setSearchTerm(decodeURIComponent(fileParam));
+    } else {
+      const params = new URLSearchParams(location.search);
+      const fileSearch = params.get('file');
+      if (fileSearch) {
+        setSearchTerm(fileSearch);
+      }
+    }
+  }, [fileParam, location.search]);
 
   useEffect(() => {
     async function fetchFiles() {
@@ -334,7 +183,7 @@ export default function Questions() {
         {/* Search */}
         <div className="w-full md:w-96 relative pt-4 md:pt-5">
           <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400 mt-5 md:mt-0">
-            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+            {isSupabaseLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
           </div>
           <input
             type="text"
@@ -351,27 +200,35 @@ export default function Questions() {
       {/* Files Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filtered.map((file, idx) => (
-          <a
+          <div
             key={idx}
-            href={file.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-white rounded-2xl border border-slate-200 p-6 transition-all hover:shadow-xl hover:shadow-slate-500/10 group cursor-pointer block no-underline"
+            className="bg-white rounded-2xl border border-slate-200 p-6 transition-all hover:shadow-xl hover:shadow-slate-500/10 group flex flex-col h-full"
           >
             <div className="flex items-start justify-between mb-4">
               <div className="w-12 h-12 bg-red-50 text-red-600 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-red-600 group-hover:text-white transition-colors">
                 <FileText className="w-6 h-6" />
               </div>
-              <div className="text-slate-300 group-hover:text-red-600 transition-colors">
-                <Download className="w-5 h-5" />
-              </div>
+              <button 
+                onClick={() => handleShare(file.title)}
+                className={`w-10 h-10 flex items-center justify-center transition-colors rounded-xl relative ${
+                  searchTerm === file.title ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-50 text-slate-300 hover:text-red-600'
+                }`}
+                title="مشاركة"
+              >
+                {sharedId === file.title ? <Check className="w-5 h-5 text-white" /> : <Share2 className="w-5 h-5" />}
+                {sharedId === file.title && (
+                  <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-2 py-1 rounded-full whitespace-nowrap animate-in fade-in zoom-in">
+                    تم النسخ!
+                  </span>
+                )}
+              </button>
             </div>
             
-            <h3 className="text-base font-bold text-slate-900 mb-4 h-12 line-clamp-2 leading-relaxed group-hover:text-red-600 transition-colors">
+            <h3 className="text-base font-bold text-slate-900 mb-4 h-12 line-clamp-2 leading-relaxed">
               {file.title}
             </h3>
 
-            <div className="grid grid-cols-2 gap-2 pt-4 border-t border-slate-50">
+            <div className="grid grid-cols-2 gap-2 pt-4 border-t border-slate-50 mt-auto">
               <div className="flex items-center gap-1.5 text-slate-400">
                 <Calendar className="w-3.5 h-3.5" />
                 <span className="text-[10px] font-bold">{file.date}</span>
@@ -381,7 +238,17 @@ export default function Questions() {
                 <span className="text-[10px] font-bold">{file.size}</span>
               </div>
             </div>
-          </a>
+
+            <a 
+              href={file.url} 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-6 w-full bg-red-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-700 transition-all active:scale-95 no-underline"
+            >
+              <Download className="w-4 h-4" />
+              تحميل الملف
+            </a>
+          </div>
         ))}
         {filtered.length === 0 && (
           <div className="col-span-full text-center py-32">

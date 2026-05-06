@@ -1,68 +1,51 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { FileUser, Settings, Briefcase, UserCheck, MessageSquare, Sparkles, ArrowLeft, Users, Send, Loader2 } from "lucide-react";
+import { FileUser, Settings, Briefcase, UserCheck, MessageSquare, Sparkles, ArrowLeft, Users, Send, Loader2, FileText, Search } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
-const STATIC_SERVICES = [
-  {
-    title: "تصميم وتعديل السيرة الذاتية (ATS)",
-    desc: "نصمم لك سيرة ذاتية احترافية تتوافق مع أنظمة الفرز الآلي (ATS) لزيادة فرصك في القبول.",
-    icon: <FileUser className="w-10 h-10 text-blue-600" />,
-    color: "bg-blue-50",
-  },
-  {
-    title: "تحسين الملف الشخصي المهني",
-    desc: "مراجعة وتحسين ملفاتك المهنية على المنصات المختلفة لتظهر بشكل احترافي أمام جهات التوظيف.",
-    icon: <UserCheck className="w-10 h-10 text-emerald-600" />,
-    color: "bg-emerald-50",
-  },
-  {
-    title: "التدريب على المقابلات الشخصية",
-    desc: "جلسات محاكاة للمقابلات الشخصية (Mock Interviews) مع خبراء لمساعدتك على تجاوز الرهبة.",
-    icon: <MessageSquare className="w-10 h-10 text-red-600" />,
-    color: "bg-red-50",
-  },
-  {
-    title: "إرشاد التوظيف في القطاع العام",
-    desc: "توجيه كامل حول كيفية التعامل مع نظام الاستقطاب والدور التنافسي في الأردن.",
-    icon: <Briefcase className="w-10 h-10 text-amber-600" />,
-    color: "bg-amber-50",
-  },
-  {
-    title: "ورش عمل متخصصة",
-    desc: "ورش عمل دورية عن مهارات الحاسوب، اللغة العربية، والذكاء المطلوب في الامتحانات.",
-    icon: <Settings className="w-10 h-10 text-indigo-600" />,
-    color: "bg-indigo-50",
-  },
-  {
-    title: "تحليل الشخصية الوظيفي",
-    desc: "اختبارات سيكومترية تساعدك على فهم ميولك المهنية وكيفية ابراز نقاط قوتك.",
-    icon: <Sparkles className="w-10 h-10 text-purple-600" />,
-    color: "bg-purple-50",
-  },
-];
-
 export default function Services() {
-  const [servicesList, setServicesList] = useState(STATIC_SERVICES);
-  const [isLoading, setIsLoading] = useState(false);
+  const [servicesList, setServicesList] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchServices() {
-      if (!supabase) return;
+      if (!supabase) {
+        setIsLoading(false);
+        return;
+      }
       setIsLoading(true);
       try {
         const { data, error } = await supabase
           .from('services')
-          .select('*');
+          .select('id, title, description, icon_name, bg_color');
         
-        if (data && !error && data.length > 0) {
-          const mapped = data.map(s => ({
-            title: s.title,
-            desc: s.description,
-            icon: <Settings className="w-10 h-10 text-slate-600" />,
-            color: "bg-slate-50"
-          }));
-          setServicesList([...STATIC_SERVICES, ...mapped]);
+        if (data && !error) {
+          const iconMap: { [key: string]: any } = {
+            FileText, Settings, Briefcase, UserCheck, MessageSquare, Sparkles, Users, Search, FileUser
+          };
+          
+          const colorMap: { [key: string]: string } = {
+            "bg-blue-50": "text-blue-600",
+            "bg-emerald-50": "text-emerald-600",
+            "bg-red-50": "text-red-600",
+            "bg-amber-50": "text-amber-600",
+            "bg-purple-50": "text-purple-600",
+            "bg-slate-50": "text-slate-600"
+          };
+          
+          const mapped = data.map(s => {
+            const IconComponent = iconMap[s.icon_name] || Settings;
+            const bgColor = s.bg_color || "bg-slate-50";
+            const textColor = colorMap[bgColor] || "text-slate-600";
+            
+            return {
+              title: s.title,
+              desc: s.description,
+              icon: <IconComponent className={`w-10 h-10 ${textColor}`} />,
+              color: bgColor
+            };
+          });
+          setServicesList(mapped);
         }
       } catch (err) {
         console.error("Supabase Error:", err);

@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, Home, BookOpen, HelpCircle, FileText, ExternalLink, Sparkles, ChevronDown, Search } from "lucide-react";
+import { Menu, X, Home, BookOpen, HelpCircle, FileText, ExternalLink, Sparkles, ChevronDown, Search, Mail } from "lucide-react";
 import React, { useState, ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -38,6 +38,8 @@ export default function Layout({ children }: { children: ReactNode }) {
     { name: "امتحانات تجريبية", path: "/mock-exams", icon: <BookOpen className="w-4 h-4" /> },
     { name: "بنك الأسئلة", path: "/questions", icon: <HelpCircle className="w-4 h-4" /> },
     { name: "خدماتنا المهنية", path: "/services", icon: <Sparkles className="w-4 h-4" /> },
+    { name: "المراجعات", path: "/reviews", icon: <FileText className="w-4 h-4" /> },
+    { name: "تواصل معنا", path: "/contact", icon: <Mail className="w-4 h-4" /> },
   ];
 
   return (
@@ -176,6 +178,18 @@ export default function Layout({ children }: { children: ReactNode }) {
                   <Link to="/mock-exams" className="text-slate-300 hover:text-white transition-colors text-sm flex items-center gap-2">
                     <span className="w-1 h-1 bg-blue-500 rounded-full" />
                     امتحانات تجريبية
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/reviews" className="text-slate-300 hover:text-white transition-colors text-sm flex items-center gap-2">
+                    <span className="w-1 h-1 bg-blue-500 rounded-full" />
+                    المراجعات والآراء
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/contact" className="text-slate-300 hover:text-white transition-colors text-sm flex items-center gap-2">
+                    <span className="w-1 h-1 bg-blue-500 rounded-full" />
+                    تواصل معنا
                   </Link>
                 </li>
               </ul>
