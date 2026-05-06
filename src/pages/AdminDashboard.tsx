@@ -33,6 +33,69 @@ export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [majorFilter, setMajorFilter] = useState("all");
   const [imageValid, setImageValid] = useState<boolean | null>(null);
+  const [lastBatchIds, setLastBatchIds] = useState<(string | number)[]>([]);
+  const [showUndo, setShowUndo] = useState(false);
+
+  // Import JSON function
+  const handleJSONImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const jsonData = JSON.parse(event.target?.result as string);
+        if (!Array.isArray(jsonData)) throw new Error("الملف يجب أن يحتوي على مصفوفة أسئلة");
+
+        const validQuestions: any[] = [];
+        jsonData.forEach((q, idx) => {
+          if (!q.text || !Array.isArray(q.options) || q.options.length < 2 || typeof q.correct !== 'number' || !q.major) {
+            throw new Error(`خطأ في تنسيق السؤال رقم ${idx + 1}`);
+          }
+          validQuestions.push({
+            text: q.text,
+            options: q.options,
+            correct: q.correct,
+            major: q.major,
+            image_url: q.image_url || "",
+            created_at: new Date().toISOString()
+          });
+        });
+
+        const newIds: (string | number)[] = [];
+        for (const q of validQuestions) {
+          const { data, error } = await supabase.from('questions').insert(q).select();
+          if (error) throw error;
+          if (data) newIds.push(data[0].id);
+        }
+
+        setLastBatchIds(newIds);
+        setShowUndo(true);
+        fetchData();
+        toast.success(`تم استيراد ${validQuestions.length} سؤال بنجاح`);
+        
+        // Hide undo after 30 seconds
+        setTimeout(() => setShowUndo(false), 30000);
+      } catch (err: any) {
+        toast.error(`فشل الاستيراد: ${err.message}`);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const undoLastImport = async () => {
+    if (lastBatchIds.length === 0) return;
+    try {
+      const { error } = await supabase.from('questions').delete().in('id', lastBatchIds);
+      if (error) throw error;
+      toast.success("تم التراجع وحذف الأسئلة المضافة");
+      setLastBatchIds([]);
+      setShowUndo(false);
+      fetchData();
+    } catch (err: any) {
+      toast.error("فشل التراجع عن الإضافة");
+    }
+  };
 
   // Export functions
   const getFilteredQuestions = () => {
@@ -597,7 +660,20 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-2">
             {subTab === 'list' && activeTab === 'questions' && (
               <div className="flex items-center gap-2 mr-2">
-                <button onClick={exportToExcel} className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-all title='تصدير Excel'">
+                {showUndo && (
+                  <button 
+                    onClick={undoLastImport}
+                    className="flex items-center gap-2 px-3 py-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-all font-bold text-xs"
+                  >
+                    <ChevronRight className="w-3 h-3 rotate-180" />
+                    تراجع عن الإضافة
+                  </button>
+                )}
+                <label className="p-2 bg-slate-50 text-slate-600 rounded-lg hover:bg-slate-100 transition-all cursor-pointer" title="استيراد JSON">
+                  <Plus className="w-4 h-4" />
+                  <input type="file" accept=".json" className="hidden" onChange={handleJSONImport} />
+                </label>
+                <button onClick={exportToExcel} className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-all" title="تصدير Excel">
                   <Download className="w-4 h-4" />
                 </button>
                 <button onClick={exportToPDF} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all title='تصدير PDF'">
