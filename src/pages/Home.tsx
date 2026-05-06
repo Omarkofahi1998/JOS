@@ -146,7 +146,7 @@ export default function Home() {
                 {settings.hero_image && (
                   <img 
                     src={settings.hero_image} 
-                    alt="قاعة امتحانات هيئة الخدمة والإدارة العامة" 
+                    alt="قاعة امتحانات عامة" 
                     className="w-full h-auto object-cover rounded-3xl shadow-2xl transition-all duration-500 hover:scale-[1.01]"
                     referrerPolicy="no-referrer"
                     fetchPriority="high"
@@ -172,7 +172,7 @@ export default function Home() {
              { label: 'متدرب نشط', val: stats.trainees },
              { label: 'سؤال تدريبي', val: stats.questions },
              { label: 'محاكاة كاملة', val: stats.exams },
-             { label: 'تخصص مهني', val: stats.majors }
+             { label: 'تخصص مدعوم', val: stats.majors }
            ].map((stat, i) => (
              <div key={i} className="text-center">
                <div className="text-2xl md:text-3xl font-black text-slate-900 mb-1">{stat.val}</div>
@@ -185,7 +185,7 @@ export default function Home() {
              </div>
              <div className="text-red-500 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-1">
                <span className="w-1.5 h-1.5 bg-red-600 rounded-full animate-ping" />
-               زوار الموقع (حقيقي)
+               زوار الموقع 
              </div>
            </div>
         </div>
@@ -194,7 +194,7 @@ export default function Home() {
       {/* Features */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-right">
         <div className="mb-12">
-          <h2 className="text-3xl font-black text-slate-900 mb-4">أدوات تفوقك</h2>
+          <h2 className="text-3xl font-black text-slate-900 mb-4">أدوات النجاح والتفوق</h2>
           <div className="w-16 h-1 bg-red-600 rounded-full" />
         </div>
 
@@ -236,7 +236,7 @@ export default function Home() {
             انضم إلى آلاف المتقدمين الناجحين وابدأ التدريب الآن مع بنك الأسئلة الأحدث والخدمات الأكثر احترافية.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/mock-exams" className="bg-red-600 text-white px-10 py-4 rounded-xl font-bold text-lg hover:bg-white hover:text-slate-900 transition-all shadow-xl shadow-red-600/20">التسجيل في الامتحانات</Link>
+            <Link to="/mock-exams" className="bg-red-600 text-white px-10 py-4 rounded-xl font-bold text-lg hover:bg-white hover:text-slate-900 transition-all shadow-xl shadow-red-600/20">التدريب على الامتحانات</Link>
             <Link to="/services" className="bg-green-600 text-white px-10 py-4 rounded-xl font-bold text-lg hover:bg-white hover:text-slate-900 transition-all shadow-xl shadow-green-600/20">تواصل معنا</Link>
           </div>
         </div>

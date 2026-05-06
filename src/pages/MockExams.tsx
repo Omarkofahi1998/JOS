@@ -41,7 +41,7 @@ export default function MockExams() {
     const url = `${window.location.origin}/#/mock-exams/${encodeURIComponent(majorId)}`;
     const shareData = {
       title: `امتحان تجريبي - ${majorName}`,
-      text: `ألقِ نظرة على الامتحان التجريبي لتخصص ${majorName} على جـو ستودنتس!`,
+      text: `ألقِ نظرة على الامتحان التجريبي لتخصص ${majorName} على Jo Students!`,
       url: url
     };
 
