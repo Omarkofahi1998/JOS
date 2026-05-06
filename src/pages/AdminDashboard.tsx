@@ -34,6 +34,7 @@ export default function AdminDashboard() {
   const [qOptions, setQOptions] = useState(["", "", "", ""]);
   const [qCorrect, setQCorrect] = useState(0);
   const [qMajor, setQMajor] = useState("عام");
+  const [qImage, setQImage] = useState("");
   const [bulkText, setBulkText] = useState("");
 
   const [fTitle, setFTitle] = useState("");
@@ -62,7 +63,11 @@ export default function AdminDashboard() {
   const [siteSet, setSiteSet] = useState({
     hero_title: "",
     hero_subtitle: "",
-    hero_image: ""
+    hero_image: "",
+    visitor_count: "2500",
+    contact_email: "info@jo-students.com",
+    contact_phone: "07XXXXXXXX",
+    contact_address: "عمان، الأردن"
   });
 
   useEffect(() => {
@@ -85,14 +90,15 @@ export default function AdminDashboard() {
     if (!supabase) return;
     setLoading(true);
     try {
-      const [q, f, s, settings, feat, rev, con] = await Promise.all([
+      const [q, f, s, settings, feat, rev, con, stats] = await Promise.all([
         supabase.from('questions').select('*').order('id', { ascending: false }),
         supabase.from('question_files').select('*').order('id', { ascending: false }),
         supabase.from('services').select('*').order('id', { ascending: false }),
         supabase.from('site_settings').select('key, value'),
         supabase.from('features').select('*').order('order_index', { ascending: true }),
         supabase.from('reviews').select('*').order('id', { ascending: false }),
-        supabase.from('contact_messages').select('*').order('id', { ascending: false })
+        supabase.from('contact_messages').select('*').order('id', { ascending: false }),
+        supabase.from('visitor_stats').select('count').eq('id', 1).single()
       ]);
       if (q.data) setQuestions(q.data);
       if (f.data) setFiles(f.data);
@@ -107,7 +113,11 @@ export default function AdminDashboard() {
         setSiteSet({
           hero_title: obj.hero_title || "",
           hero_subtitle: obj.hero_subtitle || "",
-          hero_image: obj.hero_image || ""
+          hero_image: obj.hero_image || "",
+          visitor_count: stats.data?.count?.toString() || "2500",
+          contact_email: obj.contact_email || "info@jo-students.com",
+          contact_phone: obj.contact_phone || "07XXXXXXXX",
+          contact_address: obj.contact_address || "عمان، الأردن"
         });
       }
     } finally {
@@ -134,6 +144,10 @@ export default function AdminDashboard() {
     setEditingId(null);
     setQText("");
     setQOptions(["", "", "", ""]);
+    setQCorrect(0);
+    setQMajor("عام");
+    setQImage("");
+    setBulkText("");
     setFTitle("");
     setFUrl("");
     setSTitle("");
@@ -155,7 +169,7 @@ export default function AdminDashboard() {
     if (!supabase) return;
     setLoading(true);
     try {
-      const payload = { text: qText, options: qOptions, correct: qCorrect, major: qMajor };
+      const payload = { text: qText, options: qOptions, correct: qCorrect, major: qMajor, image_url: qImage };
       let error;
       if (editingId) ({ error } = await supabase.from('questions').update(payload).eq('id', editingId));
       else ({ error } = await supabase.from('questions').insert(payload));
@@ -165,6 +179,28 @@ export default function AdminDashboard() {
       setSubTab('list');
       fetchData();
     } catch (err: any) { setStatus({ type: 'error', msg: err.message }); } finally { setLoading(false); }
+  };
+
+  const handleBulkAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabase) return;
+    setLoading(true);
+    try {
+      const data = JSON.parse(bulkText);
+      if (!Array.isArray(data)) throw new Error("يجب أن يكون النص مصفوفة JSON [{}, {}]");
+      
+      const { error } = await supabase.from('questions').insert(data);
+      if (error) throw error;
+      
+      setStatus({ type: 'success', msg: `تم رفع ${data.length} سؤال بنجاح` });
+      setBulkText("");
+      setSubTab('list');
+      fetchData();
+    } catch (err: any) {
+      setStatus({ type: 'error', msg: "خطأ في التنسيق: تأكد من صحة نص JSON" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const addFile = async (e: React.FormEvent) => {
@@ -242,10 +278,23 @@ export default function AdminDashboard() {
     if (!supabase) return;
     setLoading(true);
     try {
-      const updates = Object.entries(siteSet).map(([key, value]) => 
+      const siteSettingsData = {
+        hero_title: siteSet.hero_title,
+        hero_subtitle: siteSet.hero_subtitle,
+        hero_image: siteSet.hero_image,
+        contact_email: siteSet.contact_email,
+        contact_phone: siteSet.contact_phone,
+        contact_address: siteSet.contact_address
+      };
+      
+      const updates = Object.entries(siteSettingsData).map(([key, value]) => 
         supabase.from('site_settings').upsert({ key, value })
       );
-      await Promise.all(updates);
+      
+      // Update visitor stats
+      const statsUpdate = supabase.from('visitor_stats').upsert({ id: 1, count: parseInt(siteSet.visitor_count) });
+      
+      await Promise.all([...updates, statsUpdate]);
       setStatus({ type: 'success', msg: 'تم حفظ الإعدادات بنجاح' });
     } catch (err: any) { setStatus({ type: 'error', msg: err.message }); } finally { setLoading(false); }
   };
@@ -357,6 +406,16 @@ export default function AdminDashboard() {
                   >
                     {editingId ? 'تعديل الحالي' : 'إضافة سجل'}
                   </button>
+                  {activeTab === 'questions' && (
+                    <button 
+                      onClick={() => setSubTab('bulk')}
+                      className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all border ${
+                        subTab === 'bulk' ? 'bg-red-600 text-white border-red-600 shadow-lg' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+                      }`}
+                    >
+                      إضافة بالجملة (JSON)
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -446,10 +505,27 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    {contacts.length === 0 ? <p className="col-span-full text-center text-slate-300 font-bold py-20">لا يوجد رسائل</p> : contacts.map((msg) => (
                      <div key={msg.id} className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-200 group hover:bg-white hover:shadow-2xl transition-all">
-                        <div className="flex justify-between items-start mb-6">
-                           <button onClick={() => deleteItem('contact_messages', msg.id)} className="p-2 text-red-200 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all"><Trash2 className="w-5 h-5" /></button>
+                      <div className="flex justify-between items-start mb-6">
+                           <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                              <button 
+                                onClick={async () => {
+                                   const { error } = await supabase!.from('contact_messages').update({ is_read: !msg.is_read }).eq('id', msg.id);
+                                   if(!error) fetchData();
+                                }}
+                                className={`p-2 rounded-xl transition-all ${msg.is_read ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-blue-600'}`}
+                                title={msg.is_read ? "تحديد كغير مقروء" : "تحديد كمقروء"}
+                              >
+                                 <CheckCircle2 className="w-5 h-5" />
+                              </button>
+                              <button onClick={() => deleteItem('contact_messages', msg.id)} className="p-2 bg-red-50 text-red-300 hover:text-red-600 rounded-xl">
+                                 <Trash2 className="w-5 h-5" />
+                              </button>
+                           </div>
                            <div className="text-right">
-                              <h3 className="font-black text-slate-900 text-lg">{msg.name}</h3>
+                              <div className="flex items-center justify-end gap-2 mb-1">
+                                 {!msg.is_read && <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />}
+                                 <h3 className="font-black text-slate-900 text-lg">{msg.name}</h3>
+                              </div>
                               <span className="text-sm text-red-600 font-bold">{msg.email}</span>
                            </div>
                         </div>
@@ -465,11 +541,51 @@ export default function AdminDashboard() {
               {/* SETTINGS VIEW */}
               {activeTab === 'settings' && (
                 <form onSubmit={saveSettings} className="space-y-10 max-w-2xl mx-auto py-12">
-                   <div className="p-10 bg-slate-50 rounded-[3rem] border border-slate-200 space-y-8">
-                      <div className="space-y-2"><label className="text-xs font-black text-slate-400 uppercase">عنوان الموقع الفريد</label><input type="text" value={siteSet.hero_title} onChange={e => setSiteSet({...siteSet, hero_title: e.target.value})} className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-bold" /></div>
-                      <div className="space-y-2"><label className="text-xs font-black text-slate-400 uppercase">رسالة الترحيب</label><textarea rows={4} value={siteSet.hero_subtitle} onChange={e => setSiteSet({...siteSet, hero_subtitle: e.target.value})} className="w-full p-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-medium" /></div>
+                   <div className="bg-blue-50 border border-blue-100 p-6 rounded-3xl mb-8 text-right">
+                      <h3 className="text-blue-900 font-black mb-2 flex items-center justify-end gap-2 text-sm">
+                         إرشادات بناء الهوية
+                         <Shield className="w-4 h-4" />
+                      </h3>
+                      <p className="text-blue-700 text-xs leading-relaxed font-medium">
+                         من هنا يمكنك التحكم في المحتوى الأساسي للواجهة، تأكد من استخدام روابط صور مباشرة لضمان سرعة التحميل.
+                      </p>
                    </div>
-                   <button type="submit" className="w-full h-16 bg-slate-900 text-white rounded-[2rem] font-black hover:bg-red-600 transition-all shadow-2xl flex items-center justify-center gap-3"><CheckCircle2 className="w-6 h-6" /> تحديث بيانات الموقع</button>
+
+                   <div className="p-10 bg-slate-50 rounded-[3rem] border border-slate-200 space-y-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2 text-right">
+                          <label className="text-xs font-black text-slate-400 uppercase">عنوان الموقع الرئيسي</label>
+                          <input type="text" value={siteSet.hero_title} onChange={e => setSiteSet({...siteSet, hero_title: e.target.value})} className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-bold" />
+                        </div>
+                        <div className="space-y-2 text-right">
+                          <label className="text-xs font-black text-slate-400 uppercase">عداد الزوار</label>
+                          <input type="number" value={siteSet.visitor_count} onChange={e => setSiteSet({...siteSet, visitor_count: e.target.value})} className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-bold" />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2 text-right">
+                        <label className="text-xs font-black text-slate-400 uppercase">رابط صورة الغلاف (URL)</label>
+                        <input type="text" value={siteSet.hero_image} onChange={e => setSiteSet({...siteSet, hero_image: e.target.value})} className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-mono text-xs" />
+                      </div>
+
+                      <div className="space-y-4">
+                        <label className="text-xs font-black text-slate-400 uppercase">معلومات التواصل المباشر</label>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                           <input type="text" value={siteSet.contact_email} onChange={e => setSiteSet({...siteSet, contact_email: e.target.value})} className="h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 text-sm" placeholder="البريد الإلكتروني" />
+                           <input type="text" value={siteSet.contact_phone} onChange={e => setSiteSet({...siteSet, contact_phone: e.target.value})} className="h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 text-sm" placeholder="رقم الهاتف" />
+                           <input type="text" value={siteSet.contact_address} onChange={e => setSiteSet({...siteSet, contact_address: e.target.value})} className="h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 text-sm" placeholder="العنوان" />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 text-right">
+                        <label className="text-xs font-black text-slate-400 uppercase">الرسالة الترحيبية (وصف الهوية)</label>
+                        <textarea rows={4} value={siteSet.hero_subtitle} onChange={e => setSiteSet({...siteSet, hero_subtitle: e.target.value})} className="w-full p-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-medium" />
+                      </div>
+                   </div>
+                   <button type="submit" disabled={loading} className="w-full h-16 bg-slate-900 text-white rounded-[2rem] font-black hover:bg-red-600 transition-all shadow-2xl flex items-center justify-center gap-3 disabled:opacity-50">
+                      {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <CheckCircle2 className="w-6 h-6" />}
+                      تحديث بيانات الهوية البصرية
+                   </button>
                 </form>
               )}
 
@@ -479,6 +595,7 @@ export default function AdminDashboard() {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                      <div className="space-y-6">
                         <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">نص السؤال</label><textarea required rows={8} className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2.5rem] outline-none focus:bg-white focus:border-red-600 text-base" value={qText} onChange={e => setQText(e.target.value)} /></div>
+                        <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">رابط الصورة (URL)</label><input type="text" className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:bg-white focus:border-red-600 font-mono text-xs" value={qImage} onChange={e => setQImage(e.target.value)} placeholder="https://example.com/image.png" /></div>
                         <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">تخصص السؤال</label><select className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl outline-none" value={qMajor} onChange={e => setQMajor(e.target.value)}><option value="عام">ثقافة عامة</option><option value="مختبرات">مختبرات</option><option value="تمريض">تمريض</option><option value="قانون">قانون</option></select></div>
                      </div>
                      <div className="space-y-4">
@@ -513,6 +630,28 @@ export default function AdminDashboard() {
                    <div className="space-y-8 bg-slate-50 p-10 rounded-[3rem] border border-slate-200">
                       <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">عنوان الخدمة</label><input type="text" required className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600" value={sTitle} onChange={e => setSTitle(e.target.value)} /></div>
                       <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">الوصف التفصيلي</label><textarea rows={6} required className="w-full p-6 bg-white border border-slate-200 rounded-3xl outline-none focus:border-red-600" value={sDesc} onChange={e => setSDesc(e.target.value)} /></div>
+                      
+                      <div className="grid grid-cols-2 gap-6">
+                         <div className="space-y-2 text-right">
+                            <label className="text-xs font-black text-slate-400 uppercase">الأيقونة</label>
+                            <select className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none" value={sIcon} onChange={e => setSIcon(e.target.value)}>
+                               <option value="Settings">إعدادات</option>
+                               <option value="Sparkles">بريق</option>
+                               <option value="Star">نجمة</option>
+                               <option value="Award">جائزة</option>
+                               <option value="Tool">أداة</option>
+                            </select>
+                         </div>
+                         <div className="space-y-2 text-right">
+                            <label className="text-xs font-black text-slate-400 uppercase">لون الخلفية</label>
+                            <select className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none" value={sColor} onChange={e => setSColor(e.target.value)}>
+                               <option value="bg-slate-50">رمادي فاتح</option>
+                               <option value="bg-red-50">أحمر فاتح</option>
+                               <option value="bg-blue-50">أزرق فاتح</option>
+                               <option value="bg-emerald-50">أخضر فاتح</option>
+                            </select>
+                         </div>
+                      </div>
                    </div>
                    <button type="submit" className="w-full h-16 bg-slate-900 text-white rounded-[2rem] font-black hover:bg-red-600 transition-all shadow-2xl">تحديث الخدمات</button>
                 </form>
@@ -538,8 +677,60 @@ export default function AdminDashboard() {
                       <div className="space-y-2 col-span-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">الوصف</label><textarea rows={3} required className="w-full p-6 bg-white border border-slate-200 rounded-3xl outline-none focus:border-red-600" value={featDesc} onChange={e => setFeatDesc(e.target.value)} /></div>
                       <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">المسار (Path)</label><input type="text" required className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none font-mono" value={featPath} onChange={e => setFeatPath(e.target.value)} /></div>
                       <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">الترتيب</label><input type="number" required className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none" value={featOrder} onChange={e => setFeatOrder(parseInt(e.target.value))} /></div>
+                      
+                      <div className="space-y-2 text-right">
+                         <label className="text-xs font-black text-slate-400 uppercase">الأيقونة</label>
+                         <select className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none" value={featIcon} onChange={e => setFeatIcon(e.target.value)}>
+                            <option value="BookOpen">كتاب</option>
+                            <option value="Clock">ساعة</option>
+                            <option value="HelpCircle">سؤال</option>
+                            <option value="FileText">ملف</option>
+                            <option value="Sparkles">بريق</option>
+                         </select>
+                      </div>
+                      <div className="space-y-2 text-right">
+                         <label className="text-xs font-black text-slate-400 uppercase">اللون (Class)</label>
+                         <select className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none" value={featColor} onChange={e => setFeatColor(e.target.value)}>
+                            <option value="bg-red-50">أحمر</option>
+                            <option value="bg-blue-50">أزرق</option>
+                            <option value="bg-emerald-50">أخضر</option>
+                            <option value="bg-amber-50">برتقالي</option>
+                         </select>
+                      </div>
                    </div>
                    <button type="submit" className="w-full h-16 bg-slate-900 text-white rounded-[2rem] font-black hover:bg-red-600 transition-all shadow-2xl">حفظ الأداة</button>
+                </form>
+              )}
+              {/* BULK ADD VIEW */}
+              {subTab === 'bulk' && activeTab === 'questions' && (
+                <form onSubmit={handleBulkAdd} className="space-y-8 animate-in fade-in duration-500">
+                  <div className="bg-amber-50 border border-amber-200 p-6 rounded-3xl text-right">
+                    <h3 className="text-amber-900 font-black mb-2 flex items-center justify-end gap-2 text-sm">
+                      تعليمات الرفع الجماعي
+                      <AlertCircle className="w-4 h-4" />
+                    </h3>
+                    <p className="text-amber-700 text-xs leading-relaxed">
+                      يجب أن يكون النص بصيغة مصفوفة JSON صحيحة. مثال: <br/>
+                      <code className="bg-white/50 p-1 rounded font-mono text-[10px]">
+                        [{ "{" } "text": "السؤال؟", "options": ["أ", "ب", "ج", "د"], "correct": 0, "major": "عام", "image_url": "رابط الصورة" { "}" }]
+                      </code>
+                    </p>
+                  </div>
+                  <textarea 
+                    value={bulkText}
+                    onChange={(e) => setBulkText(e.target.value)}
+                    required
+                    placeholder="الصق نص JSON هنا..."
+                    className="w-full h-[400px] p-6 bg-slate-50 border border-slate-200 rounded-[2.5rem] outline-none focus:bg-white focus:border-red-600 font-mono text-sm leading-relaxed"
+                  />
+                  <button 
+                    type="submit" 
+                    disabled={loading}
+                    className="w-full h-16 bg-red-600 text-white rounded-[2rem] font-black hover:bg-slate-900 transition-all shadow-2xl flex items-center justify-center gap-3"
+                  >
+                    {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Plus className="w-6 h-6" />}
+                    رفع ومعالجة جميع الأسئلة الآن
+                  </button>
                 </form>
               )}
             </div>

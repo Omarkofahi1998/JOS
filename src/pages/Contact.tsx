@@ -1,16 +1,38 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Send, Phone, Mail, MapPin, Loader2, CheckCircle2 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 export default function Contact() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
+  const [contactInfo, setContactInfo] = useState({
+     email: "info@jo-students.com",
+     phone: "07XXXXXXXX",
+     address: "عمان، الأردن"
+  });
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     subject: "",
     message: ""
   });
+
+  useEffect(() => {
+     const fetchSettings = async () => {
+        if (!supabase) return;
+        const { data } = await supabase.from('site_settings').select('key, value');
+        if (data) {
+           const settings: any = {};
+           data.forEach(item => settings[item.key] = item.value);
+           setContactInfo({
+              email: settings.contact_email || "info@jo-students.com",
+              phone: settings.contact_phone || "07XXXXXXXX",
+              address: settings.contact_address || "عمان، الأردن"
+           });
+        }
+     };
+     fetchSettings();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +75,7 @@ export default function Contact() {
               <div className="flex items-start gap-4 justify-end">
                 <div>
                   <h3 className="text-lg font-black text-slate-900 mb-2">موقعنا</h3>
-                  <p className="text-slate-500 text-sm">عمان، الأردن</p>
+                  <p className="text-slate-500 text-sm">{contactInfo.address}</p>
                 </div>
                 <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 flex-shrink-0">
                   <MapPin className="w-6 h-6" />
@@ -65,7 +87,7 @@ export default function Contact() {
               <div className="flex items-start gap-4 justify-end">
                 <div>
                   <h3 className="text-lg font-black text-slate-900 mb-2">اتصل بنا</h3>
-                  <p className="text-slate-500 text-sm">07XXXXXXXX</p>
+                  <p className="text-slate-500 text-sm">{contactInfo.phone}</p>
                 </div>
                 <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 flex-shrink-0">
                   <Phone className="w-6 h-6" />
@@ -77,7 +99,7 @@ export default function Contact() {
               <div className="flex items-start gap-4 justify-end">
                 <div>
                   <h3 className="text-lg font-black text-slate-900 mb-2">بريدنا الإلكتروني</h3>
-                  <p className="text-slate-500 text-sm">info@jo-students.com</p>
+                  <p className="text-slate-500 text-sm">{contactInfo.email}</p>
                 </div>
                 <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-600 flex-shrink-0">
                   <Mail className="w-6 h-6" />

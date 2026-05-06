@@ -1,7 +1,8 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, Home, BookOpen, HelpCircle, FileText, ExternalLink, Sparkles, ChevronDown, Search, Mail } from "lucide-react";
-import React, { useState, ReactNode } from "react";
+import { Menu, X, Home, BookOpen, HelpCircle, FileText, ExternalLink, Sparkles, ChevronDown, Search, Mail, Phone, MapPin } from "lucide-react";
+import React, { useState, ReactNode, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { supabase } from "../lib/supabase";
 
 function Logo() {
   return (
@@ -11,7 +12,7 @@ function Logo() {
       className="flex items-center gap-2 group cursor-pointer"
     >
       <div className="relative w-9 h-9 bg-slate-900 rounded-lg flex items-center justify-center shadow-md overflow-hidden">
-        <div className="absolute inset-0 jordan-flag-gradient opacity-20" />
+        <div className="absolute inset-0 joran-flag-gradient opacity-20" />
         <span className="text-white font-bold text-base tracking-tighter relative z-10">JO</span>
       </div>
     </motion.div>
@@ -21,8 +22,32 @@ function Logo() {
 export default function Layout({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [contactInfo, setContactInfo] = useState({
+    email: "info@jo-students.com",
+    phone: "07XXXXXXXX",
+    address: "عمان، الأردن",
+    description: "منصة JO Students متكاملة تهدف إلى دعم المتقدمين للامتحانات التنافسية في الأردن من خلال توفير مصادر تعليمية وامتحانات تجريبية محدثة."
+  });
   const location = useLocation();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    async function fetchSettings() {
+      if (!supabase) return;
+      const { data } = await supabase.from('site_settings').select('key, value');
+      if (data) {
+        const settings: any = {};
+        data.forEach(item => settings[item.key] = item.value);
+        setContactInfo({
+          email: settings.contact_email || "info@jo-students.com",
+          phone: settings.contact_phone || "07XXXXXXXX",
+          address: settings.contact_address || "عمان، الأردن",
+          description: settings.hero_subtitle || "منصة JO Students متكاملة تهدف إلى دعم المتقدمين للامتحانات التنافسية في الأردن من خلال توفير مصادر تعليمية وامتحانات تجريبية محدثة."
+        });
+      }
+    }
+    fetchSettings();
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,81 +175,95 @@ export default function Layout({ children }: { children: ReactNode }) {
       </main>
 
       {/* Footer */}
-      <footer className="bg-slate-900 text-slate-300 pt-12 pb-8">
+      <footer className="bg-slate-900 text-slate-300 pt-16 pb-8" dir="rtl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 border-b border-slate-800 pb-12">
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
-                   <FileText className="w-6 h-6 text-white" />
-                </div>
-                <span className="text-lg font-bold text-white">JO Students</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 border-b border-slate-800 pb-12">
+            <div className="text-right">
+              <div className="flex items-center gap-3 mb-6 justify-start">
+                <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center shadow-lg transform -rotate-3">
+                    <FileText className="w-6 h-6 text-white" />
+                 </div>
+                 <span className="text-xl font-black text-white tracking-tight uppercase">JO Students</span>
               </div>
-              <p className="text-slate-400 text-sm leading-relaxed">
-                منصة JO Students متكاملة تهدف إلى دعم المتقدمين للامتحانات التنافسية في الأردن من خلال توفير مصادر تعليمية وامتحانات تجريبية محدثة.
+              <p className="text-slate-400 text-sm leading-relaxed font-medium">
+                {contactInfo.description}
               </p>
             </div>
 
-            <div>
-              <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6">روابط سريعة</h3>
+            <div className="text-right">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-8 border-r-4 border-red-600 pr-4">روابط سريعة</h3>
               <ul className="space-y-4">
                 <li>
-                  <Link to="/" className="text-slate-300 hover:text-white transition-colors text-sm flex items-center gap-2">
-                    <span className="w-1 h-1 bg-blue-500 rounded-full" />
-                    الرئيسية
+                  <Link to="/" className="text-slate-400 hover:text-white transition-all text-sm flex items-center gap-3 justify-start group">
+                    <div className="w-1.5 h-1.5 bg-slate-700 group-hover:bg-red-600 rounded-full transition-all" />
+                    <span className="group-hover:text-red-500 transition-colors">الرئيسية</span>
                   </Link>
                 </li>
                 <li>
-                  <Link to="/mock-exams" className="text-slate-300 hover:text-white transition-colors text-sm flex items-center gap-2">
-                    <span className="w-1 h-1 bg-blue-500 rounded-full" />
-                    امتحانات تجريبية
+                  <Link to="/mock-exams" className="text-slate-400 hover:text-white transition-all text-sm flex items-center gap-3 justify-start group">
+                    <div className="w-1.5 h-1.5 bg-slate-700 group-hover:bg-red-600 rounded-full transition-all" />
+                    <span className="group-hover:text-red-500 transition-colors">امتحانات تجريبية</span>
                   </Link>
                 </li>
                 <li>
-                  <Link to="/reviews" className="text-slate-300 hover:text-white transition-colors text-sm flex items-center gap-2">
-                    <span className="w-1 h-1 bg-blue-500 rounded-full" />
-                    المراجعات والآراء
+                  <Link to="/reviews" className="text-slate-400 hover:text-white transition-all text-sm flex items-center gap-3 justify-start group">
+                    <div className="w-1.5 h-1.5 bg-slate-700 group-hover:bg-red-600 rounded-full transition-all" />
+                    <span className="group-hover:text-red-500 transition-colors">المراجعات والآراء</span>
                   </Link>
                 </li>
                 <li>
-                  <Link to="/contact" className="text-slate-300 hover:text-white transition-colors text-sm flex items-center gap-2">
-                    <span className="w-1 h-1 bg-blue-500 rounded-full" />
-                    تواصل معنا
+                  <Link to="/contact" className="text-slate-400 hover:text-white transition-all text-sm flex items-center gap-3 justify-start group">
+                    <div className="w-1.5 h-1.5 bg-slate-700 group-hover:bg-red-600 rounded-full transition-all" />
+                    <span className="group-hover:text-red-500 transition-colors">تواصل معنا</span>
                   </Link>
                 </li>
               </ul>
             </div>
 
-            <div>
-              <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6">روابط الهيئة</h3>
+            <div className="text-right">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-8 border-r-4 border-slate-700 pr-4">روابط الهيئة</h3>
               <ul className="space-y-4">
                 <li>
-                  <a
-                    href="https://applyjobs.spac.gov.jo/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors text-sm"
-                  >
-                    نظام الاستقطاب في القطاع العام
-                    <ExternalLink className="w-3 h-3" />
+                  <a href="https://applyjobs.spac.gov.jo/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-slate-400 hover:text-white transition-all text-sm justify-start group">
+                    <ExternalLink className="w-4 h-4 text-slate-700 group-hover:text-blue-400 transition-all" />
+                    <span className="group-hover:text-blue-400 transition-colors">نظام الاستقطاب في القطاع العام</span>
                   </a>
                 </li>
                 <li>
-                  <a
-                    href="https://enq-sys.spac.gov.jo/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-slate-300 hover:text-white transition-colors text-sm"
-                  >
-                    الاستعلام عن الدور التنافسي
-                    <ExternalLink className="w-3 h-3" />
+                  <a href="https://enq-sys.spac.gov.jo/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-slate-400 hover:text-white transition-all text-sm justify-start group">
+                    <ExternalLink className="w-4 h-4 text-slate-700 group-hover:text-blue-400 transition-all" />
+                    <span className="group-hover:text-blue-400 transition-colors">الاستعلام عن الدور التنافسي</span>
                   </a>
+                </li>
+              </ul>
+            </div>
+
+            <div className="text-right">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-8 border-r-4 border-emerald-600 pr-4">قنوات التواصل</h3>
+              <ul className="space-y-5">
+                <li className="flex items-center gap-4 text-sm text-slate-400 justify-start group">
+                  <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all">
+                    <Mail className="w-5 h-5" />
+                  </div>
+                  <a href={`mailto:${contactInfo.email}`} className="hover:text-white transition-colors group-hover:text-slate-200">{contactInfo.email}</a>
+                </li>
+                <li className="flex items-center gap-4 text-sm text-slate-400 justify-start group">
+                  <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                    <Phone className="w-5 h-5" />
+                  </div>
+                  <a href={`tel:${contactInfo.phone}`} className="hover:text-white transition-colors group-hover:text-slate-200">{contactInfo.phone}</a>
+                </li>
+                <li className="flex items-center gap-4 text-sm text-slate-400 justify-start group">
+                  <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-red-500 group-hover:bg-red-500 group-hover:text-white transition-all">
+                    <MapPin className="w-5 h-5" />
+                  </div>
+                  <span className="group-hover:text-slate-200">{contactInfo.address}</span>
                 </li>
               </ul>
             </div>
           </div>
-          <div className="mt-8 text-center text-slate-500 text-xs">
-            © {new Date().getFullYear()} JO Students. جميع الحقوق محفوظة.
+          <div className="mt-8 text-center text-slate-600 text-[10px] font-black tracking-[0.3em] uppercase">
+            © {new Date().getFullYear()} JO Students. جميع الحقوق محفوظة
           </div>
         </div>
       </footer>
