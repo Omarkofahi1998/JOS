@@ -72,12 +72,12 @@ export default function AdminDashboard() {
         setLastBatchIds(newIds);
         setShowUndo(true);
         fetchData();
-        toast.success(`تم استيراد ${validQuestions.length} سؤال بنجاح`);
+        setStatus({ type: 'success', msg: `تم استيراد ${validQuestions.length} سؤال بنجاح` });
         
         // Hide undo after 30 seconds
         setTimeout(() => setShowUndo(false), 30000);
       } catch (err: any) {
-        toast.error(`فشل الاستيراد: ${err.message}`);
+        setStatus({ type: 'error', msg: `فشل الاستيراد: ${err.message}` });
       }
     };
     reader.readAsText(file);
@@ -88,12 +88,12 @@ export default function AdminDashboard() {
     try {
       const { error } = await supabase.from('questions').delete().in('id', lastBatchIds);
       if (error) throw error;
-      toast.success("تم التراجع وحذف الأسئلة المضافة");
+      setStatus({ type: 'success', msg: "تم التراجع وحذف الأسئلة المضافة" });
       setLastBatchIds([]);
       setShowUndo(false);
       fetchData();
     } catch (err: any) {
-      toast.error("فشل التراجع عن الإضافة");
+      setStatus({ type: 'error', msg: "فشل التراجع عن الإضافة" });
     }
   };
 
@@ -135,6 +135,18 @@ export default function AdminDashboard() {
     }));
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     saveAs(blob, `jo_students_data_${majorFilter}.json`);
+  };
+
+  const exportToTXT = () => {
+    const data = getFilteredQuestions().map(q => ({
+      text: q.text,
+      options: q.options,
+      correct: q.correct,
+      major: q.major,
+      image_url: q.image_url || ""
+    }));
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "text/plain" });
+    saveAs(blob, `jo_students_exam_${majorFilter}.txt`);
   };
 
   const exportToPDF = () => {
@@ -267,7 +279,7 @@ export default function AdminDashboard() {
   const [qText, setQText] = useState("");
   const [qOptions, setQOptions] = useState(["", "", "", ""]);
   const [qCorrect, setQCorrect] = useState(0);
-  const [qMajor, setQMajor] = useState("عام");
+  const [qMajor, setQMajor] = useState("");
   const [qImage, setQImage] = useState("");
   const [bulkText, setBulkText] = useState("");
 
@@ -381,7 +393,7 @@ export default function AdminDashboard() {
     setQText("");
     setQOptions(["", "", "", ""]);
     setQCorrect(0);
-    setQMajor("عام");
+    setQMajor("");
     setQImage("");
     setBulkText("");
     setFTitle("");
@@ -629,19 +641,19 @@ export default function AdminDashboard() {
                 <>
                   <button 
                     onClick={() => setSubTab('list')}
-                    className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all border ${
-                      subTab === 'list' ? 'bg-slate-900 text-white border-slate-900 shadow-lg' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+                    className={`px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all border-2 ${
+                      subTab === 'list' ? 'bg-slate-900 text-white border-slate-900 shadow-xl' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'
                     }`}
                   >
-                    عرض الكل
+                    عرض بنك الأسئلة
                   </button>
                   <button 
                     onClick={() => { setSubTab('add'); resetForms(); }}
-                    className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all border ${
-                      subTab === 'add' ? 'bg-slate-900 text-white border-slate-900 shadow-lg' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+                    className={`px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all border-2 ${
+                      subTab === 'add' ? 'bg-slate-900 text-white border-slate-900 shadow-xl' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'
                     }`}
                   >
-                    {editingId ? 'تعديل الحالي' : 'إضافة سجل'}
+                    {editingId ? 'تعديل السجل' : 'إضافة سؤال جديد'}
                   </button>
                   {activeTab === 'questions' && (
                     <button 
@@ -684,6 +696,9 @@ export default function AdminDashboard() {
                 </button>
                 <button onClick={exportToJSON} className="p-2 bg-slate-50 text-slate-600 rounded-lg hover:bg-slate-100 transition-all" title="تصدير JSON">
                   <Settings className="w-4 h-4" />
+                </button>
+                <button onClick={exportToTXT} className="p-2 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 transition-all" title="تصدير TXT">
+                  <FileText className="w-4 h-4" />
                 </button>
               </div>
             )}
@@ -968,9 +983,11 @@ export default function AdminDashboard() {
                           <input 
                             type="text" 
                             list="majors-list"
+                            required
                             className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:bg-white focus:border-red-600 font-bold" 
                             value={qMajor} 
                             onChange={e => setQMajor(e.target.value)} 
+                            placeholder="حدد التخصص (مثلاً: علوم، أدبي...)"
                           />
                           <datalist id="majors-list">
                             {Array.from(new Set(questions.map(q => q.major))).map(m => (
@@ -1107,7 +1124,7 @@ export default function AdminDashboard() {
                     <p className="text-amber-700 text-xs leading-relaxed">
                       يجب أن يكون النص بصيغة مصفوفة JSON صحيحة. مثال: <br/>
                       <code className="bg-white/50 p-1 rounded font-mono text-[10px]">
-                        [{ "{" } "text": "السؤال؟", "options": ["أ", "ب", "ج", "د"], "correct": 0, "major": "عام", "image_url": "رابط الصورة" { "}" }]
+                        [{ "{" } "text": "السؤال؟", "options": ["أ", "ب", "ج", "د"], "correct": 0, "major": "رياضيات", "image_url": "رابط الصورة" { "}" }]
                       </code>
                     </p>
                   </div>
