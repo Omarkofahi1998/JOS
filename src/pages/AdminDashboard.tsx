@@ -4,9 +4,15 @@ import { supabase } from "../lib/supabase";
 import { 
   LayoutDashboard, Plus, LogOut, FileText, HelpCircle, Loader2, 
   CheckCircle2, AlertCircle, Sparkles, Trash2, Edit3, Layers, 
-  Search, X, MessageSquare, Shield, Settings, Menu, Bell, User, Clock, ChevronRight
+  Search, X, MessageSquare, Shield, Settings, Menu, Bell, User, Clock, ChevronRight,
+  Download, Image as ImageIcon, Eye
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import * as XLSX from "xlsx";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, ImageRun } from "docx";
+import { saveAs } from "file-saver";
 
 export default function AdminDashboard() {
   const [session, setSession] = useState<any>(null);
@@ -26,6 +32,72 @@ export default function AdminDashboard() {
   const [contacts, setContacts] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [majorFilter, setMajorFilter] = useState("all");
+  const [imageValid, setImageValid] = useState<boolean | null>(null);
+
+  // Export functions
+  const exportToExcel = () => {
+    const data = questions.map(q => ({
+      'السؤال': q.text,
+      'الخيارات': q.options.join(' | '),
+      'الجواب الصحيح': q.options[q.correct],
+      'التخصص': q.major,
+      'رابط الصورة': q.image_url || 'لا يوجد'
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Questions");
+    XLSX.writeFile(wb, "jo_students_questions.xlsx");
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF('p', 'pt');
+    // For Arabic support in jsPDF, it's tricky without a font file. 
+    // We will use a standard table and warn that Arabic might need a specific font embed.
+    // However, I'll try to provide a basic structure.
+    const tableData = questions.map(q => [
+      q.text,
+      q.major,
+      q.options[q.correct]
+    ]);
+    
+    (doc as any).autoTable({
+      head: [['Question', 'Major', 'Correct Answer']],
+      body: tableData,
+      styles: { font: 'helvetica', halign: 'right' }
+    });
+    doc.save("jo_students_questions.pdf");
+  };
+
+  const exportToWord = async () => {
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: questions.map(q => new Paragraph({
+          children: [
+            new TextRun({ text: `Question: ${q.text}`, bold: true, size: 24 }),
+            new TextRun({ text: `\nMajor: ${q.major}`, italics: true }),
+            new TextRun({ text: `\nOptions: ${q.options.join(', ')}` }),
+            new TextRun({ text: `\nCorrect: ${q.options[q.correct]}`, color: "008000" }),
+            new TextRun({ text: "\n\n" }),
+          ],
+        })),
+      }],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, "jo_students_questions.docx");
+  };
+
+  const validateImage = (url: string) => {
+    if (!url) {
+      setImageValid(null);
+      return;
+    }
+    const img = new Image();
+    img.onload = () => setImageValid(true);
+    img.onerror = () => setImageValid(false);
+    img.src = url;
+  };
 
   // Edit State
   const [editingId, setEditingId] = useState<number | string | null>(null);
@@ -426,6 +498,19 @@ export default function AdminDashboard() {
             
           <div className="flex items-center gap-2">
             {subTab === 'list' && activeTab === 'questions' && (
+              <div className="flex items-center gap-2 mr-2">
+                <button onClick={exportToExcel} className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-all title='تصدير Excel'">
+                  <Download className="w-4 h-4" />
+                </button>
+                <button onClick={exportToPDF} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all title='تصدير PDF'">
+                  <FileText className="w-4 h-4" />
+                </button>
+                <button onClick={exportToWord} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all title='تصدير Word'">
+                  <ImageIcon className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+            {subTab === 'list' && activeTab === 'questions' && (
               <select 
                 value={majorFilter}
                 onChange={(e) => setMajorFilter(e.target.value)}
@@ -482,44 +567,95 @@ export default function AdminDashboard() {
             <div className="p-8">
               {/* LIST VIEW */}
               {subTab === 'list' && activeTab !== 'settings' && activeTab !== 'contacts' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {(activeTab === 'questions' ? questions : activeTab === 'files' ? files : activeTab === 'services' ? services : activeTab === 'features' ? features : reviews)
-                    .filter(item => {
-                      const matchesSearch = (item.text || item.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                           (item.major || item.category || item.description || "").toLowerCase().includes(searchTerm.toLowerCase());
-                      
-                      const matchesMajor = activeTab === 'questions' && majorFilter !== 'all' ? item.major === majorFilter : true;
-                      
-                      return matchesSearch && matchesMajor;
-                    }).map((item, idx) => (
-                      <motion.div 
-                        key={item.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.05 }}
-                        className="p-6 bg-white border border-slate-100 rounded-3xl hover:border-red-100 hover:shadow-xl hover:shadow-red-500/5 transition-all group flex flex-col h-full"
-                      >
-                        <div className="flex justify-between items-start mb-4">
-                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                              <button 
-                                onClick={() => {
-                                  if(activeTab === 'questions') { setEditingId(item.id); setQText(item.text); setQOptions(item.options); setQCorrect(item.correct); setQMajor(item.major); setSubTab('add'); }
-                                  else if(activeTab === 'files') { setEditingId(item.id); setFTitle(item.title); setFCategory(item.category); setFUrl(item.url); setFSize(item.file_size); setSubTab('add'); }
-                                  else if(activeTab === 'services') { setEditingId(item.id); setSTitle(item.title); setSDesc(item.description); setSIcon(item.icon_name || "Settings"); setSColor(item.bg_color || "bg-slate-50"); setSubTab('add'); }
-                                  else if(activeTab === 'features') { setEditingId(item.id); setFeatTitle(item.title); setFeatDesc(item.description); setFeatIcon(item.icon_name || "BookOpen"); setFeatColor(item.color_class || "bg-red-50"); setFeatPath(item.link_path || "/"); setFeatOrder(item.order_index || 0); setSubTab('add'); }
-                                  else if(activeTab === 'reviews') { setEditingId(item.id); setRTitle(item.title); setRDesc(item.description); setRAuthor(item.author || "Jo Students"); setRReadTime(item.read_time || "٥ دقائق"); setRDate(item.file_date || ""); setSubTab('add'); }
-                                }}
-                                className="p-2 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-xl"
-                              ><Edit3 className="w-4 h-4" /></button>
-                              <button onClick={() => deleteItem(activeTab === 'files' ? 'question_files' : activeTab, item.id)} className="p-2 bg-red-50 text-red-300 hover:text-red-600 rounded-xl"><Trash2 className="w-4 h-4" /></button>
-                           </div>
-                           <span className="text-[10px] font-black text-slate-300 uppercase"># {item.id}</span>
-                        </div>
-                        <h4 className="font-black text-slate-900 mb-2 truncate">{item.title || item.major || item.category || 'سجل جديد'}</h4>
-                        <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 mb-6 flex-grow">{item.text || item.description || item.url}</p>
-                        <div className="pt-4 border-t border-slate-50 flex items-center justify-between text-[10px] font-black text-slate-400 uppercase">
-                           <div className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(item.created_at || Date.now()).toLocaleDateString('ar-JO')}</div>
-                           <ChevronRight className="w-3 h-3" />
-                        </div>
-                      </motion.div>
-                  ))}
+                <div className={activeTab === 'questions' ? "overflow-x-auto" : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"}>
+                  {activeTab === 'questions' ? (
+                    <table className="w-full text-right border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200">
+                          <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">السجل</th>
+                          <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">التخصص</th>
+                          <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">نص السؤال</th>
+                          <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">الصورة</th>
+                          <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase text-center">الإجراءات</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {questions
+                          .filter(item => {
+                            const matchesSearch = (item.text || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                                 (item.major || "").toLowerCase().includes(searchTerm.toLowerCase());
+                            const matchesMajor = majorFilter !== 'all' ? item.major === majorFilter : true;
+                            return matchesSearch && matchesMajor;
+                          }).map((item, idx) => (
+                            <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-all group">
+                              <td className="px-6 py-4 text-xs font-bold text-slate-400">#{item.id}</td>
+                              <td className="px-6 py-4">
+                                <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-md text-[10px] font-black">{item.major}</span>
+                              </td>
+                              <td className="px-6 py-4 text-sm font-bold text-slate-900 max-w-md truncate">{item.text}</td>
+                              <td className="px-6 py-4">
+                                {item.image_url ? (
+                                  <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200">
+                                    <img src={item.image_url} alt="" className="w-full h-full object-cover" />
+                                  </div>
+                                ) : (
+                                  <span className="text-[10px] text-slate-300">لا يوجد</span>
+                                )}
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="flex items-center justify-center gap-2">
+                                  <button 
+                                    onClick={() => {
+                                      setEditingId(item.id); setQText(item.text); setQOptions(item.options); setQCorrect(item.correct); setQMajor(item.major); setQImage(item.image_url || ""); setSubTab('add');
+                                    }}
+                                    className="p-2 bg-slate-100 text-slate-500 hover:text-slate-900 rounded-lg transition-all"
+                                  >
+                                    <Edit3 className="w-4 h-4" />
+                                  </button>
+                                  <button onClick={() => deleteItem('questions', item.id)} className="p-2 bg-red-50 text-red-500 hover:bg-red-600 hover:text-white rounded-lg transition-all">
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    (activeTab === 'files' ? files : activeTab === 'services' ? services : activeTab === 'features' ? features : reviews)
+                      .filter(item => {
+                        const matchesSearch = (item.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                             (item.category || item.description || "").toLowerCase().includes(searchTerm.toLowerCase());
+                        return matchesSearch;
+                      }).map((item, idx) => (
+                        <motion.div 
+                          key={item.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.05 }}
+                          className="p-6 bg-white border border-slate-100 rounded-3xl hover:border-red-100 hover:shadow-xl hover:shadow-red-500/5 transition-all group flex flex-col h-full"
+                        >
+                          <div className="flex justify-between items-start mb-4">
+                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                <button 
+                                  onClick={() => {
+                                    if(activeTab === 'files') { setEditingId(item.id); setFTitle(item.title); setFCategory(item.category); setFUrl(item.url); setFSize(item.file_size); setSubTab('add'); }
+                                    else if(activeTab === 'services') { setEditingId(item.id); setSTitle(item.title); setSDesc(item.description); setSIcon(item.icon_name || "Settings"); setSColor(item.bg_color || "bg-slate-50"); setSubTab('add'); }
+                                    else if(activeTab === 'features') { setEditingId(item.id); setFeatTitle(item.title); setFeatDesc(item.description); setFeatIcon(item.icon_name || "BookOpen"); setFeatColor(item.color_class || "bg-red-50"); setFeatPath(item.link_path || "/"); setFeatOrder(item.order_index || 0); setSubTab('add'); }
+                                    else if(activeTab === 'reviews') { setEditingId(item.id); setRTitle(item.title); setRDesc(item.description); setRAuthor(item.author || "Jo Students"); setRReadTime(item.read_time || "٥ دقائق"); setRDate(item.file_date || ""); setSubTab('add'); }
+                                  }}
+                                  className="p-2 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-xl"
+                                ><Edit3 className="w-4 h-4" /></button>
+                                <button onClick={() => deleteItem(activeTab === 'files' ? 'question_files' : activeTab, item.id)} className="p-2 bg-red-50 text-red-300 hover:text-red-600 rounded-xl"><Trash2 className="w-4 h-4" /></button>
+                             </div>
+                             <span className="text-[10px] font-black text-slate-300 uppercase"># {item.id}</span>
+                          </div>
+                          <h4 className="font-black text-slate-900 mb-2 truncate">{item.title || item.major || item.category || 'سجل جديد'}</h4>
+                          <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 mb-6 flex-grow">{item.text || item.description || item.url}</p>
+                          <div className="pt-4 border-t border-slate-50 flex items-center justify-between text-[10px] font-black text-slate-400 uppercase">
+                             <div className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(item.created_at || Date.now()).toLocaleDateString('ar-JO')}</div>
+                             <ChevronRight className="w-3 h-3" />
+                          </div>
+                        </motion.div>
+                    ))
+                  )}
                 </div>
               )}
 
@@ -622,7 +758,34 @@ export default function AdminDashboard() {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                      <div className="space-y-6">
                         <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">نص السؤال</label><textarea required rows={8} className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2.5rem] outline-none focus:bg-white focus:border-red-600 text-base" value={qText} onChange={e => setQText(e.target.value)} /></div>
-                        <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">رابط الصورة (URL)</label><input type="text" className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:bg-white focus:border-red-600 font-mono text-xs" value={qImage} onChange={e => setQImage(e.target.value)} placeholder="https://example.com/image.png" /></div>
+                        <div className="space-y-2 text-right">
+                          <label className="text-xs font-black text-slate-400 uppercase flex items-center justify-between">
+                            <span>رابط الصورة (URL)</span>
+                            {imageValid === true && <span className="text-emerald-500 flex items-center gap-1 font-bold"><CheckCircle2 className="w-3 h-3" /> صالحة</span>}
+                            {imageValid === false && <span className="text-red-500 flex items-center gap-1 font-bold"><AlertCircle className="w-3 h-3" /> غير صالحة</span>}
+                          </label>
+                          <div className="relative">
+                            <input 
+                              type="text" 
+                              className={`w-full h-14 pr-6 pl-12 bg-slate-50 border rounded-2xl outline-none focus:bg-white focus:border-red-600 font-mono text-xs transition-all ${
+                                imageValid === true ? 'border-emerald-200' : imageValid === false ? 'border-red-200' : 'border-slate-200'
+                              }`} 
+                              value={qImage} 
+                              onChange={e => { setQImage(e.target.value); validateImage(e.target.value); }} 
+                              placeholder="https://example.com/image.png" 
+                            />
+                            {qImage && (
+                              <div className="absolute left-3 top-1/2 -translate-y-1/2 flex gap-2">
+                                <button type="button" onClick={() => validateImage(qImage)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400"><Eye className="w-4 h-4" /></button>
+                              </div>
+                            )}
+                          </div>
+                          {imageValid === true && qImage && (
+                            <div className="mt-4 p-4 bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+                              <img src={qImage} alt="Preview" className="max-h-32 mx-auto rounded-lg object-contain" />
+                            </div>
+                          )}
+                        </div>
                         <div className="space-y-2 text-right">
                           <label className="text-xs font-black text-slate-400 uppercase">تخصص السؤال (أو اكتب تخصص جديد)</label>
                           <input 

@@ -278,38 +278,38 @@ export default function ExamPage() {
 
                 <div 
                   dir={currentIsRTL ? "rtl" : "ltr"}
-                  className={`mb-6 ${currentIsRTL ? "text-right pr-3 border-r-4" : "text-left pl-3 border-l-4"} border-red-600`}
+                  className={`mb-4 ${currentIsRTL ? "text-right pr-3 border-r-4" : "text-left pl-3 border-l-4"} border-red-600`}
                 >
-                  <h2 className={`text-lg md:text-xl font-bold text-slate-900 leading-relaxed`}>
+                  <h2 className={`text-base md:text-lg font-bold text-slate-900 leading-snug`}>
                     {q.text}
                   </h2>
                 </div>
 
                 {q.image && q.image.trim() !== "" && (
-                  <div className="mb-6 rounded-lg overflow-hidden border border-slate-100 bg-slate-200/20">
-                    <img src={q.image} alt="Question Visual Context" className="w-full max-h-60 object-contain mx-auto" />
+                  <div className="mb-4 rounded-lg overflow-hidden border border-slate-100 bg-slate-200/10">
+                    <img src={q.image} alt="Question Visual Context" className="w-full max-h-48 object-contain mx-auto" />
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 gap-2.5">
+                <div className="grid grid-cols-1 gap-2">
                   {q.options.map((opt, idx) => (
                     <button
                       key={idx}
                       onClick={() => handleSelect(idx)}
                       dir={currentIsRTL ? "rtl" : "ltr"}
-                      className={`p-3.5 md:p-4 rounded-xl border-2 text-sm md:text-base font-bold transition-all flex items-center justify-between group ${
+                      className={`p-3 md:p-3.5 rounded-xl border font-bold transition-all flex items-center justify-between group ${
                         answers[currentIdx] === idx
-                          ? "border-red-600 bg-red-50 text-red-900 shadow-md shadow-red-600/5"
-                          : "border-slate-50 bg-slate-50 hover:border-red-100 text-slate-600"
+                          ? "border-red-600 bg-red-50 text-red-900 shadow-sm"
+                          : "border-slate-100 bg-slate-50/50 hover:border-red-100 text-slate-600"
                       }`}
                     >
-                      <span className="flex-1">{opt}</span>
-                      <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
+                      <span className="flex-1 text-sm md:text-base">{opt}</span>
+                      <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
                         currentIsRTL ? "mr-3" : "ml-3"
                       } ${
-                        answers[currentIdx] === idx ? "border-red-600 bg-red-600 shadow shadow-red-600/20" : "border-slate-200 group-hover:border-red-300"
+                        answers[currentIdx] === idx ? "border-red-600 bg-red-600" : "border-slate-200 group-hover:border-red-300"
                       }`}>
-                        {answers[currentIdx] === idx && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                        {answers[currentIdx] === idx && <CheckCircle2 className="w-3 h-3 text-white" />}
                       </div>
                     </button>
                   ))}
