@@ -248,7 +248,7 @@ export default function MockExams() {
       <div className="text-center">
         <div className="inline-flex flex-col items-center gap-6">
           <a
-            href={`${window.location.origin}/exam`}
+            href={`${window.location.origin}/#/exam`}
             target="_blank"
             rel="noopener noreferrer"
             onClick={prepareExam}
