@@ -22,10 +22,10 @@ export default function Home() {
   });
 
   const [stats, setStats] = useState({
-    trainees: '2,500+',
-    questions: '3,200+',
-    exams: '450+',
-    majors: '18+'
+    trainees: '...',
+    questions: '...',
+    exams: '...',
+    majors: '...'
   });
 
   const [featuresList, setFeaturesList] = useState<Feature[]>([]);

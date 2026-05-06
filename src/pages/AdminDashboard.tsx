@@ -51,8 +51,10 @@ export default function AdminDashboard() {
       'الخيار 2': q.options[1],
       'الخيار 3': q.options[2],
       'الخيار 4': q.options[3],
-      'الجواب الصحيح': q.options[q.correct],
+      'رقم الجواب الصحيح (0-3)': q.correct,
+      'نص الجواب الصحيح': q.options[q.correct],
       'التخصص': q.major,
+      'رابط الصورة': q.image_url || 'لا يوجد'
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
@@ -61,7 +63,13 @@ export default function AdminDashboard() {
   };
 
   const exportToJSON = () => {
-    const data = getFilteredQuestions();
+    const data = getFilteredQuestions().map(q => ({
+      text: q.text,
+      options: q.options,
+      correct: q.correct,
+      major: q.major,
+      image_url: q.image_url || ""
+    }));
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     saveAs(blob, `jo_students_data_${majorFilter}.json`);
   };
@@ -70,30 +78,47 @@ export default function AdminDashboard() {
     const doc = new jsPDF('p', 'pt');
     const filtered = getFilteredQuestions();
     
-    doc.setFontSize(20);
-    doc.text("Official Exam Questions - Jo Students", 40, 40);
-    doc.setFontSize(12);
-    doc.text(`Major: ${majorFilter === 'all' ? 'All Majors' : majorFilter}`, 40, 60);
-    doc.text(`Date: ${new Date().toLocaleDateString()}`, 40, 75);
-    doc.line(40, 85, 550, 85);
+    doc.setFontSize(22);
+    doc.text("Official Exam Questions - Jo Students", 40, 45);
+    doc.setFontSize(10);
+    doc.text(`Major: ${majorFilter === 'all' ? 'All Majors' : majorFilter}`, 40, 65);
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, 40, 78);
+    doc.line(40, 90, 550, 90);
 
     const body = filtered.map((q, i) => [
       `${i + 1}`,
       q.text,
-      q.options.join('\n'),
-      q.options[q.correct]
+      q.options.map((opt, idx) => `${String.fromCharCode(65 + idx)}) ${opt}`).join('\n')
     ]);
     
     (doc as any).autoTable({
-      startY: 100,
-      head: [['#', 'Question Content', 'Options', 'Correct']],
+      startY: 110,
+      head: [['#', 'Question Content', 'Options']],
       body: body,
-      styles: { fontSize: 10, cellPadding: 10 },
+      styles: { fontSize: 9, cellPadding: 8, overflow: 'linebreak' },
       columnStyles: {
         0: { cellWidth: 30 },
-        1: { cellWidth: 250 },
+        1: { cellWidth: 320 },
         2: { cellWidth: 150 },
       }
+    });
+
+    // Add Answer Key on a new page if needed or at the end
+    doc.addPage();
+    doc.setFontSize(18);
+    doc.text("Answer Key (الإجابة النموذجية)", 40, 45);
+    doc.line(40, 55, 550, 55);
+
+    const answerBody = filtered.map((q, i) => [
+      `${i + 1}`,
+      q.options[q.correct]
+    ]);
+
+    (doc as any).autoTable({
+      startY: 70,
+      head: [['#', 'Correct Answer']],
+      body: answerBody,
+      styles: { fontSize: 10, cellPadding: 5 }
     });
     
     doc.save(`exam_${majorFilter}.pdf`);
@@ -108,13 +133,13 @@ export default function AdminDashboard() {
           new Paragraph({
             alignment: AlignmentType.CENTER,
             children: [
-              new TextRun({ text: "نظام جو ستودنتس التعليمي", bold: true, size: 32 }),
+              new TextRun({ text: "نظام جو ستودنتس التعليمي", bold: true, size: 36 }),
             ],
           }),
           new Paragraph({
             alignment: AlignmentType.CENTER,
             children: [
-              new TextRun({ text: `امتحان تجريبي: ${majorFilter === 'all' ? 'كافة التخصصات' : majorFilter}`, size: 24 }),
+              new TextRun({ text: `امتحان تجريبي: ${majorFilter === 'all' ? 'كافة التخصصات' : majorFilter}`, size: 26 }),
             ],
           }),
           new Paragraph({ text: "\n" }),
@@ -135,10 +160,24 @@ export default function AdminDashboard() {
             ...q.options.map((opt, optIdx) => new Paragraph({
               indent: { left: 720 },
               children: [
-                new TextRun({ text: `${String.fromCharCode(65 + optIdx)}) ${opt}`, size: 22 }),
+                new TextRun({ text: `${String.fromCharCode(64 + (optIdx + 1))}) ${opt}`, size: 22 }),
               ],
             })),
           ]),
+          // Answer Key
+          new Paragraph({
+            spacing: { before: 1000 },
+            alignment: AlignmentType.CENTER,
+            children: [
+              new TextRun({ text: "الإجابة النموذجية", bold: true, size: 32, underline: {} }),
+            ],
+          }),
+          ...filtered.map((q, i) => new Paragraph({
+            children: [
+              new TextRun({ text: `${i + 1}: `, bold: true }),
+              new TextRun({ text: q.options[q.correct] }),
+            ],
+          })),
         ],
       }],
     });
