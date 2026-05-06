@@ -67,7 +67,7 @@ export default function AdminDashboard() {
             options: q.options,
             correct: q.correct,
             major: q.major,
-            image_url: q.image_url || ""
+            image_url: q.image_url || q.image || q.imageUrl || q.img_url || ""
           });
         });
 
@@ -837,7 +837,7 @@ export default function AdminDashboard() {
                               <td className="px-6 py-4 hidden md:table-cell">
                                 {item.image_url ? (
                                   <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200">
-                                    <img src={item.image_url} alt="" className="w-full h-full object-cover" />
+                                    <img src={item.image_url} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                                   </div>
                                 ) : (
                                   <span className="text-[10px] text-slate-300">لا يوجد</span>
@@ -1023,7 +1023,7 @@ export default function AdminDashboard() {
                           </div>
                           {imageValid === true && qImage && (
                             <div className="mt-4 p-4 bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
-                              <img src={qImage} alt="Preview" className="max-h-32 mx-auto rounded-lg object-contain" />
+                              <img src={qImage} alt="Preview" className="max-h-32 mx-auto rounded-lg object-contain" referrerPolicy="no-referrer" />
                             </div>
                           )}
                         </div>
@@ -1239,7 +1239,7 @@ export default function AdminDashboard() {
                       </div>
                       {q.image_url && (
                         <div className="w-16 h-16 rounded-xl border border-slate-200 overflow-hidden shrink-0">
-                          <img src={q.image_url} alt="" className="w-full h-full object-cover" />
+                          <img src={q.image_url} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                         </div>
                       )}
                     </div>

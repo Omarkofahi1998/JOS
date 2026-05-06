@@ -27,7 +27,7 @@ export default function ExamPage() {
   useEffect(() => {
     const rawData = localStorage.getItem("current_exam");
     if (!rawData) {
-      window.location.href = "/#/mock-exams";
+      navigate("/mock-exams");
       return;
     }
     
@@ -41,7 +41,7 @@ export default function ExamPage() {
       // Optional: Clear after loading for "security" (one-time use data)
       // localStorage.removeItem("current_exam"); 
     } catch (e) {
-      window.location.href = "/#/mock-exams";
+      navigate("/mock-exams");
     }
 
     // Security: Prevent Right Click
@@ -300,7 +300,7 @@ export default function ExamPage() {
 
                 {q.image && q.image.trim() !== "" && (
                   <div className="mb-4 rounded-lg overflow-hidden border border-slate-100 bg-slate-200/10">
-                    <img src={q.image} alt="Question Visual Context" className="w-full max-h-48 object-contain mx-auto" />
+                    <img src={q.image} alt="Question Visual Context" className="w-full max-h-48 object-contain mx-auto" referrerPolicy="no-referrer" />
                   </div>
                 )}
 
