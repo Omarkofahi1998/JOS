@@ -15,9 +15,10 @@ interface Feature {
 
 export default function Home() {
   const [settings, setSettings] = useState({
-    hero_title: 'استعد لمستقبلك المهني في القطاع العام',
-    hero_subtitle: 'المنصة الأولى والوحيدة في الأردن المتخصصة في التدريب على امتحانات هيئة الخدمة والإدارة العامة (ديوان الخدمة المدنية سابقاً) وفق أحدث المعايير.',
-    hero_image: 'https://static.royanews.tv/images/news/display/20230522/285324.jpg'
+    hero_title: '',
+    hero_subtitle: '',
+    hero_image: '',
+    success_rate: '92'
   });
 
   const [stats, setStats] = useState({
@@ -48,14 +49,14 @@ export default function Home() {
 
         // Fetch Stats
         const { data: visitorData } = await supabase.from('visitor_stats').select('count', { count: 'exact' }).eq('id', 1).single();
-        const { count: qCount } = await supabase.from('questions').select('*', { count: 'exact', head: true });
+        const { count: qCount, data: qData } = await supabase.from('questions').select('major', { count: 'exact' });
         const { count: fCount } = await supabase.from('question_files').select('*', { count: 'exact', head: true });
 
         setStats({
           trainees: (visitorData?.count || 2500).toLocaleString() + '+',
-          questions: (qCount || 3200).toLocaleString() + '+',
-          exams: (fCount || 450).toLocaleString() + '+',
-          majors: '18+'
+          questions: (qCount || 0).toLocaleString() + '+',
+          exams: (fCount || 0).toLocaleString() + '+',
+          majors: Array.from(new Set(qData?.map(q => q.major) || [])).length + '+'
         });
 
         // Fetch Features
@@ -93,51 +94,6 @@ export default function Home() {
     const textColor = colorMap[colorClass] || 'text-slate-600';
     return <IconComponent className={`w-6 h-6 ${textColor}`} />;
   };
-
-  const features = [
-    {
-      title: "امتحانات تجريبية",
-      desc: "حاكي بيئة الامتحان الحقيقي بتوقيت محدد ونظام تصحيح فوري لتقييم مستواك.",
-      icon: <BookOpen className="w-6 h-6 text-red-600" />,
-      path: "/mock-exams",
-      color: "bg-red-50",
-    },
-    {
-      title: "تنبيهات المواعيد",
-      desc: "خدمة إشعار المتقدمين فور صدور مواعيد الامتحانات أو أسماء المدعوين للمقابلات.",
-      icon: <Clock className="w-6 h-6 text-blue-600" />,
-      path: "/",
-      color: "bg-blue-50",
-    },
-    {
-      title: "اسئلة شاملة",
-      desc: "بنك اسئلة ضخم يغطي كافة التخصصات والمهارات المطلوبة للامتحانات التنافسية.",
-      icon: <Star className="w-6 h-6 text-emerald-600" />,
-      path: "/questions",
-      color: "bg-green-50",
-    },
-    {
-      title: "مراجعات وملخصات",
-      desc: "ملخصات مركزة تساعدك على مراجعة المواد الأساسية بسرعة وكفاءة.",
-      icon: <CheckCircle className="w-6 h-6 text-amber-600" />,
-      path: "/reviews",
-      color: "bg-amber-50",
-    },
-    {
-      title: "تحليل النتائج",
-      desc: "احصل على تقرير مفصل لنقاط القوة والضعف لديك بعد كل امتحان تجريبي.",
-      icon: <Users className="w-6 h-6 text-indigo-600" />,
-      path: "/mock-exams",
-      color: "bg-indigo-50",
-    },
-    {
-      title: "خدمات مهنية",
-      desc: "تصميم سير ذاتية بنظام ATS، تدريب على المقابلات، واستشارات مهنية متخصصة.",
-      icon: <Sparkles className="w-6 h-6 text-purple-600" />,
-      path: "/services",
-      color: "bg-purple-50",
-    },
-  ];
 
   return (
     <div className="space-y-20 pb-20 bg-slate-50">
@@ -190,7 +146,7 @@ export default function Home() {
                   referrerPolicy="no-referrer"
                 />
                 <div className="absolute -bottom-6 -left-6 bg-white p-4 md:p-6 rounded-2xl shadow-xl border border-slate-100 text-center min-w-[120px] md:min-w-[150px]">
-                  <div className="text-xl md:text-2xl font-black text-red-600">92%+</div>
+                  <div className="text-xl md:text-2xl font-black text-red-600">{settings.success_rate}%+</div>
                   <div className="text-[10px] md:text-xs text-slate-500 font-bold uppercase">نسبة النجاح</div>
                 </div>
               </div>

@@ -6,9 +6,9 @@ export default function Contact() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
   const [contactInfo, setContactInfo] = useState({
-     email: "info@jo-students.com",
-     phone: "07XXXXXXXX",
-     address: "عمان، الأردن"
+     email: "",
+     phone: "",
+     address: ""
   });
   const [formData, setFormData] = useState({
     name: "",

@@ -12,7 +12,7 @@ function Logo() {
       className="flex items-center gap-2 group cursor-pointer"
     >
       <div className="relative w-9 h-9 bg-slate-900 rounded-lg flex items-center justify-center shadow-md overflow-hidden">
-        <div className="absolute inset-0 joran-flag-gradient opacity-20" />
+        <div className="absolute inset-0 jordan-flag-gradient opacity-20" />
         <span className="text-white font-bold text-base tracking-tighter relative z-10">JO</span>
       </div>
     </motion.div>
@@ -23,10 +23,10 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [contactInfo, setContactInfo] = useState({
-    email: "info@jo-students.com",
-    phone: "07XXXXXXXX",
-    address: "عمان، الأردن",
-    description: "منصة JO Students متكاملة تهدف إلى دعم المتقدمين للامتحانات التنافسية في الأردن من خلال توفير مصادر تعليمية وامتحانات تجريبية محدثة."
+    email: "",
+    phone: "",
+    address: "",
+    description: ""
   });
   const location = useLocation();
   const navigate = useNavigate();
@@ -39,10 +39,10 @@ export default function Layout({ children }: { children: ReactNode }) {
         const settings: any = {};
         data.forEach(item => settings[item.key] = item.value);
         setContactInfo({
-          email: settings.contact_email || "info@jo-students.com",
-          phone: settings.contact_phone || "07XXXXXXXX",
-          address: settings.contact_address || "عمان، الأردن",
-          description: settings.hero_subtitle || "منصة JO Students متكاملة تهدف إلى دعم المتقدمين للامتحانات التنافسية في الأردن من خلال توفير مصادر تعليمية وامتحانات تجريبية محدثة."
+          email: settings.contact_email || "",
+          phone: settings.contact_phone || "",
+          address: settings.contact_address || "",
+          description: settings.hero_subtitle || ""
         });
       }
     }
@@ -241,24 +241,30 @@ export default function Layout({ children }: { children: ReactNode }) {
             <div className="text-right">
               <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-8 border-r-4 border-emerald-600 pr-4">قنوات التواصل</h3>
               <ul className="space-y-5">
-                <li className="flex items-center gap-4 text-sm text-slate-400 justify-start group">
-                  <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all">
-                    <Mail className="w-5 h-5" />
-                  </div>
-                  <a href={`mailto:${contactInfo.email}`} className="hover:text-white transition-colors group-hover:text-slate-200">{contactInfo.email}</a>
-                </li>
-                <li className="flex items-center gap-4 text-sm text-slate-400 justify-start group">
-                  <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all">
-                    <Phone className="w-5 h-5" />
-                  </div>
-                  <a href={`tel:${contactInfo.phone}`} className="hover:text-white transition-colors group-hover:text-slate-200">{contactInfo.phone}</a>
-                </li>
-                <li className="flex items-center gap-4 text-sm text-slate-400 justify-start group">
-                  <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-red-500 group-hover:bg-red-500 group-hover:text-white transition-all">
-                    <MapPin className="w-5 h-5" />
-                  </div>
-                  <span className="group-hover:text-slate-200">{contactInfo.address}</span>
-                </li>
+                {contactInfo.email && (
+                  <li className="flex items-center gap-4 text-sm text-slate-400 justify-start group">
+                    <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all">
+                      <Mail className="w-5 h-5" />
+                    </div>
+                    <a href={`mailto:${contactInfo.email}`} className="hover:text-white transition-colors group-hover:text-slate-200">{contactInfo.email}</a>
+                  </li>
+                )}
+                {contactInfo.phone && (
+                  <li className="flex items-center gap-4 text-sm text-slate-400 justify-start group">
+                    <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                      <Phone className="w-5 h-5" />
+                    </div>
+                    <a href={`tel:${contactInfo.phone}`} className="hover:text-white transition-colors group-hover:text-slate-200">{contactInfo.phone}</a>
+                  </li>
+                )}
+                {contactInfo.address && (
+                  <li className="flex items-center gap-4 text-sm text-slate-400 justify-start group">
+                    <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-red-500 group-hover:bg-red-500 group-hover:text-white transition-all">
+                      <MapPin className="w-5 h-5" />
+                    </div>
+                    <span className="group-hover:text-slate-200">{contactInfo.address}</span>
+                  </li>
+                )}
               </ul>
             </div>
           </div>

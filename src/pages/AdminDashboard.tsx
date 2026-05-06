@@ -64,10 +64,11 @@ export default function AdminDashboard() {
     hero_title: "",
     hero_subtitle: "",
     hero_image: "",
-    visitor_count: "2500",
-    contact_email: "info@jo-students.com",
-    contact_phone: "07XXXXXXXX",
-    contact_address: "عمان، الأردن"
+    visitor_count: "0",
+    contact_email: "",
+    contact_phone: "",
+    contact_address: "",
+    success_rate: "92"
   });
 
   useEffect(() => {
@@ -114,10 +115,11 @@ export default function AdminDashboard() {
           hero_title: obj.hero_title || "",
           hero_subtitle: obj.hero_subtitle || "",
           hero_image: obj.hero_image || "",
-          visitor_count: stats.data?.count?.toString() || "2500",
-          contact_email: obj.contact_email || "info@jo-students.com",
-          contact_phone: obj.contact_phone || "07XXXXXXXX",
-          contact_address: obj.contact_address || "عمان، الأردن"
+          visitor_count: stats.data?.count?.toString() || "0",
+          contact_email: obj.contact_email || "",
+          contact_phone: obj.contact_phone || "",
+          contact_address: obj.contact_address || "",
+          success_rate: obj.success_rate || "92"
         });
       }
     } finally {
@@ -284,7 +286,8 @@ export default function AdminDashboard() {
         hero_image: siteSet.hero_image,
         contact_email: siteSet.contact_email,
         contact_phone: siteSet.contact_phone,
-        contact_address: siteSet.contact_address
+        contact_address: siteSet.contact_address,
+        success_rate: siteSet.success_rate
       };
       
       const updates = Object.entries(siteSettingsData).map(([key, value]) => 
@@ -561,6 +564,10 @@ export default function AdminDashboard() {
                           <label className="text-xs font-black text-slate-400 uppercase">عداد الزوار</label>
                           <input type="number" value={siteSet.visitor_count} onChange={e => setSiteSet({...siteSet, visitor_count: e.target.value})} className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-bold" />
                         </div>
+                        <div className="space-y-2 text-right">
+                          <label className="text-xs font-black text-slate-400 uppercase">نسبة النجاح (%)</label>
+                          <input type="text" value={siteSet.success_rate} onChange={e => setSiteSet({...siteSet, success_rate: e.target.value})} className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-bold" />
+                        </div>
                       </div>
                       
                       <div className="space-y-2 text-right">
@@ -596,7 +603,21 @@ export default function AdminDashboard() {
                      <div className="space-y-6">
                         <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">نص السؤال</label><textarea required rows={8} className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2.5rem] outline-none focus:bg-white focus:border-red-600 text-base" value={qText} onChange={e => setQText(e.target.value)} /></div>
                         <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">رابط الصورة (URL)</label><input type="text" className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:bg-white focus:border-red-600 font-mono text-xs" value={qImage} onChange={e => setQImage(e.target.value)} placeholder="https://example.com/image.png" /></div>
-                        <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">تخصص السؤال</label><select className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl outline-none" value={qMajor} onChange={e => setQMajor(e.target.value)}><option value="عام">ثقافة عامة</option><option value="مختبرات">مختبرات</option><option value="تمريض">تمريض</option><option value="قانون">قانون</option></select></div>
+                        <div className="space-y-2 text-right">
+                          <label className="text-xs font-black text-slate-400 uppercase">تخصص السؤال (أو اكتب تخصص جديد)</label>
+                          <input 
+                            type="text" 
+                            list="majors-list"
+                            className="w-full h-14 px-6 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:bg-white focus:border-red-600 font-bold" 
+                            value={qMajor} 
+                            onChange={e => setQMajor(e.target.value)} 
+                          />
+                          <datalist id="majors-list">
+                            {Array.from(new Set(questions.map(q => q.major))).map(m => (
+                              <option key={m} value={m} />
+                            ))}
+                          </datalist>
+                        </div>
                      </div>
                      <div className="space-y-4">
                         <label className="text-xs font-black text-slate-400 uppercase block mb-6">الخيارات المتاحة (حدد الجواب الصحيح)</label>
@@ -618,7 +639,21 @@ export default function AdminDashboard() {
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-slate-50 p-10 rounded-[3rem] border border-slate-200">
                       <div className="space-y-2 col-span-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">اسم الملف</label><input type="text" required className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600" value={fTitle} onChange={e => setFTitle(e.target.value)} /></div>
                       <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">رابط التحميل</label><input type="url" required className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none font-mono" value={fUrl} onChange={e => setFUrl(e.target.value)} /></div>
-                      <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">الفئة</label><select className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none" value={fCategory} onChange={e => setFCategory(e.target.value)}><option value="مختبرات">مختبرات</option><option value="تمريض">تمريض</option><option value="قانون">قانون</option></select></div>
+                      <div className="space-y-2 text-right">
+                        <label className="text-xs font-black text-slate-400 uppercase">الفئة (أو اكتب فئة جديدة)</label>
+                        <input 
+                          type="text" 
+                          list="cats-list"
+                          className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-bold" 
+                          value={fCategory} 
+                          onChange={e => setFCategory(e.target.value)} 
+                        />
+                        <datalist id="cats-list">
+                          {Array.from(new Set(files.map(f => f.category))).map(c => (
+                            <option key={c} value={c} />
+                          ))}
+                        </datalist>
+                      </div>
                    </div>
                    <button type="submit" className="w-full h-16 bg-slate-900 text-white rounded-[2rem] font-black hover:bg-red-600 transition-all shadow-2xl">حفظ وإدراج الملف</button>
                 </form>

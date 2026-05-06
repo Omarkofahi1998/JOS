@@ -27,6 +27,7 @@ export default function MockExams() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [majorSearch, setMajorSearch] = useState("");
   const [questionsList, setQuestionsList] = useState<Question[]>([]);
+  const [availableMajors, setAvailableMajors] = useState<{id: string, name: string}[]>(MAJORS);
   const [isLoading, setIsLoading] = useState(true);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
 
@@ -58,18 +59,18 @@ export default function MockExams() {
   useEffect(() => {
     // Handle URL parameters from dynamic route
     if (majorId) {
-      const found = MAJORS.find(m => m.id === majorId || m.name === majorId);
+      const found = availableMajors.find(m => m.id === majorId || m.name === majorId);
       if (found) setSelectedMajor(found.id);
     } else {
       // Fallback to query params if any
       const params = new URLSearchParams(window.location.search);
       const majorParam = params.get('major');
       if (majorParam) {
-        const found = MAJORS.find(m => m.name === majorParam || m.id === majorParam);
+        const found = availableMajors.find(m => m.name === majorParam || m.id === majorParam);
         if (found) setSelectedMajor(found.id);
       }
     }
-  }, [majorId]);
+  }, [majorId, availableMajors]);
 
   useEffect(() => {
     async function fetchQuestions() {
@@ -93,6 +94,20 @@ export default function MockExams() {
             image: q.image_url || q.image
           }));
           setQuestionsList(mapped);
+
+          // Extract unique majors from questions
+          const uniqueMajors = Array.from(new Set(data.map(q => q.major)));
+          const dynamicMajors = uniqueMajors.map(m => {
+            const existing = MAJORS.find(em => em.id === m || em.name === m);
+            return {
+              id: m,
+              name: existing ? existing.name : m
+            };
+          });
+          
+          if (dynamicMajors.length > 0) {
+            setAvailableMajors(dynamicMajors);
+          }
         }
       } catch (err) {
         console.error("Supabase Error:", err);
@@ -117,7 +132,7 @@ export default function MockExams() {
     // Store data for the detached window
     const examData = {
       questions: filtered,
-      majors: [MAJORS.find(m => m.id === selectedMajor)?.name || selectedMajor],
+      majors: [availableMajors.find(m => m.id === selectedMajor)?.name || selectedMajor],
       startTime: new Date().getTime()
     };
     localStorage.setItem("current_exam", JSON.stringify(examData));
@@ -143,7 +158,7 @@ export default function MockExams() {
             className="w-full h-11 bg-white border border-slate-200 rounded-xl px-4 flex items-center justify-between shadow-sm hover:border-red-600 transition-all text-right"
           >
             <span className="text-sm font-bold text-slate-900">
-              {MAJORS.find(m => m.id === selectedMajor)?.name}
+              {availableMajors.find(m => m.id === selectedMajor)?.name || selectedMajor}
             </span>
             <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform mr-2 ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
@@ -164,7 +179,7 @@ export default function MockExams() {
                 </div>
               </div>
               <div className="max-h-56 overflow-y-auto">
-                {MAJORS.filter(m => m.name.includes(majorSearch)).map((m) => (
+                {availableMajors.filter(m => m.name.includes(majorSearch)).map((m) => (
                   <button
                     key={m.id}
                     onClick={() => selectMajor(m.id)}
@@ -205,11 +220,11 @@ export default function MockExams() {
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2 text-slate-400 text-sm font-bold bg-slate-50 px-6 py-3 rounded-full border border-slate-100">
               <span className="w-2 h-2 rounded-full bg-green-500" />
-              سيتم بدء امتحان: {MAJORS.find(m => m.id === selectedMajor)?.name}
+              سيتم بدء امتحان: {availableMajors.find(m => m.id === selectedMajor)?.name || selectedMajor}
             </div>
 
             <button
-              onClick={() => handleShare(selectedMajor, MAJORS.find(m => m.id === selectedMajor)?.name || selectedMajor)}
+              onClick={() => handleShare(selectedMajor, availableMajors.find(m => m.id === selectedMajor)?.name || selectedMajor)}
               className="group flex items-center justify-center gap-3 text-slate-500 hover:text-red-600 font-black text-sm transition-all"
             >
               <div className={`p-2 rounded-xl transition-all relative ${

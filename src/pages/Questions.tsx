@@ -21,6 +21,7 @@ export default function Questions() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [catSearch, setCatSearch] = useState("");
   const [filesList, setFilesList] = useState<QuestionFile[]>([]);
+  const [availableCategories, setAvailableCategories] = useState<string[]>(CATEGORIES);
   const [isSupabaseLoading, setIsSupabaseLoading] = useState(true);
   const [sharedId, setSharedId] = useState<string | null>(null);
   const location = useLocation();
@@ -83,6 +84,16 @@ export default function Questions() {
             url: item.url
           }));
           setFilesList(mapped);
+
+          // Extract unique categories
+          const uniqueCats = Array.from(new Set(data.map(item => item.category)));
+          if (uniqueCats.length > 0) {
+            setAvailableCategories(uniqueCats);
+            // If active category is not in list, set to first available
+            if (!uniqueCats.includes(activeCategory)) {
+              setActiveCategory(uniqueCats[0]);
+            }
+          }
         }
       } catch (err) {
         console.error("Error fetching from Supabase:", err);
@@ -93,7 +104,7 @@ export default function Questions() {
     fetchFiles();
   }, []);
 
-  const filteredCategories = CATEGORIES.filter(cat => 
+  const filteredCategories = availableCategories.filter(cat => 
     cat.toLowerCase().includes(catSearch.toLowerCase())
   );
 
