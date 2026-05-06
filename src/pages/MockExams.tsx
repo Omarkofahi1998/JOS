@@ -37,6 +37,10 @@ export default function MockExams() {
     duration: 30 // minutes
   });
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const handleShare = async (majorId: string, majorName: string) => {
     const url = `${window.location.origin}/#/mock-exams/${encodeURIComponent(majorId)}`;
     const shareData = {
