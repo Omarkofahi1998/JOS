@@ -25,6 +25,7 @@ export default function AdminDashboard() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [majorFilter, setMajorFilter] = useState("all");
 
   // Edit State
   const [editingId, setEditingId] = useState<number | string | null>(null);
@@ -423,6 +424,20 @@ export default function AdminDashboard() {
               )}
             </div>
             
+          <div className="flex items-center gap-2">
+            {subTab === 'list' && activeTab === 'questions' && (
+              <select 
+                value={majorFilter}
+                onChange={(e) => setMajorFilter(e.target.value)}
+                className="h-10 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 text-sm font-bold"
+              >
+                <option value="all">كل التخصصات</option>
+                {Array.from(new Set(questions.map(q => q.major))).map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            )}
+            
             {subTab === 'list' && activeTab !== 'settings' && activeTab !== 'contacts' && (
               <div className="relative w-64">
                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -435,6 +450,7 @@ export default function AdminDashboard() {
                  />
               </div>
             )}
+          </div>
           </div>
 
           {/* Status Alert */}
@@ -468,10 +484,14 @@ export default function AdminDashboard() {
               {subTab === 'list' && activeTab !== 'settings' && activeTab !== 'contacts' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {(activeTab === 'questions' ? questions : activeTab === 'files' ? files : activeTab === 'services' ? services : activeTab === 'features' ? features : reviews)
-                    .filter(item => 
-                      (item.text || item.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      (item.major || item.category || item.description || "").toLowerCase().includes(searchTerm.toLowerCase())
-                    ).map((item, idx) => (
+                    .filter(item => {
+                      const matchesSearch = (item.text || item.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                           (item.major || item.category || item.description || "").toLowerCase().includes(searchTerm.toLowerCase());
+                      
+                      const matchesMajor = activeTab === 'questions' && majorFilter !== 'all' ? item.major === majorFilter : true;
+                      
+                      return matchesSearch && matchesMajor;
+                    }).map((item, idx) => (
                       <motion.div 
                         key={item.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.05 }}
                         className="p-6 bg-white border border-slate-100 rounded-3xl hover:border-red-100 hover:shadow-xl hover:shadow-red-500/5 transition-all group flex flex-col h-full"

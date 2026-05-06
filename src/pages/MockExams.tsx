@@ -30,6 +30,12 @@ export default function MockExams() {
   const [availableMajors, setAvailableMajors] = useState<{id: string, name: string}[]>(MAJORS);
   const [isLoading, setIsLoading] = useState(true);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
+  
+  // Exam Selection Settings
+  const [examSettings, setExamSettings] = useState({
+    count: 20,
+    duration: 30 // minutes
+  });
 
   const handleShare = async (majorId: string, majorName: string) => {
     const url = `${window.location.origin}/mock-exams/${encodeURIComponent(majorId)}`;
@@ -124,16 +130,25 @@ export default function MockExams() {
   };
 
   const prepareExam = () => {
-    let filtered = questionsList.filter(q => q.major === selectedMajor).sort(() => 0.5 - Math.random()).slice(0, 15);
-    if (filtered.length === 0) {
-      filtered = questionsList.filter(q => q.major === "عام").slice(0, 10);
+    // Randomize all questions of this major
+    const majorQuestions = questionsList.filter(q => q.major === selectedMajor);
+    let randomized = [...majorQuestions].sort(() => 0.5 - Math.random());
+    
+    // Select the requested count
+    let selected = randomized.slice(0, examSettings.count);
+    
+    // Fallback if no questions found for major
+    if (selected.length === 0) {
+      const general = questionsList.filter(q => q.major === "عام").sort(() => 0.5 - Math.random());
+      selected = general.slice(0, Math.min(examSettings.count, general.length));
     }
     
     // Store data for the detached window
     const examData = {
-      questions: filtered,
+      questions: selected,
       majors: [availableMajors.find(m => m.id === selectedMajor)?.name || selectedMajor],
-      startTime: new Date().getTime()
+      startTime: new Date().getTime(),
+      duration: examSettings.duration
     };
     localStorage.setItem("current_exam", JSON.stringify(examData));
   };
@@ -152,7 +167,7 @@ export default function MockExams() {
 
       <div className="max-w-xs mx-auto mb-12">
         <label className="block text-[10px] font-black text-slate-400 mb-2 mr-2 uppercase tracking-widest">اختر التخصص:</label>
-        <div className="relative">
+        <div className="relative mb-8">
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             className="w-full h-11 bg-white border border-slate-200 rounded-xl px-4 flex items-center justify-between shadow-sm hover:border-red-600 transition-all text-right"
@@ -194,6 +209,35 @@ export default function MockExams() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Exam Configuration */}
+        <div className="space-y-6 bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
+          <div className="space-y-3">
+             <div className="flex justify-between items-center px-1">
+                <span className="text-sm font-bold text-slate-700">{examSettings.count} سؤال</span>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">عدد الأسئلة:</label>
+             </div>
+             <input 
+               type="range" min="5" max="100" step="5"
+               value={examSettings.count}
+               onChange={e => setExamSettings({...examSettings, count: parseInt(e.target.value)})}
+               className="w-full accent-red-600 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+             />
+          </div>
+
+          <div className="space-y-3">
+             <div className="flex justify-between items-center px-1">
+                <span className="text-sm font-bold text-slate-700">{examSettings.duration} دقيقة</span>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">مدة الامتحان:</label>
+             </div>
+             <input 
+               type="range" min="5" max="120" step="5"
+               value={examSettings.duration}
+               onChange={e => setExamSettings({...examSettings, duration: parseInt(e.target.value)})}
+               className="w-full accent-blue-600 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+             />
+          </div>
         </div>
       </div>
 

@@ -20,7 +20,7 @@ export default function ExamPage() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [finished, setFinished] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(1800); // 30 minutes
+  const [timeLeft, setTimeLeft] = useState(1800); // Default 30 minutes
   const [securityAlert, setSecurityAlert] = useState(false);
 
   // Initialize Exam from local storage
@@ -35,6 +35,9 @@ export default function ExamPage() {
       const data = JSON.parse(rawData);
       setQuestions(data.questions);
       setSelectedMajors(data.majors);
+      if (data.duration) {
+        setTimeLeft(data.duration * 60);
+      }
       // Optional: Clear after loading for "security" (one-time use data)
       // localStorage.removeItem("current_exam"); 
     } catch (e) {
@@ -273,7 +276,7 @@ export default function ExamPage() {
                   {q.text}
                 </h2>
 
-                {q.image && (
+                {q.image && q.image.trim() !== "" && (
                   <div className="mb-10 rounded-2xl overflow-hidden border border-slate-200 bg-slate-50">
                     <img src={q.image} alt="Question Visual Context" className="w-full max-h-96 object-contain mx-auto shadow-inner" />
                   </div>

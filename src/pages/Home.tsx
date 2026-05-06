@@ -31,11 +31,9 @@ export default function Home() {
   const [featuresList, setFeaturesList] = useState<Feature[]>([]);
 
   useEffect(() => {
-    async function fetchData() {
+    async function fetchCriticalData() {
       if (!supabase) return;
-      
       try {
-        // Fetch Settings
         const { data: settingsData } = await supabase.from('site_settings').select('key, value');
         if (settingsData) {
           const newSettings: any = { ...settings };
@@ -46,33 +44,39 @@ export default function Home() {
           });
           setSettings(newSettings);
         }
-
-        // Fetch Stats
-        const { data: visitorData } = await supabase.from('visitor_stats').select('count', { count: 'exact' }).eq('id', 1).single();
-        const { count: qCount, data: qData } = await supabase.from('questions').select('major', { count: 'exact' });
-        const { count: fCount } = await supabase.from('question_files').select('*', { count: 'exact', head: true });
-
-        setStats({
-          trainees: (visitorData?.count || 2500).toLocaleString() + '+',
-          questions: (qCount || 0).toLocaleString() + '+',
-          exams: (fCount || 0).toLocaleString() + '+',
-          majors: Array.from(new Set(qData?.map(q => q.major) || [])).length + '+'
-        });
-
-        // Fetch Features
-        const { data: featuresData } = await supabase
-          .from('features')
-          .select('*')
-          .order('order_index', { ascending: true });
-        
-        if (featuresData) {
-          setFeaturesList(featuresData);
-        }
       } catch (err) {
-        console.error("Error fetching data:", err);
+        console.error("Critical fetch error:", err);
       }
     }
-    fetchData();
+
+    async function fetchNonCriticalData() {
+      if (!supabase) return;
+      try {
+        const [visitorRes, questionsRes, filesRes, featuresRes] = await Promise.all([
+          supabase.from('visitor_stats').select('count', { count: 'exact' }).eq('id', 1).single(),
+          supabase.from('questions').select('major'),
+          supabase.from('question_files').select('*', { count: 'exact', head: true }),
+          supabase.from('features').select('*').order('order_index', { ascending: true })
+        ]);
+
+        setStats({
+          trainees: (visitorRes.data?.count || 2500).toLocaleString() + '+',
+          questions: (questionsRes.data?.length || 0).toLocaleString() + '+',
+          exams: (filesRes.count || 0).toLocaleString() + '+',
+          majors: Array.from(new Set(questionsRes.data?.map(q => q.major) || [])).length + '+'
+        });
+
+        if (featuresRes.data) {
+          setFeaturesList(featuresRes.data);
+        }
+      } catch (err) {
+        console.error("Non-critical fetch error:", err);
+      }
+    }
+
+    fetchCriticalData().then(() => {
+      setTimeout(fetchNonCriticalData, 100);
+    });
   }, []);
 
   const getIcon = (name: string, colorClass: string) => {
@@ -139,12 +143,18 @@ export default function Home() {
 
             <div className="mt-12 lg:mt-0 relative text-center">
               <div className="relative inline-block w-full max-w-xl">
-                <img 
-                  src={settings.hero_image} 
-                  alt="قاعة امتحانات هيئة الخدمة والإدارة العامة" 
-                  className="w-full h-auto object-cover rounded-3xl shadow-2xl transition-all duration-500 hover:scale-[1.01]"
-                  referrerPolicy="no-referrer"
-                />
+                {settings.hero_image && (
+                  <img 
+                    src={settings.hero_image} 
+                    alt="قاعة امتحانات هيئة الخدمة والإدارة العامة" 
+                    className="w-full h-auto object-cover rounded-3xl shadow-2xl transition-all duration-500 hover:scale-[1.01]"
+                    referrerPolicy="no-referrer"
+                    fetchPriority="high"
+                    loading="eager"
+                    width="600"
+                    height="400"
+                  />
+                )}
                 <div className="absolute -bottom-6 -left-6 bg-white p-4 md:p-6 rounded-2xl shadow-xl border border-slate-100 text-center min-w-[120px] md:min-w-[150px]">
                   <div className="text-xl md:text-2xl font-black text-red-600">{settings.success_rate}%+</div>
                   <div className="text-[10px] md:text-xs text-slate-500 font-bold uppercase">نسبة النجاح</div>

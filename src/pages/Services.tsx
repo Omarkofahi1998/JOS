@@ -167,6 +167,10 @@ export default function Services() {
                   src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=2070&auto=format&fit=crop" 
                   alt="Join as a teacher" 
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 ease-out"
+                  loading="lazy"
+                  decoding="async"
+                  width="600"
+                  height="600"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent flex items-end p-10">
                   <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 w-full">
