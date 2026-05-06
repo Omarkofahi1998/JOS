@@ -44,6 +44,7 @@ export default function AdminDashboard() {
   const [imageValid, setImageValid] = useState<boolean | null>(null);
   const [lastBatchIds, setLastBatchIds] = useState<(string | number)[]>([]);
   const [showUndo, setShowUndo] = useState(false);
+  const [previewQuestions, setPreviewQuestions] = useState<any[] | null>(null);
 
   // Import JSON function
   const handleJSONImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,7 +52,7 @@ export default function AdminDashboard() {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = async (event) => {
+    reader.onload = (event) => {
       try {
         const jsonData = JSON.parse(event.target?.result as string);
         if (!Array.isArray(jsonData)) throw new Error("الملف يجب أن يحتوي على مصفوفة أسئلة");
@@ -66,30 +67,47 @@ export default function AdminDashboard() {
             options: q.options,
             correct: q.correct,
             major: q.major,
-            image_url: q.image_url || "",
-            created_at: new Date().toISOString()
+            image_url: q.image_url || ""
           });
         });
 
-        const newIds: (string | number)[] = [];
-        for (const q of validQuestions) {
-          const { data, error } = await supabase.from('questions').insert(q).select();
-          if (error) throw error;
-          if (data) newIds.push(data[0].id);
-        }
-
-        setLastBatchIds(newIds);
-        setShowUndo(true);
-        fetchData();
-        setStatus({ type: 'success', msg: `تم استيراد ${validQuestions.length} سؤال بنجاح` });
-        
-        // Hide undo after 30 seconds
-        setTimeout(() => setShowUndo(false), 30000);
+        setPreviewQuestions(validQuestions);
+        e.target.value = ""; // Reset input
       } catch (err: any) {
-        setStatus({ type: 'error', msg: `فشل الاستيراد: ${err.message}` });
+        setStatus({ type: 'error', msg: `فشل التحليل: ${err.message}` });
       }
     };
     reader.readAsText(file);
+  };
+
+  const confirmJSONImport = async () => {
+    if (!previewQuestions) return;
+    setLoading(true);
+    try {
+      const newIds: (string | number)[] = [];
+      const questionsToInsert = previewQuestions.map(q => ({
+        ...q,
+        created_at: new Date().toISOString()
+      }));
+
+      for (const q of questionsToInsert) {
+        const { data, error } = await supabase.from('questions').insert(q).select();
+        if (error) throw error;
+        if (data) newIds.push(data[0].id);
+      }
+
+      setLastBatchIds(newIds);
+      setShowUndo(true);
+      setPreviewQuestions(null);
+      fetchData();
+      setStatus({ type: 'success', msg: `تم استيراد ${questionsToInsert.length} سؤال بنجاح` });
+      
+      setTimeout(() => setShowUndo(false), 30000);
+    } catch (err: any) {
+      setStatus({ type: 'error', msg: `فشل الاستيراد: ${err.message}` });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const undoLastImport = async () => {
@@ -1180,6 +1198,95 @@ export default function AdminDashboard() {
           </div>
         </div>
       </main>
+
+      {/* JSON Preview Modal */}
+      <AnimatePresence>
+        {previewQuestions && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setPreviewQuestions(null)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <div className="text-right">
+                  <h3 className="text-xl font-black text-slate-900">معاينة الأسئلة قبل الاستيراد</h3>
+                  <p className="text-slate-500 text-sm">سيتم إضافة {previewQuestions.length} سؤال إلى قاعدة البيانات</p>
+                </div>
+                <button onClick={() => setPreviewQuestions(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors order-first">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar" dir="rtl">
+                {previewQuestions.map((q, idx) => (
+                  <div key={idx} className="p-5 border border-slate-100 rounded-2xl bg-white shadow-sm space-y-3 text-right">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] font-black mb-2">{q.major}</span>
+                        <h4 className="text-lg font-bold text-slate-900 text-right">
+                          <span className="text-red-500 ml-2">{idx + 1}.</span>
+                          {q.text}
+                        </h4>
+                      </div>
+                      {q.image_url && (
+                        <div className="w-16 h-16 rounded-xl border border-slate-200 overflow-hidden shrink-0">
+                          <img src={q.image_url} alt="" className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {q.options.map((opt: string, optIdx: number) => (
+                        <div 
+                          key={optIdx} 
+                          className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all text-right ${
+                            optIdx === q.correct 
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700 ring-2 ring-emerald-500/20' 
+                            : 'bg-slate-50 border-slate-100 text-slate-500'
+                          }`}
+                        >
+                          <span className="ml-2 opacity-50">{String.fromCharCode(65 + optIdx)})</span>
+                          {opt}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-6 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3">
+                <button 
+                   onClick={() => setPreviewQuestions(null)}
+                   className="px-6 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-200 transition-all order-last"
+                >
+                  إلغاء
+                </button>
+                <button 
+                  onClick={confirmJSONImport}
+                  disabled={loading}
+                  className="px-10 py-3 bg-red-600 text-white rounded-xl font-black shadow-lg shadow-red-600/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                >
+                  {loading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="w-5 h-5" />
+                  )}
+                  تأكيد واستيراد الآن
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
