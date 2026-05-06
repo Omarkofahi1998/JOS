@@ -415,6 +415,21 @@ export default function AdminDashboard() {
     }
   };
 
+  const deleteAllQuestions = async () => {
+    if (!supabase || !window.confirm("هل أنت متأكد من حذف جميع الأسئلة بشكل نهائي؟ هذا الإجراء لا يمكن التراجع عنه.")) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase.from('questions').delete().neq('id', 0); // Assuming ID > 0
+      if (error) throw error;
+      setStatus({ type: 'success', msg: 'تم حذف جميع الأسئلة بنجاح' });
+      fetchData();
+    } catch (err: any) {
+      setStatus({ type: 'error', msg: "فشل الحذف: " + err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const resetForms = () => {
     setEditingId(null);
     setQText("");
@@ -748,6 +763,9 @@ export default function AdminDashboard() {
                 </button>
                 <button onClick={exportToTXT} className="p-2 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 transition-all" title="تصدير TXT">
                   <FileText className="w-4 h-4" />
+                </button>
+                <button onClick={deleteAllQuestions} className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-all font-bold text-xs" title="حذف جميع الأسئلة">
+                  حذف الكل
                 </button>
               </div>
             )}
