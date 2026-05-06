@@ -27,7 +27,7 @@ export default function Questions() {
   const location = useLocation();
 
   const handleShare = async (title: string) => {
-    const url = `${window.location.origin}/questions/${encodeURIComponent(title)}`;
+    const url = `${window.location.origin}/#/questions/${encodeURIComponent(title)}`;
     const shareData = {
       title: "بنك أسئلة - جـو ستودنتس",
       text: `ألقِ نظرة على هذا الملف في بنك أسئلة جو ستودنتس: ${title}`,
