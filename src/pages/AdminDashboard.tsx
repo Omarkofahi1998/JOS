@@ -552,6 +552,42 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleManualFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !supabase) return;
+
+    setLoading(true);
+    setStatus({ type: 'success', msg: 'جاري رفع الملف...' });
+    
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `manual/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadErr } = await supabase.storage
+        .from('bank_files')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (uploadErr) throw uploadErr;
+
+      const { data: { publicUrl } } = supabase.storage.from('bank_files').getPublicUrl(fileName);
+      
+      setFUrl(publicUrl);
+      // Auto-fill title if empty
+      if (!fTitle) setFTitle(file.name.split('.')[0]);
+      setFSize((file.size / 1024 / 1024).toFixed(2) + " MB");
+      
+      setStatus({ type: 'success', msg: 'تم رفع الملف وتوليد الرابط بنجاح!' });
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      setStatus({ type: 'error', msg: 'فشل في رفع الملف: ' + err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const addFile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supabase) return;
@@ -1647,6 +1683,16 @@ export default function AdminDashboard() {
               {subTab === 'add' && activeTab === 'files' && (
                 <form onSubmit={addFile} className="space-y-8 max-w-2xl mx-auto py-6">
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-slate-50 p-10 rounded-[3rem] border border-slate-200">
+                      <div className="space-y-4 col-span-2 bg-white p-6 rounded-3xl border-2 border-dashed border-slate-200 text-right">
+                         <label className="text-xs font-black text-slate-400 uppercase block mb-2">رفع الملف مباشرة (توليد الرابط تلقائياً)</label>
+                         <input 
+                           type="file" 
+                           onChange={handleManualFileUpload} 
+                           disabled={loading}
+                           className="block w-full text-sm text-slate-500 file:ml-0 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-50 file:text-slate-700 hover:file:bg-slate-100 cursor-pointer"
+                         />
+                      </div>
+                      <div className="border-t border-slate-200 col-span-2 my-2"></div>
                       <div className="space-y-2 col-span-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">اسم الملف</label><input type="text" required className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600" value={fTitle} onChange={e => setFTitle(e.target.value)} /></div>
                       <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">رابط التحميل</label><input type="url" required className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none font-mono" value={fUrl} onChange={e => setFUrl(e.target.value)} /></div>
                       <div className="space-y-2 text-right">
