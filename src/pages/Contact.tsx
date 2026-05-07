@@ -44,7 +44,10 @@ export default function Contact() {
     try {
       const { error } = await supabase
         .from('contact_messages')
-        .insert([formData]);
+        .insert([{
+          ...formData,
+          created_at: new Date().toISOString()
+        }]);
 
       if (error) throw error;
 

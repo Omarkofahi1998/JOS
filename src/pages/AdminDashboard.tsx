@@ -51,13 +51,45 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!supabase) return;
-    const channel = supabase.channel('instructor-requests-changes')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'instructor_requests' }, (payload) => {
-        setNotifications(prev => [...prev, payload.new]);
-        setStatus({ type: 'success', msg: 'لديك طلب انضمام جديد' });
+    
+    console.log("Setting up Supabase Realtime...");
+
+    // Unified channel for both tables
+    const adminChannel = supabase.channel('admin-updates')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'instructor_requests' 
+      }, (payload) => {
+        console.log("New Instructor Request Received:", payload);
+        const newReq = { ...payload.new, type: 'instructor_request' };
+        setNotifications(prev => [newReq, ...prev]);
+        setStatus({ type: 'success', msg: 'لديك طلب انضمام جديد: ' + (payload.new.fullName || '') });
+        // Also update the list immediately if user is on that tab
+        setInstructorRequests(prev => [payload.new, ...prev]);
       })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'contact_messages' 
+      }, (payload) => {
+        console.log("New Contact Message Received:", payload);
+        const newMsg = { ...payload.new, type: 'contact_message' };
+        setNotifications(prev => [newMsg, ...prev]);
+        setStatus({ type: 'success', msg: 'لديك رسالة تواصل جديدة: ' + (payload.new.name || '') });
+        // Also update the list immediately if user is on that tab
+        setContacts(prev => [payload.new, ...prev]);
+      })
+      .subscribe((status) => {
+        console.log("Supabase Realtime Status:", status);
+        if (status === 'CHANNEL_ERROR') {
+          console.error("Failed to connect to Supabase Realtime. Ensure 'Realtime' is enabled for tables in Supabase dashboard.");
+        }
+      });
+
+    return () => { 
+      supabase.removeChannel(adminChannel);
+    };
   }, [supabase]);
 
   // Import JSON function
@@ -713,16 +745,60 @@ export default function AdminDashboard() {
                 </button>
                 {showNotifications && (
                     <div className="absolute left-0 mt-2 w-72 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-4">
-                        <h4 className="font-black text-sm mb-3">إشعارات جديدة</h4>
-                        {notifications.length === 0 ? <p className="text-sm text-slate-500 text-center">لا توجد إشعارات</p> : (
-                            <div className="space-y-2">
+                        <div className="flex items-center justify-between mb-3 px-1">
+                            <h4 className="font-black text-sm">إشعارات جديدة</h4>
+                            <button 
+                              onClick={() => fetchData()} 
+                              className="text-[10px] text-blue-600 font-bold hover:underline"
+                            >
+                              تحديث البيانات
+                            </button>
+                        </div>
+                        {notifications.length === 0 ? (
+                            <div className="text-center py-4">
+                                <p className="text-sm text-slate-500 mb-1">لا توجد إشعارات</p>
+                                <p className="text-[10px] text-slate-300">ملاحظة: تأكد من تفعيل Realtime في Supabase لوصول التنبيهات تلقائياً</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
                                 {notifications.map((n, i) => (
-                                    <button key={i} onClick={() => { setActiveTab('instructor_requests'); setShowNotifications(false); }} className="w-full text-right p-3 hover:bg-slate-50 rounded-xl">
-                                        <div className="text-sm font-bold text-slate-900">{n.fullName}</div>
-                                        <div className="text-xs text-slate-500">طلب انضمام جديد</div>
+                                    <button 
+                                      key={i} 
+                                      onClick={() => { 
+                                        setActiveTab(n.type === 'instructor_request' ? 'instructor_requests' : 'contacts'); 
+                                        setShowNotifications(false); 
+                                        setNotifications(prev => prev.filter((_, idx) => idx !== i));
+                                      }} 
+                                      className="group w-full text-right p-3 hover:bg-slate-50 rounded-xl transition-all border-b border-slate-50 last:border-0 flex gap-3"
+                                    >
+                                        <div className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center transition-colors ${
+                                          n.type === 'instructor_request' ? 'bg-red-50 text-red-600 group-hover:bg-red-100' : 'bg-blue-50 text-blue-600 group-hover:bg-blue-100'
+                                        }`}>
+                                          {n.type === 'instructor_request' ? <UserCheck className="w-5 h-5" /> : <MessageSquare className="w-5 h-5" />}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                                                  n.type === 'instructor_request' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+                                                }`}>
+                                                    {n.type === 'instructor_request' ? 'طلب انضمام' : 'رسالة جديدة'}
+                                                </span>
+                                                <span className="text-[10px] text-slate-400">{new Date(n.created_at || Date.now()).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' })}</span>
+                                            </div>
+                                            <div className="text-sm font-bold text-slate-900 truncate">{n.fullName || n.name}</div>
+                                            <div className="text-xs text-slate-500 truncate">{n.major || n.subject || n.message}</div>
+                                        </div>
                                     </button>
                                 ))}
                             </div>
+                        )}
+                        {notifications.length > 0 && (
+                            <button 
+                              onClick={() => setNotifications([])}
+                              className="w-full mt-3 py-2 text-xs font-bold text-slate-400 hover:text-red-600 transition-colors"
+                            >
+                                مسح الكل
+                            </button>
                         )}
                     </div>
                 )}
@@ -969,17 +1045,29 @@ export default function AdminDashboard() {
                                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">التخصص</th>
                                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">نبذة عن الخبرة</th>
                                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">التاريخ</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase text-center">الإجراءات</th>
                             </tr>
                         </thead>
                         <tbody>
                             {instructorRequests.map(req => (
-                                <tr key={req.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-all">
+                                <tr key={req.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-all group">
                                     <td className="px-6 py-4 text-sm font-bold text-slate-900">{req.fullName}</td>
                                     <td className="px-6 py-4 text-sm text-red-600 font-bold">{req.email}</td>
                                     <td className="px-6 py-4 text-sm text-slate-600">{req.phone}</td>
                                     <td className="px-6 py-4 text-sm text-slate-600">{req.major}</td>
                                     <td className="px-6 py-4 text-sm text-slate-600 max-w-[200px] truncate">{req.experience}</td>
                                     <td className="px-6 py-4 text-sm text-slate-400">{new Date(req.created_at).toLocaleDateString()}</td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center justify-center">
+                                            <button 
+                                                onClick={() => deleteItem('instructor_requests', req.id)} 
+                                                className="p-2 bg-red-50 text-red-500 hover:bg-red-600 hover:text-white rounded-lg transition-all"
+                                                title="حذف الطلب"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
