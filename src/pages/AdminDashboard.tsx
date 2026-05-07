@@ -9,10 +9,12 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import * as XLSX from "xlsx";
-import { jsPDF } from "jspdf";
-import "jspdf-autotable";
-import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, ImageRun } from "docx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { Document, Packer, Paragraph, TextRun, Header, Footer, Table, TableRow, TableCell, WidthType, AlignmentType, ImageRun, BorderStyle } from "docx";
 import { saveAs } from "file-saver";
+
+const CATEGORIES = ["مختبرات", "تمريض", "قانون", "معلم صف", "IT", "الإدارة العامة"];
 
 export default function AdminDashboard() {
   const [session, setSession] = useState<any>(null);
@@ -379,6 +381,15 @@ export default function AdminDashboard() {
   const [rReadTime, setRReadTime] = useState("٥ دقائق");
   const [rDate, setRDate] = useState("");
 
+  const [bulkGenText, setBulkGenText] = useState("");
+  const [bulkGenFileName, setBulkGenFileName] = useState("");
+  const [bulkCategory, setBulkCategory] = useState("عام");
+  const [platformName, setPlatformName] = useState("JO Students");
+  const [rightsText, setRightsText] = useState("All rights reserved");
+  const [docDescription, setDocDescription] = useState("JO Students Assessment Document");
+  const [watermarkText, setWatermarkText] = useState("JO STUDENTS");
+  const [generatedBlob, setGeneratedBlob] = useState<{ blob: Blob, name: string, type: string } | null>(null);
+
   const [siteSet, setSiteSet] = useState({
     hero_title: "",
     hero_subtitle: "",
@@ -638,6 +649,369 @@ export default function AdminDashboard() {
     } catch (err: any) { setStatus({ type: 'error', msg: err.message }); } finally { setLoading(false); }
   };
 
+  // Bulk Generation Logic
+  const [alsoSaveToDB, setAlsoSaveToDB] = useState(false);
+
+  const handleBulkGen = async (type: 'pdf' | 'docx') => {
+    try {
+      if (!bulkGenText.trim()) throw new Error("يرجى لصق نص JSON أولاً");
+      let data;
+      try {
+        data = JSON.parse(bulkGenText);
+      } catch (e) {
+        throw new Error("خطأ في تنسيق JSON. تأكد من صحة النص الملصق.");
+      }
+      
+      if (!Array.isArray(data)) throw new Error("يجب أن يكون النص مصفوفة JSON تحتوي على كائنات الأسئلة.");
+      
+      setLoading(true);
+      if (type === 'pdf') {
+        const doc = new jsPDF('p', 'pt');
+        
+        const drawPageBackground = (pdf: any) => {
+          pdf.saveGraphicsState();
+          pdf.setTextColor(240, 240, 240); 
+          pdf.setFontSize(70);
+          pdf.setFont("helvetica", "bold");
+          // Centered Watermark
+          const pageWidth = pdf.internal.pageSize.width;
+          const pageHeight = pdf.internal.pageSize.height;
+          pdf.text(watermarkText, pageWidth / 2, pageHeight / 2, { angle: 45, align: 'center' });
+          pdf.restoreGraphicsState();
+
+          // Header Branding
+          pdf.setDrawColor(220, 38, 38);
+          pdf.setLineWidth(2);
+          pdf.line(40, 65, 550, 65);
+          
+          pdf.setFont("helvetica", "bold");
+          pdf.setFontSize(12);
+          pdf.setTextColor(220, 38, 38);
+          pdf.text(platformName, 40, 50);
+          
+          pdf.setFontSize(10);
+          pdf.setTextColor(100, 116, 139);
+          pdf.text(`${rightsText} © ${new Date().getFullYear()}`, 430, 50);
+
+          // Footer
+          pdf.setFontSize(9);
+          pdf.setTextColor(148, 163, 184);
+          pdf.text("https://jostudents.com", pageWidth / 2, 820, { align: 'center' });
+        };
+
+        drawPageBackground(doc);
+
+        doc.setFontSize(22);
+        doc.setTextColor(15, 23, 42); // Slate 900
+        const title = bulkGenFileName || docDescription || (platformName + " Exam");
+        doc.text(title, 40, 100);
+        
+        let yPos = 140;
+
+        for (let i = 0; i < data.length; i++) {
+          const q = data[i];
+          doc.setFontSize(14);
+          doc.setTextColor(15, 23, 42);
+          
+          // 1. Add Image FIRST if exists
+          if (q.image_url) {
+            try {
+              const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(q.image_url)}`;
+              const imgWidth = 250;
+              const imgHeight = 160;
+              
+              if (yPos + imgHeight > 760) {
+                 doc.addPage();
+                 drawPageBackground(doc);
+                 yPos = 100;
+              }
+              
+              await new Promise(res => setTimeout(res, 200));
+              const imgResp = await fetch(proxyUrl);
+              if (!imgResp.ok) throw new Error(`Fetch failed: ${imgResp.status}`);
+              const imgData = await imgResp.arrayBuffer();
+              const uint8 = new Uint8Array(imgData);
+              
+              doc.addImage(uint8, 'JPEG', 40, yPos, imgWidth, imgHeight);
+              yPos += imgHeight + 15;
+            } catch (e) {
+              console.error("Failed to add image to PDF", e);
+            }
+          }
+
+          // 2. Question Text (Below Image)
+          doc.setFont("helvetica", "bold");
+          const questionText = `${i + 1}. ${q.text || ""}`;
+          const splitTitle = doc.splitTextToSize(questionText, 500);
+          
+          if (yPos + (splitTitle.length * 20) > 800) {
+            doc.addPage();
+            drawPageBackground(doc);
+            yPos = 100;
+          }
+          
+          // Right align if Arabic-like text (approximate)
+          const isArabic = /[\u0600-\u06FF]/.test(questionText);
+          if (isArabic) {
+            // Limited RTL support in jsPDF without custom fonts, but we'll try to position correctly
+            doc.text(splitTitle, 550, yPos, { align: 'right' });
+          } else {
+            doc.text(splitTitle, 40, yPos);
+          }
+          yPos += (splitTitle.length * 20) + 8;
+
+          doc.setFont("helvetica", "normal");
+          (q.options || []).forEach((o: any, idx: number) => {
+            const isCorrect = idx === q.correct;
+            if (isCorrect) {
+              doc.setTextColor(220, 38, 38); 
+              doc.setFont("helvetica", "bold");
+            } else {
+              doc.setTextColor(71, 85, 105); // Slate 600
+              doc.setFont("helvetica", "normal");
+            }
+
+            const optionLabel = `(${String.fromCharCode(65 + idx)})`;
+            const optionContent = `${o} ${isCorrect ? '✓' : ''}`;
+            const fullOption = `${optionLabel} ${optionContent}`;
+            const splitOption = doc.splitTextToSize(fullOption, 480);
+
+            if (isArabic) {
+               doc.text(splitOption, 540, yPos, { align: 'right' });
+            } else {
+               doc.text(splitOption, 60, yPos);
+            }
+            
+            yPos += (splitOption.length * 18);
+          });
+          
+          yPos += 30;
+          if (yPos > 740) {
+            doc.addPage();
+            drawPageBackground(doc);
+            yPos = 100;
+          }
+        }
+
+        const blob = doc.output('blob');
+        const finalName = (bulkGenFileName || `exam_${Date.now()}`) + ".pdf";
+        setGeneratedBlob({ blob, name: finalName, type: 'application/pdf' });
+      } else {
+        // Prepare Docx Children
+        const processedDocChildren: any[] = [
+          new Paragraph({ 
+            children: [
+              new TextRun({ 
+                text: bulkGenFileName || docDescription, 
+                bold: true, 
+                size: 36, 
+                color: "0F172A",
+                font: "Traditional Arabic" 
+              })
+            ],
+            alignment: AlignmentType.CENTER,
+            bidirectional: true,
+            spacing: { before: 400, after: 600 }
+          }),
+        ];
+
+        for (let i = 0; i < data.length; i++) {
+          const q = data[i];
+
+          // 1. Image FIRST in DOCX
+          if (q.image_url) {
+             try {
+                await new Promise(res => setTimeout(res, 200));
+                const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(q.image_url)}`;
+                const imgResp = await fetch(proxyUrl);
+                if (!imgResp.ok) throw new Error(`Fetch failed: ${imgResp.status}`);
+                const imgData = await imgResp.arrayBuffer();
+                processedDocChildren.push(
+                  new Paragraph({
+                    children: [
+                      new ImageRun({
+                        data: new Uint8Array(imgData),
+                        transformation: { width: 350, height: 220 },
+                      } as any),
+                    ],
+                    alignment: AlignmentType.CENTER,
+                    spacing: { before: 300, after: 150 }
+                  })
+                );
+             } catch(e) {
+                console.error("Docx image fetch error", e);
+             }
+          }
+
+          // 2. Question Text Below Image
+          processedDocChildren.push(
+            new Paragraph({ 
+              children: [
+                new TextRun({ 
+                  text: `${i + 1}. ${q.text}`, 
+                  bold: true, 
+                  size: 32, 
+                  color: "0F172A",
+                  font: "Traditional Arabic" 
+                })
+              ],
+              spacing: { before: 200, after: 150 },
+              bidirectional: true
+            })
+          );
+
+          (q.options || []).forEach((o: any, idx: number) => {
+            const isCorrect = idx === q.correct;
+            processedDocChildren.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: `(${String.fromCharCode(65 + idx)}) ${o} ${isCorrect ? ' ✓' : ''}`,
+                    bold: isCorrect,
+                    color: isCorrect ? "DC2626" : "475569",
+                    size: 26,
+                    font: "Traditional Arabic",
+                    shading: isCorrect ? { fill: "FEE2E2", type: "clear" } : undefined,
+                  })
+                ],
+                indent: { right: 720 }, // Right indent for RTL feel
+                spacing: { after: 120 },
+                bidirectional: true
+              })
+            );
+          });
+          
+          processedDocChildren.push(new Paragraph({ text: "", spacing: { after: 200 } }));
+        }
+
+        const doc = new Document({
+          sections: [{
+            properties: {
+              page: {
+                margin: { top: 720, bottom: 720, left: 720, right: 720 }
+              },
+            },
+            headers: {
+              default: new Header({
+                children: [
+                   new Paragraph({
+                     children: [
+                       new TextRun({ text: platformName, bold: true, color: "DC2626", size: 24, font: "Arial" }),
+                       new TextRun({ text: `\t\t${rightsText}`, color: "64748B", size: 16, font: "Arial" }),
+                     ],
+                     border: { bottom: { color: "DC2626", space: 1, style: BorderStyle.SINGLE, size: 6 } },
+                     spacing: { after: 200 }
+                   }),
+                   // Watermark text in header (simulated since docx lib watermark is complex)
+                   new Paragraph({
+                     children: [
+                       new TextRun({ 
+                         text: watermarkText, 
+                         color: "F1F5F9", 
+                         size: 96,
+                         bold: true,
+                         font: "Arial"
+                       })
+                     ],
+                     alignment: AlignmentType.CENTER,
+                     spacing: { before: 4000 } // Push down to middle
+                   })
+                ]
+              })
+            },
+            footers: {
+              default: new Footer({
+                children: [
+                   new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    children: [
+                      new TextRun({ text: "https://jostudents.com", color: "94A3B8", size: 18, bold: true, font: "Arial" })
+                    ],
+                    border: { top: { color: "E2E8F0", style: BorderStyle.SINGLE, size: 6 } },
+                    spacing: { before: 100 }
+                  })
+                ]
+              })
+            },
+            children: processedDocChildren
+          }]
+        });
+
+        const blob = await Packer.toBlob(doc);
+        const finalName = (bulkGenFileName || `exam_${Date.now()}`) + ".docx";
+        setGeneratedBlob({ blob, name: finalName, type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+      }
+
+      if (alsoSaveToDB) {
+        // Map data to ensure it matches question table exactly
+        const mappedData = data.map(q => ({
+          text: q.text,
+          options: q.options,
+          correct: q.correct,
+          major: q.major || bulkCategory,
+          image_url: q.image_url || ""
+        }));
+        const { error } = await supabase.from('questions').insert(mappedData);
+        if (error) throw new Error("فشل في حقن الأسئلة في قاعدة البيانات: " + error.message);
+        setStatus({ type: 'success', msg: `تم توليد الملف وحقن ${data.length} سؤال بنجاح` });
+      } else {
+        setStatus({ type: 'success', msg: 'تم توليد الملف بنجاح! يمكنك الآن تنزيله أو نشره.' });
+      }
+    } catch (err: any) {
+      setStatus({ type: 'error', msg: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const publishGeneratedFile = async () => {
+    if (!generatedBlob || !supabase) return;
+    setLoading(true);
+    try {
+      // 1. Upload to Supabase Storage
+      const fileExt = generatedBlob.name.split('.').pop();
+      const fileName = `generated/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadErr } = await supabase.storage
+        .from('bank_files')
+        .upload(fileName, generatedBlob.blob, {
+          contentType: generatedBlob.type,
+          upsert: true
+        });
+      
+      if (uploadErr) {
+        if (uploadErr.message.includes("not found")) {
+            throw new Error("حاوية التخزين 'bank_files' غير موجودة. يرجى إنشاؤها يدوياً في لوحة تحكم Supabase لتتمكن من النشر.");
+        }
+        throw uploadErr;
+      }
+
+      const { data: { publicUrl } } = supabase.storage.from('bank_files').getPublicUrl(fileName);
+
+      // 2. Add to metadata table
+      const { error: dbErr } = await supabase.from('question_files').insert({
+        title: bulkGenFileName || generatedBlob.name.split('.')[0],
+        url: publicUrl,
+        category: bulkCategory,
+        file_size: (generatedBlob.blob.size / 1024 / 1024).toFixed(2) + " MB",
+        file_date: new Date().toLocaleDateString('en-CA'), // YYYY/MM/DD
+        download_count: 0
+      });
+
+      if (dbErr) throw dbErr;
+
+      setStatus({ type: 'success', msg: 'تم النشر بنجاح في بنك الملفات! الطلاب سيشاهدونها الآن.' });
+      setGeneratedBlob(null);
+      setBulkGenText("");
+      setBulkGenFileName("");
+      fetchData(); // Refresh counts and lists
+    } catch (err: any) {
+      setStatus({ type: 'error', msg: `فشل النشر: ${err.message}` });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const sidebarItems = [
     { id: 'questions', name: 'بنك الأسئلة', icon: <HelpCircle className="w-5 h-5" /> },
     { id: 'files', name: 'بنك الملفات', icon: <FileText className="w-5 h-5" /> },
@@ -869,6 +1243,16 @@ export default function AdminDashboard() {
                       }`}
                     >
                       إضافة بالجملة (JSON)
+                    </button>
+                  )}
+                  {activeTab === 'files' && (
+                    <button 
+                      onClick={() => setSubTab('bulk_gen')}
+                      className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all border ${
+                        subTab === 'bulk_gen' ? 'bg-blue-600 text-white border-blue-600 shadow-lg' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+                      }`}
+                    >
+                      توليد ملف من أسئلة
                     </button>
                   )}
                 </>
@@ -1393,6 +1777,170 @@ export default function AdminDashboard() {
                     رفع ومعالجة جميع الأسئلة الآن
                   </button>
                 </form>
+              )}
+
+              {/* BULK GENERATION & PUBLISHING VIEW */}
+              {subTab === 'bulk_gen' && activeTab === 'files' && (
+                <div className="space-y-8 animate-in fade-in duration-500 max-w-4xl mx-auto">
+                  <div className="bg-blue-50 border border-blue-200 p-8 rounded-[3rem] text-right relative overflow-hidden">
+                    <div className="absolute top-0 left-0 p-8 text-blue-100 opacity-20"><HelpCircle className="w-32 h-32" /></div>
+                    <div className="relative z-10">
+                      <h3 className="text-blue-900 font-extrabold mb-4 flex items-center justify-end gap-3 text-lg">
+                        أداة توليد ونشر الملفات الذكية
+                        <Sparkles className="w-6 h-6" />
+                      </h3>
+                      <p className="text-blue-700 text-sm leading-relaxed mb-6">
+                        هذه الأداة تمكنك من تحويل مصفوفة من الأسئلة (JSON) إلى ملفات احترافية (PDF/Word) ونشرها فوراً في بنك الملفات للطلاب.
+                      </p>
+                      <div className="bg-white/80 p-4 rounded-2xl border border-blue-100 font-mono text-[11px] text-blue-900 text-left ltr">
+                        <span className="text-blue-400">// التنسيق المطلوب:</span><br/>
+                        [{"{"} "text": "السؤال", "options": ["أ", "ب", "ج", "د"], "correct": 0, "major": "رياضيات" {"}"}]
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Customization Options */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-6 bg-slate-50 rounded-3xl border border-slate-100 mb-2">
+                        <div className="space-y-2">
+                             <label className="text-[10px] font-black text-slate-400 uppercase pr-2">اسم المنصة (Header)</label>
+                             <input 
+                               type="text"
+                               value={platformName}
+                               onChange={(e) => setPlatformName(e.target.value)}
+                               className="w-full h-10 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 transition-all font-bold text-sm"
+                             />
+                        </div>
+                        <div className="space-y-2">
+                             <label className="text-[10px] font-black text-slate-400 uppercase pr-2">حقوق النشر</label>
+                             <input 
+                               type="text"
+                               value={rightsText}
+                               onChange={(e) => setRightsText(e.target.value)}
+                               className="w-full h-10 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 transition-all font-bold text-sm"
+                             />
+                        </div>
+                        <div className="space-y-2">
+                             <label className="text-[10px] font-black text-slate-400 uppercase pr-2">وصف الملف (العنوان)</label>
+                             <input 
+                               type="text"
+                               value={docDescription}
+                               onChange={(e) => setDocDescription(e.target.value)}
+                               className="w-full h-10 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 transition-all font-bold text-sm"
+                             />
+                        </div>
+                        <div className="space-y-2">
+                             <label className="text-[10px] font-black text-slate-400 uppercase pr-2">نص العلامة المائية</label>
+                             <input 
+                               type="text"
+                               value={watermarkText}
+                               onChange={(e) => setWatermarkText(e.target.value)}
+                               className="w-full h-10 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 transition-all font-bold text-sm"
+                             />
+                        </div>
+                    </div>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex-1 space-y-2">
+                             <label className="text-sm font-black text-slate-400 uppercase pr-2">اسم الملف النهائي</label>
+                             <input 
+                               type="text"
+                               value={bulkGenFileName}
+                               onChange={(e) => setBulkGenFileName(e.target.value)}
+                               placeholder="مثال: امتحان الفيزياء النهائي"
+                               className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-blue-600 transition-all font-bold"
+                             />
+                        </div>
+                        <div className="flex-1 space-y-2">
+                             <label className="text-sm font-black text-slate-400 uppercase pr-2">التخصص المستهدف</label>
+                             <select 
+                               value={bulkCategory}
+                               onChange={(e) => setBulkCategory(e.target.value)}
+                               className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-blue-600 transition-all font-bold"
+                             >
+                               {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                               <option value="عام">عام / أخرى</option>
+                             </select>
+                        </div>
+                    </div>
+                    
+                    <textarea 
+                      value={bulkGenText}
+                      onChange={(e) => setBulkGenText(e.target.value)}
+                      placeholder="الصق الأسئلة هنا بصيغة JSON..."
+                      className="w-full h-[300px] p-6 bg-slate-50 border border-slate-200 rounded-[2.5rem] outline-none focus:bg-white focus:border-blue-600 font-mono text-sm leading-relaxed transition-all shadow-inner"
+                    />
+                    
+                    <div className="flex items-center justify-end gap-3 px-4">
+                        <span className="text-sm font-bold text-slate-600">حقن الأسئلة أيضاً في بنك الأسئلة (قاعدة البيانات)</span>
+                        <button 
+                          onClick={() => setAlsoSaveToDB(!alsoSaveToDB)}
+                          className={`w-12 h-6 rounded-full transition-all relative ${alsoSaveToDB ? 'bg-red-600' : 'bg-slate-300'}`}
+                        >
+                            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${alsoSaveToDB ? (sidebarOpen ? 'right-7' : 'right-7') : 'right-1'}`} />
+                        </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button 
+                      onClick={() => handleBulkGen('pdf')}
+                      disabled={loading || !bulkGenText}
+                      className="h-16 bg-red-600 text-white rounded-2xl font-black hover:bg-slate-900 transition-all flex items-center justify-center gap-3 shadow-xl disabled:opacity-50"
+                    >
+                      <FileText className="w-5 h-5" />
+                      توليد مستند PDF
+                    </button>
+                    <button 
+                      onClick={() => handleBulkGen('docx')}
+                      disabled={loading || !bulkGenText}
+                      className="h-16 bg-blue-600 text-white rounded-2xl font-black hover:bg-slate-900 transition-all flex items-center justify-center gap-3 shadow-xl disabled:opacity-50"
+                    >
+                      <Download className="w-5 h-5" />
+                      توليد مستند Word
+                    </button>
+                  </div>
+
+                  <AnimatePresence>
+                    {generatedBlob && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-8 bg-emerald-50 border-2 border-dashed border-emerald-200 rounded-[3rem] text-center space-y-6"
+                      >
+                        <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                          <CheckCircle2 className="w-10 h-10" />
+                        </div>
+                        <div className="space-y-2">
+                          <h4 className="text-xl font-black text-emerald-900">تم تجهيز الملف بنجاح!</h4>
+                          <p className="text-emerald-600 font-bold">اسم الملف: {generatedBlob.name}</p>
+                        </div>
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                          <button 
+                            onClick={publishGeneratedFile}
+                            disabled={loading}
+                            className="w-full sm:w-auto px-10 py-5 bg-emerald-600 text-white rounded-[2rem] font-black hover:bg-emerald-700 transition-all shadow-xl flex items-center justify-center gap-3"
+                          >
+                            <Plus className="w-5 h-5" />
+                            نشر في بنك الملفات للطلاب
+                          </button>
+                          <button 
+                            onClick={() => saveAs(generatedBlob.blob, generatedBlob.name)}
+                            className="w-full sm:w-auto px-10 py-5 bg-white border-2 border-emerald-600 text-emerald-600 rounded-[2rem] font-black hover:bg-emerald-50 transition-all flex items-center justify-center gap-3"
+                          >
+                            <Download className="w-5 h-5" />
+                            تحميل الملف لجهازي فقط
+                          </button>
+                        </div>
+                        <button 
+                          onClick={() => setGeneratedBlob(null)}
+                          className="text-emerald-400 font-bold hover:text-emerald-600 text-sm transition-colors"
+                        >
+                          بدء من جديد
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               )}
             </div>
           </div>
