@@ -698,8 +698,33 @@ export default function AdminDashboard() {
                 activeTab === item.id ? 'bg-red-50 text-red-600' : 'text-slate-500 hover:bg-slate-50'
               }`}
             >
-              <div className={activeTab === item.id ? 'text-red-600' : 'text-slate-400 group-hover:text-red-600'}>{item.icon}</div>
+              <div className={`relative ${activeTab === item.id ? 'text-red-600' : 'text-slate-400 group-hover:text-red-600'}`}>
+                {item.icon}
+                {!sidebarOpen && item.id === 'contacts' && contacts.length > 0 && (
+                  <span className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-blue-600 text-white text-[8px] font-black flex items-center justify-center rounded-full border border-white">
+                    {contacts.length}
+                  </span>
+                )}
+                {!sidebarOpen && item.id === 'instructor_requests' && instructorRequests.length > 0 && (
+                  <span className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-red-600 text-white text-[8px] font-black flex items-center justify-center rounded-full border border-white">
+                    {instructorRequests.length}
+                  </span>
+                )}
+              </div>
               {sidebarOpen && <span className="font-bold text-sm whitespace-nowrap">{item.name}</span>}
+              
+              {/* Count Badges (Expanded Sidebar) */}
+              {sidebarOpen && item.id === 'contacts' && contacts.length > 0 && (
+                <span className="mr-auto bg-blue-100 text-blue-600 text-[10px] font-black px-2 py-0.5 rounded-full">
+                  {contacts.length}
+                </span>
+              )}
+              {sidebarOpen && item.id === 'instructor_requests' && instructorRequests.length > 0 && (
+                <span className="mr-auto bg-red-100 text-red-600 text-[10px] font-black px-2 py-0.5 rounded-full">
+                  {instructorRequests.length}
+                </span>
+              )}
+
               {activeTab === item.id && <motion.div layoutId="activeTab" className="absolute left-0 w-1.5 h-6 bg-red-600 rounded-full" />}
             </button>
           ))}
