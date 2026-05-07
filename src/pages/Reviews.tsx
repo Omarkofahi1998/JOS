@@ -29,7 +29,10 @@ export default function Reviews() {
             desc: r.description || r.desc,
             date: r.file_date || r.date,
             author: r.author,
-            readTime: r.read_time || r.readTime
+            referenceName: r.reference_name,
+            readTime: r.read_time || r.readTime,
+            fileUrl: r.file_url,
+            imageUrl: r.image_url
           }));
           setReviewsList(mapped);
         }
@@ -58,13 +61,28 @@ export default function Reviews() {
         {reviewsList.map((r) => (
           <article key={r.id} className="bg-white rounded-3xl border border-neutral-100 overflow-hidden flex flex-col group hover:shadow-xl hover:shadow-neutral-500/5 transition-all">
             <div className="h-48 bg-neutral-100 relative overflow-hidden">
-               <div className="absolute inset-0 bg-gradient-to-tr from-neutral-200 to-transparent group-hover:scale-110 transition-transform duration-500" />
-               <div className="absolute inset-0 flex items-center justify-center text-neutral-300">
-                  <FileText className="w-16 h-16 opacity-50" />
-               </div>
+               {r.imageUrl ? (
+                 <img 
+                   src={r.imageUrl} 
+                   alt={r.title} 
+                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                 />
+               ) : (
+                 <>
+                   <div className="absolute inset-0 bg-gradient-to-tr from-neutral-200 to-transparent group-hover:scale-110 transition-transform duration-500" />
+                   <div className="absolute inset-0 flex items-center justify-center text-neutral-300">
+                      <FileText className="w-16 h-16 opacity-50" />
+                   </div>
+                 </>
+               )}
                <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-neutral-900 border border-white/20">
                  {r.author}
                </div>
+               {r.referenceName && (
+                 <div className="absolute top-4 right-4 bg-slate-900/80 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black text-white border border-white/10">
+                   مرجع: {r.referenceName}
+                 </div>
+               )}
             </div>
             
             <div className="p-8 flex-grow">
@@ -84,11 +102,24 @@ export default function Reviews() {
                 {r.desc}
               </p>
 
-              <div className="flex items-center justify-between mt-auto">
-                <button className="flex items-center gap-2 text-slate-950 font-bold text-sm hover:bg-slate-50 px-4 py-2 rounded-lg transition-all border border-slate-100 shadow-sm">
-                  <Eye className="w-4 h-4" />
-                  قراءة
-                </button>
+              <div className="flex items-center justify-between mt-auto gap-2">
+                <div className="flex items-center gap-2">
+                  <button className="flex items-center gap-2 text-slate-950 font-bold text-sm hover:bg-slate-50 px-4 py-2 rounded-lg transition-all border border-slate-100 shadow-sm">
+                    <Eye className="w-4 h-4" />
+                    قراءة
+                  </button>
+                  {r.fileUrl && (
+                    <a 
+                      href={r.fileUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 bg-slate-900 text-white font-bold text-sm hover:bg-red-600 px-4 py-2 rounded-lg transition-all shadow-sm"
+                    >
+                      <Download className="w-4 h-4" />
+                      تحميل
+                    </a>
+                  )}
+                </div>
                 <button className="p-2 text-slate-400 hover:text-blue-900 hover:bg-blue-50 rounded-full transition-all" title="حفظ للمراجعة">
                   <Bookmark className="w-5 h-5" />
                 </button>

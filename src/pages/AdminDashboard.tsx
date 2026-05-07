@@ -378,8 +378,11 @@ export default function AdminDashboard() {
   const [rTitle, setRTitle] = useState("");
   const [rDesc, setRDesc] = useState("");
   const [rAuthor, setRAuthor] = useState("Jo Students");
+  const [rReference, setRReference] = useState("");
   const [rReadTime, setRReadTime] = useState("٥ دقائق");
   const [rDate, setRDate] = useState("");
+  const [rFileUrl, setRFileUrl] = useState("");
+  const [rImageUrl, setRImageUrl] = useState("");
 
   const [bulkGenText, setBulkGenText] = useState("");
   const [bulkGenFileName, setBulkGenFileName] = useState("");
@@ -505,6 +508,10 @@ export default function AdminDashboard() {
     setFeatDesc("");
     setRTitle("");
     setRDesc("");
+    setRAuthor("Jo Students");
+    setRReference("");
+    setRFileUrl("");
+    setRImageUrl("");
   };
 
   const handleLogout = async () => {
@@ -640,13 +647,58 @@ export default function AdminDashboard() {
     } catch (err: any) { setStatus({ type: 'error', msg: err.message }); } finally { setLoading(false); }
   };
 
+  const handleReviewFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'file' | 'image') => {
+    const file = e.target.files?.[0];
+    if (!file || !supabase) return;
+
+    setLoading(true);
+    setStatus({ type: 'success', msg: `جاري رفع ${type === 'file' ? 'الملف' : 'الصورة'}...` });
+    
+    try {
+      const fileExt = file.name.split('.').pop();
+      const folder = type === 'file' ? 'reviews' : 'reviews/previews';
+      const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadErr } = await supabase.storage
+        .from('bank_files')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (uploadErr) throw uploadErr;
+
+      const { data: { publicUrl } } = supabase.storage.from('bank_files').getPublicUrl(fileName);
+      
+      if (type === 'file') setRFileUrl(publicUrl);
+      else setRImageUrl(publicUrl);
+
+      setStatus({ type: 'success', msg: `تم رفع ${type === 'file' ? 'الملف' : 'الصورة'} بنجاح!` });
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      setStatus({ type: 'error', msg: 'فشل في الرفع: ' + err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const addReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supabase) return;
+
     setLoading(true);
     try {
       const today = new Date().toLocaleDateString('ar-JO', { year: 'numeric', month: 'long', day: 'numeric' });
-      const payload = { title: rTitle, description: rDesc, author: rAuthor, read_time: rReadTime, file_date: rDate || today };
+      const payload = { 
+        title: rTitle, 
+        description: rDesc, 
+        author: rAuthor, 
+        reference_name: rReference,
+        read_time: rReadTime, 
+        file_date: rDate || today,
+        file_url: rFileUrl,
+        image_url: rImageUrl
+      };
       let error;
       if (editingId) ({ error } = await supabase.from('reviews').update(payload).eq('id', editingId));
       else ({ error } = await supabase.from('reviews').insert(payload));
@@ -1460,7 +1512,7 @@ export default function AdminDashboard() {
                                     if(activeTab === 'files') { setEditingId(item.id); setFTitle(item.title); setFCategory(item.category); setFUrl(item.url); setFSize(item.file_size); setSubTab('add'); }
                                     else if(activeTab === 'services') { setEditingId(item.id); setSTitle(item.title); setSDesc(item.description); setSIcon(item.icon_name || "Settings"); setSColor(item.bg_color || "bg-slate-50"); setSubTab('add'); }
                                     else if(activeTab === 'features') { setEditingId(item.id); setFeatTitle(item.title); setFeatDesc(item.description); setFeatIcon(item.icon_name || "BookOpen"); setFeatColor(item.color_class || "bg-red-50"); setFeatPath(item.link_path || "/"); setFeatOrder(item.order_index || 0); setSubTab('add'); }
-                                    else if(activeTab === 'reviews') { setEditingId(item.id); setRTitle(item.title); setRDesc(item.description); setRAuthor(item.author || "Jo Students"); setRReadTime(item.read_time || "٥ دقائق"); setRDate(item.file_date || ""); setSubTab('add'); }
+                                    else if(activeTab === 'reviews') { setEditingId(item.id); setRTitle(item.title); setRDesc(item.description); setRAuthor(item.author || "Jo Students"); setRReference(item.reference_name || ""); setRReadTime(item.read_time || "٥ دقائق"); setRDate(item.file_date || ""); setRFileUrl(item.file_url || ""); setRImageUrl(item.image_url || ""); setSubTab('add'); }
                                   }}
                                   className="p-2 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-xl"
                                 ><Edit3 className="w-4 h-4" /></button>
@@ -1752,9 +1804,68 @@ export default function AdminDashboard() {
                {subTab === 'add' && activeTab === 'reviews' && (
                 <form onSubmit={addReview} className="space-y-8 max-w-2xl mx-auto py-6">
                    <div className="space-y-8 bg-slate-50 p-10 rounded-[3rem] border border-slate-200">
-                      <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">عنوان المراجعة</label><input type="text" required className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600" value={rTitle} onChange={e => setRTitle(e.target.value)} /></div>
-                      <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">الكاتب</label><input type="text" required className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600" value={rAuthor} onChange={e => setRAuthor(e.target.value)} /></div>
-                      <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">النص</label><textarea rows={6} required className="w-full p-6 bg-white border border-slate-200 rounded-3xl outline-none focus:border-red-600" value={rDesc} onChange={e => setRDesc(e.target.value)} /></div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4 bg-white p-6 rounded-3xl border-2 border-dashed border-slate-200 text-right">
+                           <label className="text-xs font-black text-slate-400 uppercase block mb-2">إرفاق ملف المراجعة</label>
+                           <input 
+                             type="file" 
+                             onChange={(e) => handleReviewFileUpload(e, 'file')} 
+                             disabled={loading}
+                             className="block w-full text-sm text-slate-500 file:ml-0 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-50 file:text-slate-700 hover:file:bg-slate-100 cursor-pointer"
+                           />
+                        </div>
+                        <div className="space-y-4 bg-white p-6 rounded-3xl border-2 border-dashed border-slate-200 text-right">
+                           <label className="text-xs font-black text-slate-400 uppercase block mb-2">صورة المعاينة</label>
+                           <input 
+                             type="file" 
+                             accept="image/*"
+                             onChange={(e) => handleReviewFileUpload(e, 'image')} 
+                             disabled={loading}
+                             className="block w-full text-sm text-slate-500 file:ml-0 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-50 file:text-slate-700 hover:file:bg-slate-100 cursor-pointer"
+                           />
+                        </div>
+                      </div>
+
+                      {(rFileUrl || rImageUrl) && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {rFileUrl && (
+                            <div className="space-y-2 text-right">
+                              <label className="text-[10px] font-black text-slate-400 uppercase">رابط الملف المرفوع</label>
+                              <input type="text" readOnly className="w-full h-10 px-4 bg-slate-100 border border-slate-200 rounded-xl outline-none text-slate-500 text-[10px] font-mono" value={rFileUrl} />
+                            </div>
+                          )}
+                          {rImageUrl && (
+                            <div className="space-y-2 text-right">
+                              <label className="text-[10px] font-black text-slate-400 uppercase">رابط صورة المعاينة</label>
+                              <div className="flex gap-2">
+                                <input type="text" readOnly className="flex-1 h-10 px-4 bg-slate-100 border border-slate-200 rounded-xl outline-none text-slate-500 text-[10px] font-mono" value={rImageUrl} />
+                                <img src={rImageUrl} alt="Preview" className="w-10 h-10 rounded-lg object-cover border border-slate-200 shadow-sm" />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">عنوان المراجعة</label><input type="text" required className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600" value={rTitle} onChange={e => setRTitle(e.target.value)} /></div>
+                        <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">اسم المرجع (مثلاً: الدكتور فلان)</label><input type="text" className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600" value={rReference} onChange={e => setRReference(e.target.value)} /></div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">الكاتب الرسمي</label><input type="text" required className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600" value={rAuthor} onChange={e => setRAuthor(e.target.value)} /></div>
+                        <div className="space-y-2 text-right">
+                          <label className="text-xs font-black text-slate-400 uppercase">وقت القراءة/الدراسة التقريبي</label>
+                          <select className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600" value={rReadTime} onChange={e => setRReadTime(e.target.value)}>
+                            <option value="٥ دقائق">٥ دقائق</option>
+                            <option value="١٠ دقائق">١٠ دقائق</option>
+                            <option value="١٥ دقيقة">١٥ دقيقة</option>
+                            <option value="٣٠ دقيقة">٣٠ دقيقة</option>
+                            <option value="ساعة">ساعة</option>
+                          </select>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">نص المراجعة أو الوصف</label><textarea rows={4} required className="w-full p-6 bg-white border border-slate-200 rounded-3xl outline-none focus:border-red-600" value={rDesc} onChange={e => setRDesc(e.target.value)} /></div>
                    </div>
                    <button type="submit" className="w-full h-16 bg-slate-900 text-white rounded-[2rem] font-black hover:bg-red-600 transition-all shadow-2xl">حفظ المراجعة</button>
                 </form>
