@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { FileUser, Settings, Briefcase, UserCheck, MessageSquare, Sparkles, ArrowLeft, Users, Send, Loader2, FileText, Search } from "lucide-react";
 import { supabase } from "../lib/supabase";
@@ -154,10 +155,10 @@ export default function Services() {
                 ))}
               </div>
 
-              <button className="bg-red-600 text-white px-10 py-4 rounded-2xl font-black hover:bg-red-700 transition-all flex items-center gap-3 ml-auto shadow-xl shadow-red-600/20 active:scale-95">
-                قدم طلب انضمام كمدرب
+              <Link to="/instructor-registration" className="bg-red-600 text-white px-10 py-4 rounded-2xl font-black hover:bg-red-700 transition-all flex items-center gap-3 ml-auto shadow-xl shadow-red-600/20 active:scale-95">
+                قدم طلب انضمام
                 <Send className="w-5 h-5" />
-              </button>
+              </Link>
             </div>
 
             <div className="relative max-w-xl mx-auto lg:mr-0 lg:ml-auto w-full">
@@ -178,8 +179,8 @@ export default function Services() {
                         <Users className="w-6 h-6" />
                       </div>
                       <div className="text-right">
-                        <div className="text-lg font-bold">انضم لأكثر من 50 مدرب</div>
-                        <div className="text-white/60 text-sm">في مختلف التخصصات الأردنية</div>
+                        <div className="text-lg font-bold">إنضم الى فريقنا</div>
+                        <div className="text-white/60 text-sm">نحن ننتظرك لتكون جزءاً من نجاحنا</div>
                       </div>
                     </div>
                   </div>

@@ -5,6 +5,7 @@ import Home from "./pages/Home";
 import { supabase } from "./lib/supabase";
 
 // Lazy load non-critical pages
+import InstructorRegistration from "./pages/InstructorRegistration";
 const MockExams = lazy(() => import("./pages/MockExams"));
 const Questions = lazy(() => import("./pages/Questions"));
 const Reviews = lazy(() => import("./pages/Reviews"));
@@ -27,6 +28,7 @@ function VisitorTracker() {
   const location = useLocation();
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     async function trackVisitor() {
       if (!supabase) return;
 
@@ -76,6 +78,7 @@ export default function App() {
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/admin/login" element={<AdminLogin />} />
                   <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                  <Route path="/instructor-registration" element={<InstructorRegistration />} />
                 </Routes>
               </Suspense>
             </Layout>

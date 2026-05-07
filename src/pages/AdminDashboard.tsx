@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Plus, LogOut, FileText, HelpCircle, Loader2, 
   CheckCircle2, AlertCircle, Sparkles, Trash2, Edit3, Layers, 
   Search, X, MessageSquare, Shield, Settings, Menu, Bell, User, Clock, ChevronRight,
-  Download, Image as ImageIcon, Eye
+  Download, Image as ImageIcon, Eye, UserCheck
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import * as XLSX from "xlsx";
@@ -16,7 +16,7 @@ import { saveAs } from "file-saver";
 
 export default function AdminDashboard() {
   const [session, setSession] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'questions' | 'files' | 'services' | 'settings' | 'features' | 'reviews' | 'contacts'>('questions');
+  const [activeTab, setActiveTab] = useState<'questions' | 'files' | 'services' | 'settings' | 'features' | 'reviews' | 'contacts' | 'instructor_requests'>('questions');
   const [subTab, setSubTab] = useState<'add' | 'list' | 'bulk'>('list');
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
@@ -39,12 +39,26 @@ export default function AdminDashboard() {
   const [features, setFeatures] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
+  const [instructorRequests, setInstructorRequests] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [majorFilter, setMajorFilter] = useState("all");
   const [imageValid, setImageValid] = useState<boolean | null>(null);
   const [lastBatchIds, setLastBatchIds] = useState<(string | number)[]>([]);
   const [showUndo, setShowUndo] = useState(false);
   const [previewQuestions, setPreviewQuestions] = useState<any[] | null>(null);
+
+  useEffect(() => {
+    if (!supabase) return;
+    const channel = supabase.channel('instructor-requests-changes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'instructor_requests' }, (payload) => {
+        setNotifications(prev => [...prev, payload.new]);
+        setStatus({ type: 'success', msg: 'لديك طلب انضمام جديد' });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [supabase]);
 
   // Import JSON function
   const handleJSONImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -364,7 +378,7 @@ export default function AdminDashboard() {
     if (!supabase) return;
     setLoading(true);
     try {
-      const [q, f, s, settings, feat, rev, con, stats] = await Promise.all([
+      const [q, f, s, settings, feat, rev, con, stats, instReq] = await Promise.all([
         supabase.from('questions').select('*').order('id', { ascending: false }),
         supabase.from('question_files').select('*').order('id', { ascending: false }),
         supabase.from('services').select('*').order('id', { ascending: false }),
@@ -372,7 +386,8 @@ export default function AdminDashboard() {
         supabase.from('features').select('*').order('order_index', { ascending: true }),
         supabase.from('reviews').select('*').order('id', { ascending: false }),
         supabase.from('contact_messages').select('*').order('id', { ascending: false }),
-        supabase.from('visitor_stats').select('count').eq('id', 1).single()
+        supabase.from('visitor_stats').select('count').eq('id', 1).single(),
+        supabase.from('instructor_requests').select('*').order('created_at', { ascending: false })
       ]);
       if (q.data) setQuestions(q.data);
       if (f.data) setFiles(f.data);
@@ -380,6 +395,7 @@ export default function AdminDashboard() {
       if (feat.data) setFeatures(feat.data);
       if (rev.data) setReviews(rev.data);
       if (con.data) setContacts(con.data);
+      if (instReq.data) setInstructorRequests(instReq.data);
       
       if (settings.data) {
         const obj: any = {};
@@ -598,6 +614,7 @@ export default function AdminDashboard() {
     { id: 'reviews', name: 'المراجعات', icon: <MessageSquare className="w-5 h-5" /> },
     { id: 'contacts', name: 'الرسائل الواردة', icon: <Bell className="w-5 h-5" /> },
     { id: 'settings', name: 'بناء الهوية', icon: <Settings className="w-5 h-5" /> },
+    { id: 'instructor_requests', name: 'طلبات الانضمام', icon: <UserCheck className="w-5 h-5" /> },
   ];
 
   if (!session) return null;
@@ -687,6 +704,30 @@ export default function AdminDashboard() {
            </div>
 
           <div className="flex items-center gap-6">
+            <div className="relative">
+                <button onClick={() => setShowNotifications(!showNotifications)} className="relative p-2 text-slate-500 hover:text-slate-900 transition-colors">
+                    <Bell className="w-5 h-5" />
+                    {notifications.length > 0 && (
+                        <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-600 rounded-full animate-pulse" />
+                    )}
+                </button>
+                {showNotifications && (
+                    <div className="absolute left-0 mt-2 w-72 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-4">
+                        <h4 className="font-black text-sm mb-3">إشعارات جديدة</h4>
+                        {notifications.length === 0 ? <p className="text-sm text-slate-500 text-center">لا توجد إشعارات</p> : (
+                            <div className="space-y-2">
+                                {notifications.map((n, i) => (
+                                    <button key={i} onClick={() => { setActiveTab('instructor_requests'); setShowNotifications(false); }} className="w-full text-right p-3 hover:bg-slate-50 rounded-xl">
+                                        <div className="text-sm font-bold text-slate-900">{n.fullName}</div>
+                                        <div className="text-xs text-slate-500">طلب انضمام جديد</div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
             <div className="hidden sm:flex flex-col text-left">
               <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none">تاريخ الجلسة</span>
               <span className="text-xs font-bold text-slate-900 mt-1">{new Date().toLocaleDateString('ar-JO')}</span>
@@ -825,7 +866,7 @@ export default function AdminDashboard() {
 
             <div className="p-8">
               {/* LIST VIEW */}
-              {subTab === 'list' && activeTab !== 'settings' && activeTab !== 'contacts' && (
+              {subTab === 'list' && activeTab !== 'settings' && activeTab !== 'contacts' && activeTab !== 'instructor_requests' && (
                 <div className={activeTab === 'questions' ? "overflow-x-auto" : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"}>
                   {activeTab === 'questions' ? (
                     <table className="w-full text-right border-collapse">
@@ -915,6 +956,34 @@ export default function AdminDashboard() {
                         </motion.div>
                     ))
                   )}
+                </div>
+              )}
+              {subTab === 'list' && activeTab === 'instructor_requests' && (
+                <div className="overflow-x-auto">
+                    <table className="w-full text-right border-collapse">
+                        <thead>
+                            <tr className="bg-slate-50 border-b border-slate-200">
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">الاسم الكامل</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">البريد الإلكتروني</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">رقم الهاتف</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">التخصص</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">نبذة عن الخبرة</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">التاريخ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {instructorRequests.map(req => (
+                                <tr key={req.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-all">
+                                    <td className="px-6 py-4 text-sm font-bold text-slate-900">{req.fullName}</td>
+                                    <td className="px-6 py-4 text-sm text-red-600 font-bold">{req.email}</td>
+                                    <td className="px-6 py-4 text-sm text-slate-600">{req.phone}</td>
+                                    <td className="px-6 py-4 text-sm text-slate-600">{req.major}</td>
+                                    <td className="px-6 py-4 text-sm text-slate-600 max-w-[200px] truncate">{req.experience}</td>
+                                    <td className="px-6 py-4 text-sm text-slate-400">{new Date(req.created_at).toLocaleDateString()}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
               )}
 
