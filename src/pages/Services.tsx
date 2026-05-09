@@ -171,6 +171,7 @@ export default function Services() {
                   decoding="async"
                   width="600"
                   height="600"
+                  referrerPolicy="no-referrer"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent flex items-end p-10">
                   <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 w-full">

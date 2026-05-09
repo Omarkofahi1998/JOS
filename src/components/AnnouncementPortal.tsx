@@ -164,6 +164,7 @@ export default function AnnouncementPortal() {
                     src={activePopup.image_url} 
                     alt={activePopup.title} 
                     className="w-full h-auto max-h-[450px] object-contain"
+                    referrerPolicy="no-referrer"
                   />
                 </div>
               ) : (

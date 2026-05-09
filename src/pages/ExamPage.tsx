@@ -138,6 +138,17 @@ export default function ExamPage() {
 
                        <h3 className="text-lg font-bold text-slate-900 mb-6 leading-relaxed">{q.text}</h3>
 
+                       {q.image && q.image.trim() !== "" && (
+                         <div className="mb-6 rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 flex items-center justify-center">
+                           <img 
+                             src={q.image} 
+                             alt="Question Illustration" 
+                             className="max-w-full h-auto max-h-64 object-contain" 
+                             referrerPolicy="no-referrer"
+                           />
+                         </div>
+                       )}
+
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
                           {q.options.map((opt, oIdx) => {
                             const isUserSelection = answers[idx] === oIdx;

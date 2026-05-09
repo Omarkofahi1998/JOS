@@ -2021,7 +2021,12 @@ export default function AdminDashboard() {
                               <label className="text-[10px] font-black text-slate-400 uppercase">رابط صورة المعاينة</label>
                               <div className="flex gap-2">
                                 <input type="text" readOnly className="flex-1 h-10 px-4 bg-slate-100 border border-slate-200 rounded-xl outline-none text-slate-500 text-[10px] font-mono" value={rImageUrl} />
-                                <img src={rImageUrl} alt="Preview" className="w-10 h-10 rounded-lg object-cover border border-slate-200 shadow-sm" />
+                                <img 
+                                  src={rImageUrl} 
+                                  alt="Preview" 
+                                  className="w-10 h-10 rounded-lg object-cover border border-slate-200 shadow-sm" 
+                                  referrerPolicy="no-referrer"
+                                />
                               </div>
                             </div>
                           )}
