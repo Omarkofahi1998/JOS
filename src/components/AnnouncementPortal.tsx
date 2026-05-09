@@ -159,11 +159,11 @@ export default function AnnouncementPortal() {
               </div>
 
               {activePopup.image_url ? (
-                <div className="w-full aspect-video overflow-hidden bg-slate-100">
+                <div className="w-full bg-slate-50 flex items-center justify-center overflow-hidden border-b border-slate-100">
                   <img 
                     src={activePopup.image_url} 
                     alt={activePopup.title} 
-                    className="w-full h-full object-cover"
+                    className="w-full h-auto max-h-[450px] object-contain"
                   />
                 </div>
               ) : (
