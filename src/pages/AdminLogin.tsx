@@ -46,9 +46,12 @@ export default function AdminLogin() {
     <div className="min-h-[80vh] flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-white rounded-3xl border border-slate-200 p-8 shadow-2xl shadow-slate-200/50">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Lock className="w-8 h-8" />
-          </div>
+          <img 
+            src="/logo.svg" 
+            alt="JO Students Logo" 
+            className="w-16 h-16 object-contain mx-auto mb-4"
+            referrerPolicy="no-referrer"
+          />
           <h1 className="text-2xl font-black text-slate-900">دخول الإدارة</h1>
           <p className="text-slate-500 text-sm mt-2">يرجى تسجيل الدخول للوصول إلى لوحة التحكم</p>
         </div>

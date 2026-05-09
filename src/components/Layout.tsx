@@ -10,15 +10,16 @@ function Logo() {
     <motion.div 
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
-      className="flex items-center gap-2 group cursor-pointer"
+      className="flex items-center group cursor-pointer"
       role="img"
       aria-label="JO Students Logo"
     >
-      <div className="relative w-9 h-9 bg-slate-900 rounded-lg flex items-center justify-center shadow-md overflow-hidden ring-2 ring-slate-100">
-        <div className="absolute inset-0 jordan-flag-gradient opacity-20" />
-        <span className="text-white font-black text-base tracking-tighter relative z-10">JO</span>
-        <div className="absolute top-0 right-0 w-1.5 h-1.5 bg-red-600 rounded-bl-sm" />
-      </div>
+      <img 
+        src="/logo.svg" 
+        alt="JO Students Logo" 
+        className="w-10 h-10 object-contain"
+        referrerPolicy="no-referrer"
+      />
     </motion.div>
   );
 }
@@ -325,9 +326,12 @@ export default function Layout({ children }: { children: ReactNode }) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 border-b border-slate-800 pb-12">
             <div className="text-right">
               <div className="flex items-center gap-3 mb-6 justify-start">
-                <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center shadow-lg transform -rotate-3">
-                    <FileText className="w-6 h-6 text-white" />
-                 </div>
+                <img 
+                  src="/logo.svg" 
+                  alt="JO Students Logo" 
+                  className="w-12 h-12 object-contain"
+                  referrerPolicy="no-referrer"
+                />
                  <span className="text-xl font-black text-white tracking-tight uppercase">JO Students</span>
               </div>
               <p className="text-slate-400 text-sm leading-relaxed font-medium">
