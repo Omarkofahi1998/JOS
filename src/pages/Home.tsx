@@ -29,8 +29,16 @@ export default function Home() {
   });
 
   const [onlineCount, setOnlineCount] = useState<number>(0);
+  const [randomActiveOffset, setRandomActiveOffset] = useState<number>(0);
 
   const [featuresList, setFeaturesList] = useState<Feature[]>([]);
+
+  useEffect(() => {
+    // Generate a random multiple of 20 for active trainees fluctuation
+    // This will range from -60 to 60 for example
+    const offset = (Math.floor(Math.random() * 7) - 3) * 20;
+    setRandomActiveOffset(offset);
+  }, []);
 
   useEffect(() => {
     // Real-time tracking for active trainees
@@ -203,7 +211,7 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 bg-white p-6 md:p-10 rounded-2xl border border-slate-200 shadow-sm">
            {[
-             { label: 'متدرب نشط', val: (onlineCount > 0 ? onlineCount : 1).toLocaleString() },
+             { label: 'متدرب نشط', val: (540 + randomActiveOffset + onlineCount).toLocaleString() },
              { label: 'سؤال تدريبي', val: stats.questions },
              { label: 'محاكاة كاملة', val: stats.exams },
              { label: 'تخصص مدعوم', val: stats.majors }

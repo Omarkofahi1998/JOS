@@ -44,6 +44,7 @@ export default function AdminDashboard() {
   const [instructorRequests, setInstructorRequests] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [onlineCount, setOnlineCount] = useState<number>(0);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [majorFilter, setMajorFilter] = useState("all");
@@ -92,6 +93,33 @@ export default function AdminDashboard() {
 
     return () => { 
       supabase.removeChannel(adminChannel);
+    };
+  }, [supabase]);
+
+  useEffect(() => {
+    if (!supabase) return;
+    
+    const channel = supabase.channel('online_users_admin', {
+      config: {
+        presence: {
+          key: 'admin-' + Math.random().toString(36).substring(7),
+        },
+      },
+    });
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        setOnlineCount(Object.keys(state).length);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({ online_at: new Date().toISOString(), role: 'admin' });
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
     };
   }, [supabase]);
 
@@ -1414,6 +1442,15 @@ export default function AdminDashboard() {
               <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none">تاريخ الجلسة</span>
               <span className="text-xs font-bold text-slate-900 mt-1">{new Date().toLocaleDateString('ar-JO')}</span>
             </div>
+            
+            <div className="flex flex-col text-left items-end pr-4 mr-4 border-r border-slate-100">
+              <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest leading-none flex items-center gap-1">
+                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                متواجد الآن
+              </span>
+              <span className="text-sm font-black text-slate-900 mt-1">{onlineCount} متدرب</span>
+            </div>
+
             <div className="w-10 h-10 bg-slate-100 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 overflow-hidden">
                <User className="w-5 h-5" />
             </div>
