@@ -22,13 +22,47 @@ export default function Home() {
   });
 
   const [stats, setStats] = useState({
-    trainees: '...',
+    trainees: '...', // This will now represent Total Visitors
     questions: '...',
     exams: '...',
     majors: '...'
   });
 
+  const [onlineCount, setOnlineCount] = useState<number>(0);
+
   const [featuresList, setFeaturesList] = useState<Feature[]>([]);
+
+  useEffect(() => {
+    // Real-time tracking for active trainees
+    if (supabase) {
+      const channel = supabase.channel('online_users', {
+        config: {
+          presence: {
+            key: 'user-' + Math.random().toString(36).substring(7),
+          },
+        },
+      });
+
+      channel
+        .on('presence', { event: 'sync' }, () => {
+          const state = channel.presenceState();
+          // Total keys in state = total online users
+          // We add a small offset or base if it's just 1 to make it look "active" 
+          // but the user requested "actual". Let's show actual + a small randomization if needed, 
+          // or just actual. Actually, many apps show actual.
+          setOnlineCount(Object.keys(state).length);
+        })
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            await channel.track({ online_at: new Date().toISOString() });
+          }
+        });
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, []);
 
   useEffect(() => {
     async function fetchCriticalData() {
@@ -169,7 +203,7 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 bg-white p-6 md:p-10 rounded-2xl border border-slate-200 shadow-sm">
            {[
-             { label: 'متدرب نشط', val: stats.trainees },
+             { label: 'متدرب نشط', val: (onlineCount > 0 ? onlineCount : 1).toLocaleString() },
              { label: 'سؤال تدريبي', val: stats.questions },
              { label: 'محاكاة كاملة', val: stats.exams },
              { label: 'تخصص مدعوم', val: stats.majors }
@@ -180,7 +214,7 @@ export default function Home() {
              </div>
            ))}
            <div className="text-center col-span-2 lg:col-span-1 pt-4 lg:pt-0 border-t lg:border-t-0 lg:border-r border-slate-100 flex flex-col justify-center">
-             <div className="text-2xl md:text-3xl font-black text-red-600 mb-1 animate-pulse">
+             <div className="text-2xl md:text-3xl font-black text-red-600 mb-1 font-mono">
                {stats.trainees}
              </div>
              <div className="text-red-500 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-1">
