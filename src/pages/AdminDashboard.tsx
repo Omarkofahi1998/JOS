@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Plus, LogOut, FileText, HelpCircle, Loader2, 
   CheckCircle2, AlertCircle, Sparkles, Trash2, Edit3, Layers, 
   Search, X, MessageSquare, Shield, Settings, Menu, Bell, User, Clock, ChevronRight, Megaphone,
-  Download, Image as ImageIcon, Eye, UserCheck, Mail
+  Download, Image as ImageIcon, Eye, UserCheck, Mail, UploadCloud
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import * as XLSX from "xlsx";
@@ -407,6 +407,8 @@ export default function AdminDashboard() {
   const [annTargetDate, setAnnTargetDate] = useState("");
   const [annBtnText, setAnnBtnText] = useState("");
   const [annBtnUrl, setAnnBtnUrl] = useState("");
+  const [annImageUrl, setAnnImageUrl] = useState("");
+  const [annImageFile, setAnnImageFile] = useState<File | null>(null);
   const [annFileUrl, setAnnFileUrl] = useState("");
   const [annFile, setAnnFile] = useState<File | null>(null);
   const [viewingRequest, setViewingRequest] = useState<any | null>(null);
@@ -545,6 +547,8 @@ export default function AdminDashboard() {
     setAnnTargetDate("");
     setAnnBtnText("");
     setAnnBtnUrl("");
+    setAnnImageUrl("");
+    setAnnImageFile(null);
     setAnnFileUrl("");
     setAnnFile(null);
   };
@@ -778,11 +782,31 @@ export default function AdminDashboard() {
     setLoading(true);
     try {
       let finalFileUrl = annFileUrl;
+      let finalImageUrl = annImageUrl;
+
+      // Handle Image Upload
+      if (annImageFile) {
+        const fileExt = annImageFile.name.split('.').pop();
+        const fileName = `img_${Math.random()}.${fileExt}`;
+        const filePath = `images/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('announcements')
+          .upload(filePath, annImageFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('announcements')
+          .getPublicUrl(filePath);
+        
+        finalImageUrl = publicUrl;
+      }
 
       // Handle File Upload if selected
       if (annFile) {
         const fileExt = annFile.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
+        const fileName = `file_${Math.random()}.${fileExt}`;
         const filePath = `files/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
@@ -808,6 +832,7 @@ export default function AdminDashboard() {
         button_text: annBtnText || null,
         button_url: annBtnUrl || null,
         file_url: finalFileUrl || null,
+        image_url: finalImageUrl || null,
         updated_at: new Date().toISOString()
       };
       
@@ -1611,7 +1636,20 @@ export default function AdminDashboard() {
                                     else if(activeTab === 'services') { setEditingId(item.id); setSTitle(item.title); setSDesc(item.description); setSIcon(item.icon_name || "Settings"); setSColor(item.bg_color || "bg-slate-50"); setSubTab('add'); }
                                     else if(activeTab === 'features') { setEditingId(item.id); setFeatTitle(item.title); setFeatDesc(item.description); setFeatIcon(item.icon_name || "BookOpen"); setFeatColor(item.color_class || "bg-red-50"); setFeatPath(item.link_path || "/"); setFeatOrder(item.order_index || 0); setSubTab('add'); }
                                     else if(activeTab === 'reviews') { setEditingId(item.id); setRTitle(item.title); setRDesc(item.description); setRAuthor(item.author || "Jo Students"); setRReference(item.reference_name || ""); setRReadTime(item.read_time || "٥ دقائق"); setRDate(item.file_date || ""); setRFileUrl(item.file_url || ""); setRImageUrl(item.image_url || ""); setSubTab('add'); }
-                                    else if(activeTab === 'announcements') { setEditingId(item.id); setAnnTitle(item.title); setAnnContent(item.content); setAnnType(item.type); setAnnIsActive(item.is_active); setAnnShowCountdown(item.show_countdown); setAnnTargetDate(item.target_date || ""); setAnnBtnText(item.button_text || ""); setAnnBtnUrl(item.button_url || ""); setAnnFileUrl(item.file_url || ""); setSubTab('add'); }
+                                    else if(activeTab === 'announcements') { 
+                                      setEditingId(item.id); 
+                                      setAnnTitle(item.title); 
+                                      setAnnContent(item.content); 
+                                      setAnnType(item.type); 
+                                      setAnnIsActive(item.is_active); 
+                                      setAnnShowCountdown(item.show_countdown); 
+                                      setAnnTargetDate(item.target_date || ""); 
+                                      setAnnBtnText(item.button_text || ""); 
+                                      setAnnBtnUrl(item.button_url || ""); 
+                                      setAnnImageUrl(item.image_url || ""); 
+                                      setAnnFileUrl(item.file_url || ""); 
+                                      setSubTab('add'); 
+                                    }
                                   }}
                                   className="p-2 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-xl"
                                 ><Edit3 className="w-4 h-4" /></button>
@@ -2109,6 +2147,36 @@ export default function AdminDashboard() {
                       <div className="space-y-2 text-right">
                         <label className="text-xs font-black text-slate-400 uppercase">رابط الزر (اختياري)</label>
                         <input type="url" className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none font-mono text-sm" value={annBtnUrl} onChange={e => setAnnBtnUrl(e.target.value)} placeholder="https://..." />
+                      </div>
+
+                      <div className="space-y-2 text-right col-span-2">
+                        <label className="text-xs font-black text-slate-400 uppercase">صورة الإعلان (Popups Only)</label>
+                        <div className="flex flex-col gap-4">
+                          <div className="relative">
+                            <input 
+                              type="url" 
+                              className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none font-mono text-sm" 
+                              value={annImageUrl} 
+                              onChange={e => setAnnImageUrl(e.target.value)} 
+                              placeholder="رابط الصورة المباشر..." 
+                            />
+                            <ImageIcon className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+                          </div>
+                          <div className="relative group">
+                            <input 
+                              type="file" 
+                              accept="image/*"
+                              onChange={e => setAnnImageFile(e.target.files?.[0] || null)}
+                              className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                            />
+                            <div className={`w-full h-14 px-6 border-2 border-dashed rounded-2xl flex items-center justify-between transition-all ${annImageFile ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200 group-hover:border-red-300'}`}>
+                               <span className="text-xs font-bold text-slate-500 overflow-hidden truncate max-w-[200px]">
+                                 {annImageFile ? annImageFile.name : 'أو قم برفع صورة مباشرة من جهازك'}
+                               </span>
+                               <UploadCloud className={`w-5 h-5 ${annImageFile ? 'text-red-500' : 'text-slate-400'}`} />
+                            </div>
+                          </div>
+                        </div>
                       </div>
 
                       <div className="space-y-2 text-right col-span-2">

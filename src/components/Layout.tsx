@@ -158,54 +158,6 @@ export default function Layout({ children }: { children: ReactNode }) {
                     </span>
                   )}
                 </button>
-
-                {/* Notifications Dropdown */}
-                <AnimatePresence>
-                  {showNotifications && (
-                    <>
-                      <div className="fixed inset-0 z-10" onClick={() => setShowNotifications(false)} />
-                      <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute left-0 mt-3 w-80 bg-white rounded-3xl shadow-2xl border border-slate-100 z-20 overflow-hidden"
-                      >
-                        <div className="p-5 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
-                           <span className="text-xs font-black text-slate-400 uppercase tracking-widest">تنبيهات المنصة</span>
-                           <span className="bg-white px-2 py-0.5 rounded-full text-[10px] font-black text-red-600 border border-red-50">{announcements.length} تنبيه</span>
-                        </div>
-                        <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
-                           {announcements.length === 0 ? (
-                             <div className="p-10 text-center text-slate-300 font-bold text-xs">لا يوجد تنبيهات حالياً</div>
-                           ) : announcements.map((ann, idx) => (
-                             <div key={ann.id} className="p-4 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 group cursor-pointer" onClick={() => { if(ann.button_url) window.open(ann.button_url, '_blank'); }}>
-                               <div className="flex items-start gap-4">
-                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${ann.type === 'popup' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500'}`}>
-                                     <Bell className="w-4 h-4" />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                     <h4 className="text-xs font-black text-slate-900 mb-1 truncate">{ann.title}</h4>
-                                     <p className="text-[10px] text-slate-500 line-clamp-2 leading-relaxed mb-2">{ann.content}</p>
-                                     <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400">
-                                        <Clock className="w-3 h-3" />
-                                        {new Date(ann.created_at).toLocaleDateString('ar-JO')}
-                                     </div>
-                                  </div>
-                               </div>
-                             </div>
-                           ))}
-                        </div>
-                        <Link 
-                          to="/contact" 
-                          onClick={() => setShowNotifications(false)}
-                          className="block p-4 text-center text-[10px] font-black text-slate-400 hover:text-red-600 border-t border-slate-50 transition-colors bg-slate-50/30"
-                        >
-                          هل لديك استفسار؟ تواصل معنا
-                        </Link>
-                      </motion.div>
-                    </>
-                  )}
-                </AnimatePresence>
               </div>
 
               {navItems.map((item) => (
@@ -257,6 +209,67 @@ export default function Layout({ children }: { children: ReactNode }) {
             </div>
           </div>
         </div>
+
+        {/* Global Notifications Dropdown (Desktop & Mobile Overlay) */}
+        <AnimatePresence>
+          {showNotifications && (
+            <>
+              <div className="fixed inset-0 z-[60] bg-black/5" onClick={() => setShowNotifications(false)} />
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                className="absolute left-4 right-4 md:left-auto md:right-auto md:ml-[calc(100vw-1024px)] lg:ml-[calc(100vw-1280px)] md:w-80 bg-white rounded-3xl shadow-2xl border border-slate-100 z-[70] overflow-hidden mt-2"
+                style={{
+                  top: '100%',
+                  maxWidth: 'calc(100vw - 32px)',
+                  left: '16px',
+                  right: '16px',
+                  ...(window.innerWidth >= 768 ? { left: 'auto', right: '0', width: '320px' } : {})
+                }}
+              >
+                <div className="p-5 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
+                   <div className="flex items-center gap-2">
+                     <Bell className="w-3 h-3 text-red-600" />
+                     <span className="text-xs font-black text-slate-400 uppercase tracking-widest">تنبيهات المنصة</span>
+                   </div>
+                   <button onClick={() => setShowNotifications(false)} className="md:hidden p-1 hover:bg-slate-200 rounded-full">
+                     <X className="w-4 h-4 text-slate-400" />
+                   </button>
+                   <span className="hidden md:inline-block bg-white px-2 py-0.5 rounded-full text-[10px] font-black text-red-600 border border-red-50">{announcements.length} تنبيه</span>
+                </div>
+                <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+                   {announcements.length === 0 ? (
+                     <div className="p-10 text-center text-slate-300 font-bold text-xs">لا يوجد تنبيهات حالياً</div>
+                   ) : announcements.map((ann, idx) => (
+                     <div key={ann.id} className="p-4 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 group cursor-pointer" onClick={() => { if(ann.button_url) window.open(ann.button_url, '_blank'); }}>
+                       <div className="flex items-start gap-4">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${ann.type === 'popup' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500'}`}>
+                             <Bell className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1 min-w-0 text-right">
+                             <h4 className="text-xs font-black text-slate-900 mb-1 truncate">{ann.title}</h4>
+                             <p className="text-[10px] text-slate-500 line-clamp-2 leading-relaxed mb-2">{ann.content}</p>
+                             <div className="flex items-center justify-end gap-1.5 text-[9px] font-bold text-slate-400">
+                                <Clock className="w-3 h-3" />
+                                {new Date(ann.created_at).toLocaleDateString('ar-JO')}
+                             </div>
+                          </div>
+                       </div>
+                     </div>
+                   ))}
+                </div>
+                <Link 
+                  to="/contact" 
+                  onClick={() => setShowNotifications(false)}
+                  className="block p-4 text-center text-[10px] font-black text-slate-400 hover:text-red-600 border-t border-slate-50 transition-colors bg-slate-50/30"
+                >
+                  هل لديك استفسار؟ تواصل معنا
+                </Link>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
         {/* Mobile Nav */}
         {isOpen && (

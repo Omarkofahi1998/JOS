@@ -14,6 +14,7 @@ interface Announcement {
   button_text: string | null;
   button_url: string | null;
   file_url: string | null;
+  image_url: string | null;
   created_at: string;
 }
 
@@ -90,7 +91,12 @@ export default function AnnouncementPortal() {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="bg-red-600 text-white relative overflow-hidden z-50 sticky top-1.5"
+            className={`bg-red-600 text-white relative overflow-hidden z-40 transition-all hover:bg-red-700 ${activeBanner.button_url ? 'cursor-pointer' : ''}`}
+            onClick={() => {
+              if (activeBanner.button_url) {
+                window.open(activeBanner.button_url, '_blank');
+              }
+            }}
           >
             <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 flex-1 overflow-hidden">
@@ -119,7 +125,10 @@ export default function AnnouncementPortal() {
                   </a>
                 )}
                 <button
-                  onClick={closeBanner}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    closeBanner();
+                  }}
                   className="p-1 hover:bg-white/10 rounded-full transition-colors"
                 >
                   <X className="w-4 h-4" />
@@ -143,27 +152,37 @@ export default function AnnouncementPortal() {
               <div className="absolute top-4 left-4 z-10">
                 <button
                   onClick={closePopup}
-                  className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-full transition-colors"
+                  className="p-2 bg-white/80 backdrop-blur-md hover:bg-white text-slate-500 rounded-full transition-all shadow-sm"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="relative aspect-video bg-red-600 flex items-center justify-center overflow-hidden">
-                <div className="absolute inset-0 jordan-flag-gradient opacity-20" />
-                <motion.div
-                   animate={{ scale: [1, 1.1, 1] }}
-                   transition={{ duration: 2, repeat: Infinity }}
-                   className="relative z-10"
-                >
-                  <Bell className="w-16 h-16 text-white/50" />
-                </motion.div>
-                <div className="absolute bottom-4 right-4 text-right">
-                  <div className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-xl border border-white/20 inline-block">
-                    <span className="text-white text-[10px] font-black uppercase tracking-widest">إعلان هام</span>
+              {activePopup.image_url ? (
+                <div className="w-full aspect-video overflow-hidden bg-slate-100">
+                  <img 
+                    src={activePopup.image_url} 
+                    alt={activePopup.title} 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="relative aspect-video bg-red-600 flex items-center justify-center overflow-hidden">
+                  <div className="absolute inset-0 jordan-flag-gradient opacity-20" />
+                  <motion.div
+                     animate={{ scale: [1, 1.1, 1] }}
+                     transition={{ duration: 2, repeat: Infinity }}
+                     className="relative z-10"
+                  >
+                    <Bell className="w-16 h-16 text-white/50" />
+                  </motion.div>
+                  <div className="absolute bottom-4 right-4 text-right">
+                    <div className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-xl border border-white/20 inline-block">
+                      <span className="text-white text-[10px] font-black uppercase tracking-widest">إعلان هام</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               <div className="p-6 text-right">
                 <h3 className="text-xl font-black text-slate-900 mb-3">{activePopup.title}</h3>
