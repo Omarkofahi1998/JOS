@@ -4,8 +4,8 @@ import { supabase } from "../lib/supabase";
 import { 
   LayoutDashboard, Plus, LogOut, FileText, HelpCircle, Loader2, 
   CheckCircle2, AlertCircle, Sparkles, Trash2, Edit3, Layers, 
-  Search, X, MessageSquare, Shield, Settings, Menu, Bell, User, Clock, ChevronRight,
-  Download, Image as ImageIcon, Eye, UserCheck
+  Search, X, MessageSquare, Shield, Settings, Menu, Bell, User, Clock, ChevronRight, Megaphone,
+  Download, Image as ImageIcon, Eye, UserCheck, Mail
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import * as XLSX from "xlsx";
@@ -18,7 +18,7 @@ const CATEGORIES = ["مختبرات", "تمريض", "قانون", "معلم صف
 
 export default function AdminDashboard() {
   const [session, setSession] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'questions' | 'files' | 'services' | 'settings' | 'features' | 'reviews' | 'contacts' | 'instructor_requests'>('questions');
+  const [activeTab, setActiveTab] = useState<'questions' | 'files' | 'services' | 'settings' | 'features' | 'reviews' | 'contacts' | 'instructor_requests' | 'announcements'>('questions');
   const [subTab, setSubTab] = useState<'add' | 'list' | 'bulk'>('list');
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
@@ -42,6 +42,7 @@ export default function AdminDashboard() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
   const [instructorRequests, setInstructorRequests] = useState<any[]>([]);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -192,7 +193,8 @@ export default function AdminDashboard() {
       'رقم الجواب الصحيح (0-3)': q.correct,
       'نص الجواب الصحيح': q.options[q.correct],
       'التخصص': q.major,
-      'رابط الصورة': q.image_url || 'لا يوجد'
+      'رابط الصورة': q.image_url || 'لا يوجد',
+      'تفسير الإجابة': q.explanation || 'لا يوجد'
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
@@ -206,7 +208,8 @@ export default function AdminDashboard() {
       options: q.options,
       correct: q.correct,
       major: q.major,
-      image_url: q.image_url || ""
+      image_url: q.image_url || "",
+      explanation: q.explanation || ""
     }));
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     saveAs(blob, `jo_students_data_${majorFilter}.json`);
@@ -218,7 +221,8 @@ export default function AdminDashboard() {
       options: q.options,
       correct: q.correct,
       major: q.major,
-      image_url: q.image_url || ""
+      image_url: q.image_url || "",
+      explanation: q.explanation || ""
     }));
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "text/plain" });
     saveAs(blob, `jo_students_exam_${majorFilter}.txt`);
@@ -241,7 +245,7 @@ export default function AdminDashboard() {
       q.options.map((opt, idx) => `${String.fromCharCode(65 + idx)}) ${opt}`).join('\n')
     ]);
     
-    (doc as any).autoTable({
+    autoTable(doc, {
       startY: 110,
       head: [['#', 'Question Content', 'Options']],
       body: body,
@@ -261,14 +265,15 @@ export default function AdminDashboard() {
 
     const answerBody = filtered.map((q, i) => [
       `${i + 1}`,
-      q.options[q.correct]
+      q.options[q.correct],
+      q.explanation || "No explanation provided"
     ]);
 
-    (doc as any).autoTable({
+    autoTable(doc, {
       startY: 70,
-      head: [['#', 'Correct Answer']],
+      head: [['#', 'Correct Answer', 'Explanation']],
       body: answerBody,
-      styles: { fontSize: 10, cellPadding: 5 }
+      styles: { fontSize: 9, cellPadding: 5 }
     });
     
     doc.save(`exam_${majorFilter}.pdf`);
@@ -356,6 +361,7 @@ export default function AdminDashboard() {
   const [qCorrect, setQCorrect] = useState(0);
   const [qMajor, setQMajor] = useState("");
   const [qImage, setQImage] = useState("");
+  const [qExplanation, setQExplanation] = useState("");
   const [bulkText, setBulkText] = useState("");
 
   const [fTitle, setFTitle] = useState("");
@@ -391,6 +397,21 @@ export default function AdminDashboard() {
   const [rightsText, setRightsText] = useState("All rights reserved");
   const [docDescription, setDocDescription] = useState("JO Students Assessment Document");
   const [watermarkText, setWatermarkText] = useState("JO STUDENTS");
+  
+  // Announcements Form State
+  const [annTitle, setAnnTitle] = useState("");
+  const [annContent, setAnnContent] = useState("");
+  const [annType, setAnnType] = useState<'banner' | 'popup'>('banner');
+  const [annIsActive, setAnnIsActive] = useState(false);
+  const [annShowCountdown, setAnnShowCountdown] = useState(false);
+  const [annTargetDate, setAnnTargetDate] = useState("");
+  const [annBtnText, setAnnBtnText] = useState("");
+  const [annBtnUrl, setAnnBtnUrl] = useState("");
+  const [annFileUrl, setAnnFileUrl] = useState("");
+  const [annFile, setAnnFile] = useState<File | null>(null);
+  const [viewingRequest, setViewingRequest] = useState<any | null>(null);
+  const [viewingMessage, setViewingMessage] = useState<any | null>(null);
+
   const [generatedBlob, setGeneratedBlob] = useState<{ blob: Blob, name: string, type: string } | null>(null);
 
   const [siteSet, setSiteSet] = useState({
@@ -424,7 +445,7 @@ export default function AdminDashboard() {
     if (!supabase) return;
     setLoading(true);
     try {
-      const [q, f, s, settings, feat, rev, con, stats, instReq] = await Promise.all([
+      const [q, f, s, settings, feat, rev, con, stats, instReq, ann] = await Promise.all([
         supabase.from('questions').select('*').order('id', { ascending: false }),
         supabase.from('question_files').select('*').order('id', { ascending: false }),
         supabase.from('services').select('*').order('id', { ascending: false }),
@@ -433,7 +454,8 @@ export default function AdminDashboard() {
         supabase.from('reviews').select('*').order('id', { ascending: false }),
         supabase.from('contact_messages').select('*').order('id', { ascending: false }),
         supabase.from('visitor_stats').select('count').eq('id', 1).single(),
-        supabase.from('instructor_requests').select('*').order('created_at', { ascending: false })
+        supabase.from('instructor_requests').select('*').order('created_at', { ascending: false }),
+        supabase.from('announcements').select('*').order('created_at', { ascending: false })
       ]);
       if (q.data) setQuestions(q.data);
       if (f.data) setFiles(f.data);
@@ -442,6 +464,7 @@ export default function AdminDashboard() {
       if (rev.data) setReviews(rev.data);
       if (con.data) setContacts(con.data);
       if (instReq.data) setInstructorRequests(instReq.data);
+      if (ann.data) setAnnouncements(ann.data);
       
       if (settings.data) {
         const obj: any = {};
@@ -499,6 +522,7 @@ export default function AdminDashboard() {
     setQCorrect(0);
     setQMajor("");
     setQImage("");
+    setQExplanation("");
     setBulkText("");
     setFTitle("");
     setFUrl("");
@@ -512,6 +536,17 @@ export default function AdminDashboard() {
     setRReference("");
     setRFileUrl("");
     setRImageUrl("");
+    
+    setAnnTitle("");
+    setAnnContent("");
+    setAnnType('banner');
+    setAnnIsActive(false);
+    setAnnShowCountdown(false);
+    setAnnTargetDate("");
+    setAnnBtnText("");
+    setAnnBtnUrl("");
+    setAnnFileUrl("");
+    setAnnFile(null);
   };
 
   const handleLogout = async () => {
@@ -525,7 +560,7 @@ export default function AdminDashboard() {
     if (!supabase) return;
     setLoading(true);
     try {
-      const payload = { text: qText, options: qOptions, correct: qCorrect, major: qMajor, image_url: qImage };
+      const payload = { text: qText, options: qOptions, correct: qCorrect, major: qMajor, image_url: qImage, explanation: qExplanation };
       let error;
       if (editingId) ({ error } = await supabase.from('questions').update(payload).eq('id', editingId));
       else ({ error } = await supabase.from('questions').insert(payload));
@@ -735,6 +770,64 @@ export default function AdminDashboard() {
       await Promise.all([...updates, statsUpdate]);
       setStatus({ type: 'success', msg: 'تم حفظ الإعدادات بنجاح' });
     } catch (err: any) { setStatus({ type: 'error', msg: err.message }); } finally { setLoading(false); }
+  };
+
+  const addAnnouncement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabase) return;
+    setLoading(true);
+    try {
+      let finalFileUrl = annFileUrl;
+
+      // Handle File Upload if selected
+      if (annFile) {
+        const fileExt = annFile.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `files/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('announcements')
+          .upload(filePath, annFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('announcements')
+          .getPublicUrl(filePath);
+        
+        finalFileUrl = publicUrl;
+      }
+
+      const payload = {
+        title: annTitle,
+        content: annContent,
+        type: annType,
+        is_active: annIsActive,
+        show_countdown: annShowCountdown,
+        target_date: annTargetDate || null,
+        button_text: annBtnText || null,
+        button_url: annBtnUrl || null,
+        file_url: finalFileUrl || null,
+        updated_at: new Date().toISOString()
+      };
+      
+      let error;
+      if (editingId) {
+        ({ error } = await supabase.from('announcements').update(payload).eq('id', editingId));
+      } else {
+        ({ error } = await supabase.from('announcements').insert({ ...payload, created_at: new Date().toISOString() }));
+      }
+      
+      if (error) throw error;
+      setStatus({ type: 'success', msg: editingId ? 'تم تعديل الإعلان بنجاح' : 'تمت إضافة الإعلان بنجاح' });
+      resetForms();
+      setSubTab('list');
+      fetchData();
+    } catch (err: any) {
+      setStatus({ type: 'error', msg: "فشل الحفظ: " + err.message });
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Bulk Generation Logic
@@ -1108,6 +1201,7 @@ export default function AdminDashboard() {
     { id: 'reviews', name: 'المراجعات', icon: <MessageSquare className="w-5 h-5" /> },
     { id: 'contacts', name: 'الرسائل الواردة', icon: <Bell className="w-5 h-5" /> },
     { id: 'settings', name: 'بناء الهوية', icon: <Settings className="w-5 h-5" /> },
+    { id: 'announcements', name: 'نظام الإعلانات', icon: <Megaphone className="w-5 h-5" /> },
     { id: 'instructor_requests', name: 'طلبات الانضمام', icon: <UserCheck className="w-5 h-5" /> },
   ];
 
@@ -1479,7 +1573,7 @@ export default function AdminDashboard() {
                                 <div className="flex items-center justify-center gap-2">
                                   <button 
                                     onClick={() => {
-                                      setEditingId(item.id); setQText(item.text); setQOptions(item.options); setQCorrect(item.correct); setQMajor(item.major); setQImage(item.image_url || ""); setSubTab('add');
+                                      setEditingId(item.id); setQText(item.text); setQOptions(item.options); setQCorrect(item.correct); setQMajor(item.major); setQImage(item.image_url || ""); setQExplanation(item.explanation || ""); setSubTab('add');
                                     }}
                                     className="p-2 bg-slate-100 text-slate-500 hover:text-slate-900 rounded-lg transition-all"
                                   >
@@ -1495,15 +1589,19 @@ export default function AdminDashboard() {
                       </tbody>
                     </table>
                   ) : (
-                    (activeTab === 'files' ? files : activeTab === 'services' ? services : activeTab === 'features' ? features : reviews)
+                    (activeTab === 'files' ? files : activeTab === 'services' ? services : activeTab === 'features' ? features : activeTab === 'announcements' ? announcements : reviews)
                       .filter(item => {
                         const matchesSearch = (item.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                             (item.category || item.description || "").toLowerCase().includes(searchTerm.toLowerCase());
+                                             (item.description || item.content || "").toLowerCase().includes(searchTerm.toLowerCase());
                         return matchesSearch;
                       }).map((item, idx) => (
                         <motion.div 
                           key={item.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.05 }}
-                          className="p-6 bg-white border border-slate-100 rounded-3xl hover:border-red-100 hover:shadow-xl hover:shadow-red-500/5 transition-all group flex flex-col h-full"
+                          className={`p-6 bg-white border rounded-3xl transition-all group flex flex-col h-full ${
+                             activeTab === 'announcements' && item.is_active 
+                             ? 'border-emerald-200 shadow-lg shadow-emerald-500/5' 
+                             : 'border-slate-100 hover:border-red-100 hover:shadow-xl hover:shadow-red-500/5'
+                          }`}
                         >
                           <div className="flex justify-between items-start mb-4">
                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
@@ -1513,17 +1611,33 @@ export default function AdminDashboard() {
                                     else if(activeTab === 'services') { setEditingId(item.id); setSTitle(item.title); setSDesc(item.description); setSIcon(item.icon_name || "Settings"); setSColor(item.bg_color || "bg-slate-50"); setSubTab('add'); }
                                     else if(activeTab === 'features') { setEditingId(item.id); setFeatTitle(item.title); setFeatDesc(item.description); setFeatIcon(item.icon_name || "BookOpen"); setFeatColor(item.color_class || "bg-red-50"); setFeatPath(item.link_path || "/"); setFeatOrder(item.order_index || 0); setSubTab('add'); }
                                     else if(activeTab === 'reviews') { setEditingId(item.id); setRTitle(item.title); setRDesc(item.description); setRAuthor(item.author || "Jo Students"); setRReference(item.reference_name || ""); setRReadTime(item.read_time || "٥ دقائق"); setRDate(item.file_date || ""); setRFileUrl(item.file_url || ""); setRImageUrl(item.image_url || ""); setSubTab('add'); }
+                                    else if(activeTab === 'announcements') { setEditingId(item.id); setAnnTitle(item.title); setAnnContent(item.content); setAnnType(item.type); setAnnIsActive(item.is_active); setAnnShowCountdown(item.show_countdown); setAnnTargetDate(item.target_date || ""); setAnnBtnText(item.button_text || ""); setAnnBtnUrl(item.button_url || ""); setAnnFileUrl(item.file_url || ""); setSubTab('add'); }
                                   }}
                                   className="p-2 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-xl"
                                 ><Edit3 className="w-4 h-4" /></button>
                                 <button onClick={() => deleteItem(activeTab === 'files' ? 'question_files' : activeTab, item.id)} className="p-2 bg-red-50 text-red-300 hover:text-red-600 rounded-xl"><Trash2 className="w-4 h-4" /></button>
                              </div>
-                             <span className="text-[10px] font-black text-slate-300 uppercase"># {item.id}</span>
+                             <div className="flex items-center gap-2">
+                               {activeTab === 'announcements' && (
+                                 <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${item.is_active ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+                                   {item.is_active ? 'نشط' : 'متوقف'}
+                                 </span>
+                               )}
+                               <span className="text-[10px] font-black text-slate-300 uppercase"># {item.id}</span>
+                             </div>
                           </div>
                           <h4 className="font-black text-slate-900 mb-2 truncate">{item.title || item.major || item.category || 'سجل جديد'}</h4>
-                          <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 mb-6 flex-grow">{item.text || item.description || item.url}</p>
+                          <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 mb-6 flex-grow">{item.content || item.text || item.description || item.url}</p>
                           <div className="pt-4 border-t border-slate-50 flex items-center justify-between text-[10px] font-black text-slate-400 uppercase">
-                             <div className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(item.created_at || Date.now()).toLocaleDateString('ar-JO')}</div>
+                             <div className="flex items-center gap-1">
+                               {activeTab === 'announcements' ? (
+                                 <span className={`flex items-center gap-1 ${item.type === 'popup' ? 'text-red-500' : 'text-blue-500'}`}>
+                                    <Bell className="w-3 h-3" /> {item.type === 'popup' ? 'نافذة منبثقة' : 'شريط علوي'}
+                                 </span>
+                               ) : (
+                                 <><Clock className="w-3 h-3" /> {new Date(item.created_at || Date.now()).toLocaleDateString('ar-JO')}</>
+                               )}
+                             </div>
                              <ChevronRight className="w-3 h-3" />
                           </div>
                         </motion.div>
@@ -1542,26 +1656,38 @@ export default function AdminDashboard() {
                                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">التخصص</th>
                                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">نبذة عن الخبرة</th>
                                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">التاريخ</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase text-center">الإجراءات</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase text-center border-l border-slate-100">الإجراءات</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase text-center">التفاصيل</th>
                             </tr>
                         </thead>
                         <tbody>
                             {instructorRequests.map(req => (
-                                <tr key={req.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-all group">
+                                <tr key={req.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-all group text-right">
                                     <td className="px-6 py-4 text-sm font-bold text-slate-900">{req.fullName}</td>
                                     <td className="px-6 py-4 text-sm text-red-600 font-bold">{req.email}</td>
                                     <td className="px-6 py-4 text-sm text-slate-600">{req.phone}</td>
-                                    <td className="px-6 py-4 text-sm text-slate-600">{req.major}</td>
-                                    <td className="px-6 py-4 text-sm text-slate-600 max-w-[200px] truncate">{req.experience}</td>
+                                    <td className="px-6 py-4 text-sm text-slate-600 font-black">{req.major}</td>
+                                    <td className="px-6 py-4 text-sm text-slate-400 max-w-[150px] truncate">{req.experience || "لا توجد خبرة"}</td>
                                     <td className="px-6 py-4 text-sm text-slate-400">{new Date(req.created_at).toLocaleDateString()}</td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-6 py-4 border-l border-slate-100">
                                         <div className="flex items-center justify-center">
                                             <button 
                                                 onClick={() => deleteItem('instructor_requests', req.id)} 
-                                                className="p-2 bg-red-50 text-red-500 hover:bg-red-600 hover:text-white rounded-lg transition-all"
+                                                className="p-2 bg-red-50 text-red-400 hover:bg-red-600 hover:text-white rounded-lg transition-all"
                                                 title="حذف الطلب"
                                             >
                                                 <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center justify-center">
+                                            <button 
+                                                onClick={() => setViewingRequest(req)} 
+                                                className="p-2 bg-slate-100 text-slate-500 hover:text-slate-900 rounded-lg transition-all"
+                                                title="عرض التفاصيل الكاملة"
+                                            >
+                                                <Eye className="w-4 h-4" />
                                             </button>
                                         </div>
                                     </td>
@@ -1579,6 +1705,13 @@ export default function AdminDashboard() {
                      <div key={msg.id} className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-200 group hover:bg-white hover:shadow-2xl transition-all">
                       <div className="flex justify-between items-start mb-6">
                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                              <button 
+                                onClick={() => setViewingMessage(msg)}
+                                className="p-2 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-xl"
+                                title="تكبير الرسالة"
+                              >
+                                 <Eye className="w-5 h-5" />
+                              </button>
                               <button 
                                 onClick={async () => {
                                    const { error } = await supabase!.from('contact_messages').update({ is_read: !msg.is_read }).eq('id', msg.id);
@@ -1715,6 +1848,17 @@ export default function AdminDashboard() {
                               <option key={m} value={m} />
                             ))}
                           </datalist>
+                        </div>
+                        
+                        <div className="space-y-2 text-right">
+                          <label className="text-xs font-black text-slate-400 uppercase">تفسير الإجابة (اختياري - يظهر للطالب بعد الانتهاء)</label>
+                          <textarea 
+                            rows={4} 
+                            className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] outline-none focus:bg-white focus:border-red-600 text-sm font-medium" 
+                            value={qExplanation} 
+                            onChange={e => setQExplanation(e.target.value)} 
+                            placeholder="اكتب تفسيراً أو شرحاً لهذا السؤال..."
+                          />
                         </div>
                      </div>
                      <div className="space-y-4">
@@ -1903,6 +2047,98 @@ export default function AdminDashboard() {
                    <button type="submit" className="w-full h-16 bg-slate-900 text-white rounded-[2rem] font-black hover:bg-red-600 transition-all shadow-2xl">حفظ الأداة</button>
                 </form>
               )}
+
+              {/* ADD/EDIT FORM FOR ANNOUNCEMENTS */}
+              {subTab === 'add' && activeTab === 'announcements' && (
+                <form onSubmit={addAnnouncement} className="space-y-8 max-w-3xl mx-auto py-6">
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-slate-50 p-10 rounded-[3rem] border border-slate-200">
+                      <div className="space-y-2 col-span-2 text-right">
+                        <label className="text-xs font-black text-slate-400 uppercase">عنوان الإعلان</label>
+                        <input type="text" required className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-bold" value={annTitle} onChange={e => setAnnTitle(e.target.value)} />
+                      </div>
+                      
+                      <div className="space-y-2 col-span-2 text-right">
+                        <label className="text-xs font-black text-slate-400 uppercase">المحتوى</label>
+                        <textarea rows={4} required className="w-full p-6 bg-white border border-slate-200 rounded-3xl outline-none focus:border-red-600" value={annContent} onChange={e => setAnnContent(e.target.value)} />
+                      </div>
+
+                      <div className="space-y-2 text-right">
+                        <label className="text-xs font-black text-slate-400 uppercase">نوع الإعلان</label>
+                        <select className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none" value={annType} onChange={e => setAnnType(e.target.value as any)}>
+                          <option value="banner">شريط علوي (Banner)</option>
+                          <option value="popup">نافذة منبثقة (Popup)</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-2 text-right flex items-center justify-end gap-4 pt-8">
+                        <label className="text-xs font-black text-slate-400 uppercase">تفعيل الإعلان</label>
+                        <button 
+                          type="button"
+                          onClick={() => setAnnIsActive(!annIsActive)}
+                          className={`w-14 h-7 rounded-full transition-all relative ${annIsActive ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                        >
+                          <div className={`absolute top-1 w-5 h-5 rounded-full bg-white transition-all ${annIsActive ? 'left-1' : 'left-8'}`} />
+                        </button>
+                      </div>
+
+                      <div className="space-y-2 text-right">
+                        <label className="text-xs font-black text-slate-400 uppercase">تفعيل العداد التنازلي</label>
+                        <div className="flex items-center justify-end gap-4 h-14">
+                           <button 
+                            type="button"
+                            onClick={() => setAnnShowCountdown(!annShowCountdown)}
+                            className={`w-14 h-7 rounded-full transition-all relative ${annShowCountdown ? 'bg-blue-500' : 'bg-slate-300'}`}
+                           >
+                            <div className={`absolute top-1 w-5 h-5 rounded-full bg-white transition-all ${annShowCountdown ? 'left-1' : 'left-8'}`} />
+                           </button>
+                        </div>
+                      </div>
+
+                      {annShowCountdown && (
+                        <div className="space-y-2 text-right border-r-4 border-blue-500 pr-4">
+                          <label className="text-xs font-black text-slate-400 uppercase">تاريخ انتهاء العد (Target Date)</label>
+                          <input type="datetime-local" className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none" value={annTargetDate} onChange={e => setAnnTargetDate(e.target.value)} />
+                        </div>
+                      )}
+
+                      <div className="space-y-2 text-right">
+                        <label className="text-xs font-black text-slate-400 uppercase">نص الزر (اختياري)</label>
+                        <input type="text" className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none font-bold" value={annBtnText} onChange={e => setAnnBtnText(e.target.value)} placeholder="مثلاً: اضغط هنا" />
+                      </div>
+
+                      <div className="space-y-2 text-right">
+                        <label className="text-xs font-black text-slate-400 uppercase">رابط الزر (اختياري)</label>
+                        <input type="url" className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none font-mono text-sm" value={annBtnUrl} onChange={e => setAnnBtnUrl(e.target.value)} placeholder="https://..." />
+                      </div>
+
+                      <div className="space-y-2 text-right col-span-2">
+                        <label className="text-xs font-black text-slate-400 uppercase">رابط الملف المرفق (يدوي أو عبر الرفع)</label>
+                        <div className="flex flex-col gap-4">
+                          <div className="relative">
+                            <input type="text" className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none font-mono text-sm pr-12" value={annFileUrl} onChange={e => setAnnFileUrl(e.target.value)} placeholder="رابط الملف المباشر..." />
+                            <Download className="absolute top-4 right-4 text-slate-300 w-5 h-5" />
+                          </div>
+                          
+                          <div className="flex items-center gap-4 p-4 bg-white border-2 border-dashed border-slate-200 rounded-2xl">
+                             <input 
+                               type="file" 
+                               id="ann-file-upload"
+                               className="hidden" 
+                               onChange={e => setAnnFile(e.target.files?.[0] || null)}
+                             />
+                             <label htmlFor="ann-file-upload" className="bg-slate-100 text-slate-600 px-4 py-2 rounded-xl text-xs font-black cursor-pointer hover:bg-slate-200 transition-all">
+                               {annFile ? "تغيير الملف" : "رفع ملف جديد"}
+                             </label>
+                             <span className="text-[10px] text-slate-400 font-bold truncate">
+                               {annFile ? annFile.name : "سيتم رفع الملف إلى Storage عند الحفظ"}
+                             </span>
+                          </div>
+                        </div>
+                      </div>
+                   </div>
+                   <button type="submit" className="w-full h-16 bg-slate-900 text-white rounded-[2rem] font-black hover:bg-emerald-600 transition-all shadow-2xl">حفظ الإعلان الآن</button>
+                </form>
+              )}
               {/* BULK ADD VIEW */}
               {subTab === 'bulk' && activeTab === 'questions' && (
                 <form onSubmit={handleBulkAdd} className="space-y-8 animate-in fade-in duration-500">
@@ -1914,7 +2150,7 @@ export default function AdminDashboard() {
                     <p className="text-amber-700 text-xs leading-relaxed">
                       يجب أن يكون النص بصيغة مصفوفة JSON صحيحة. مثال: <br/>
                       <code className="bg-white/50 p-1 rounded font-mono text-[10px]">
-                        [{ "{" } "text": "السؤال؟", "options": ["أ", "ب", "ج", "د"], "correct": 0, "major": "رياضيات", "image_url": "رابط الصورة" { "}" }]
+                        [{ "{" } "text": "السؤال؟", "options": ["أ", "ب", "ج", "د"], "correct": 0, "major": "رياضيات", "explanation": "تفسير اختياري" { "}" }]
                       </code>
                     </p>
                   </div>
@@ -2190,6 +2426,110 @@ export default function AdminDashboard() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL FOR VIEWING FULL DETAILS (Instructor Requests / Messages) */}
+      <AnimatePresence>
+        {(viewingRequest || viewingMessage) && (
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 sm:p-6"
+            onClick={() => { setViewingRequest(null); setViewingMessage(null); }}
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              className="bg-white w-full max-w-lg rounded-[2.5rem] overflow-hidden shadow-2xl relative border border-slate-200"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="bg-slate-900 p-8 text-white relative overflow-hidden">
+                 {/* Decorative background circle */}
+                 <div className="absolute -top-10 -left-10 w-40 h-40 bg-red-600/20 rounded-full blur-3xl" />
+                 
+                 <button 
+                    onClick={() => { setViewingRequest(null); setViewingMessage(null); }}
+                    className="absolute left-6 top-7 p-2.5 bg-white/10 hover:bg-red-500 rounded-xl transition-all z-20 group"
+                 >
+                   <X className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+                 </button>
+                 
+                 <div className="text-right relative z-10">
+                    <div className="bg-red-500/30 text-red-200 px-3 py-1 rounded-full inline-block mb-3 border border-red-500/20">
+                      <span className="text-[9px] font-black uppercase tracking-[0.2em]">
+                        {viewingRequest ? "مراجعة طلب الانضمام" : "مراجعة الرسالة"}
+                      </span>
+                    </div>
+                    <h2 className="text-2xl font-black">{viewingRequest ? viewingRequest.fullName : viewingMessage.name}</h2>
+                    <div className="flex items-center justify-end gap-2 text-slate-400 mt-1">
+                      <span className="text-xs font-bold">{viewingRequest ? viewingRequest.email : viewingMessage.email}</span>
+                      <Mail className="w-3 h-3" />
+                    </div>
+                 </div>
+              </div>
+
+              <div className="p-8 space-y-6 text-right bg-white">
+                {viewingRequest ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 transition-colors hover:border-red-100">
+                        <p className="text-[9px] font-black text-slate-400 uppercase mb-1">الهاتف</p>
+                        <p className="font-bold text-slate-900 text-sm ltr">{viewingRequest.phone}</p>
+                      </div>
+                      <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 transition-colors hover:border-red-100">
+                        <p className="text-[9px] font-black text-slate-400 uppercase mb-1">المادة / التخصص</p>
+                        <p className="font-black text-red-600 text-sm truncate">{viewingRequest.major}</p>
+                      </div>
+                    </div>
+                    <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                      <div className="flex items-center justify-end gap-2 mb-3 pb-2 border-b border-slate-200/50">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">التفاصيل والخبرة</span>
+                        <HelpCircle className="w-3 h-3 text-slate-300" />
+                      </div>
+                      <p className="text-xs text-slate-600 leading-relaxed font-medium whitespace-pre-wrap max-h-40 overflow-y-auto custom-scrollbar pr-1">
+                        {viewingRequest.experience || "لا توجد تفاصيل إضافية مزودة."}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between pt-2">
+                      <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(viewingRequest.created_at).toLocaleDateString('ar-JO')}
+                      </span>
+                      <div className="flex gap-2">
+                         <button onClick={() => { deleteItem('instructor_requests', viewingRequest.id); setViewingRequest(null); }} className="px-5 py-2.5 bg-red-50 text-red-600 rounded-xl font-black text-[10px] hover:bg-red-600 hover:text-white transition-all shadow-sm">حذف</button>
+                         <a href={`mailto:${viewingRequest.email}`} className="px-5 py-2.5 bg-slate-900 text-white rounded-xl font-black text-[10px] hover:bg-red-600 transition-all shadow-md">تواصل الآن</a>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                      <p className="text-[9px] font-black text-slate-300 uppercase mb-1">الموضوع</p>
+                      <h4 className="text-lg font-black text-slate-900 mb-4">{viewingMessage.subject}</h4>
+                      <div className="flex items-center justify-end gap-2 mb-3 pb-2 border-b border-slate-200/50">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">نص الرسالة</span>
+                        <MessageSquare className="w-3 h-3 text-slate-300" />
+                      </div>
+                      <p className="text-xs text-slate-600 leading-relaxed font-medium whitespace-pre-wrap max-h-48 overflow-y-auto custom-scrollbar pr-1">
+                        {viewingMessage.message}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between pt-2">
+                      <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(viewingMessage.created_at || Date.now()).toLocaleDateString('ar-JO')}
+                      </span>
+                      <div className="flex gap-2">
+                         <button onClick={() => { deleteItem('contact_messages', viewingMessage.id); setViewingMessage(null); }} className="px-5 py-2.5 bg-red-50 text-red-600 rounded-xl font-black text-[10px] hover:bg-red-600 hover:text-white transition-all shadow-sm">حذف</button>
+                         <a href={`mailto:${viewingMessage.email}`} className="px-5 py-2.5 bg-slate-900 text-white rounded-xl font-black text-[10px] hover:bg-red-600 transition-all shadow-md">رد ايميل</a>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
 

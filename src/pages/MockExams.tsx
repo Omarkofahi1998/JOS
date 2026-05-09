@@ -101,6 +101,7 @@ export default function MockExams() {
             options: q.options,
             correct: q.correct,
             major: q.major,
+            explanation: q.explanation,
             image: q.image_url || q.image
           }));
           setQuestionsList(mapped);

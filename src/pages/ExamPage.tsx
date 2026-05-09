@@ -9,6 +9,7 @@ interface Question {
   options: string[];
   correct: number;
   major: string;
+  explanation?: string;
   image?: string;
 }
 
@@ -20,6 +21,7 @@ export default function ExamPage() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [finished, setFinished] = useState(false);
+  const [showReview, setShowReview] = useState(false);
   const [timeLeft, setTimeLeft] = useState(1800); // Default 30 minutes
   const [securityAlert, setSecurityAlert] = useState(false);
 
@@ -94,6 +96,100 @@ export default function ExamPage() {
   const isRTL = (text: string) => /[\u0600-\u06FF]/.test(text);
 
   if (finished) {
+    if (showReview) {
+      return (
+        <div className="min-h-screen bg-slate-50 font-sans p-4 md:p-10" dir="rtl">
+           <div className="max-w-4xl mx-auto">
+              <div className="flex items-center justify-between mb-10">
+                 <div className="text-right">
+                    <h2 className="text-3xl font-black text-slate-900 mb-2">مراجعة الإجابات</h2>
+                    <p className="text-slate-500 font-bold">يمكنك الآن رؤية الإجابات الصحيحة والتفسير الخاص بكل سؤال.</p>
+                 </div>
+                 <button 
+                   onClick={() => setShowReview(false)}
+                   className="flex items-center gap-2 bg-white px-6 py-3 rounded-2xl font-black text-slate-900 border border-slate-200 hover:bg-slate-50 transition-all shadow-sm"
+                 >
+                   <ArrowRight className="w-4 h-4" /> العودة للنتيجة
+                 </button>
+              </div>
+
+              <div className="space-y-6">
+                 {questions.map((q, idx) => {
+                   const isCorrect = answers[idx] === q.correct;
+                   return (
+                     <motion.div 
+                       key={idx}
+                       initial={{ opacity: 0, y: 20 }}
+                       animate={{ opacity: 1, y: 0 }}
+                       transition={{ delay: idx * 0.05 }}
+                       className={`bg-white rounded-3xl p-8 border shadow-sm ${isCorrect ? 'border-green-100 shadow-green-500/5' : 'border-red-100 shadow-red-500/5'}`}
+                     >
+                       <div className="flex items-start justify-between mb-6">
+                          <div className="flex items-center gap-3">
+                             <span className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs ${isCorrect ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+                                {idx + 1}
+                             </span>
+                             <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                {isCorrect ? 'إجابة صحيحة' : 'إجابة خاطئة'}
+                             </span>
+                          </div>
+                          <span className="text-[10px] font-black text-slate-300 uppercase">{q.major}</span>
+                       </div>
+
+                       <h3 className="text-lg font-bold text-slate-900 mb-6 leading-relaxed">{q.text}</h3>
+
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
+                          {q.options.map((opt, oIdx) => {
+                            const isUserSelection = answers[idx] === oIdx;
+                            const isCorrectOption = q.correct === oIdx;
+                            
+                            return (
+                              <div 
+                                key={oIdx}
+                                className={`p-4 rounded-2xl border-2 transition-all font-bold text-sm flex items-center justify-between ${
+                                  isCorrectOption 
+                                    ? 'border-green-500 bg-green-50 text-green-900' 
+                                    : isUserSelection 
+                                      ? 'border-red-500 bg-red-50 text-red-900' 
+                                      : 'border-slate-100 bg-slate-50 text-slate-400'
+                                }`}
+                              >
+                                <span>{opt}</span>
+                                {isCorrectOption && <CheckCircle2 className="w-5 h-5 text-green-600" />}
+                                {!isCorrect && isUserSelection && <AlertTriangle className="w-5 h-5 text-red-600" />}
+                              </div>
+                            );
+                          })}
+                       </div>
+
+                       {(q.explanation && q.explanation.trim() !== "") && (
+                         <div className="bg-blue-50/50 rounded-2xl p-6 border border-blue-100/50">
+                            <div className="flex items-center gap-2 text-blue-800 font-black text-xs mb-3">
+                               <List className="w-4 h-4" /> تفسير الإجابة:
+                            </div>
+                            <p className="text-sm text-blue-700 leading-relaxed font-medium whitespace-pre-wrap">
+                               {q.explanation}
+                            </p>
+                         </div>
+                       )}
+                     </motion.div>
+                   );
+                 })}
+              </div>
+
+              <div className="mt-12 text-center pb-20">
+                 <button
+                    onClick={() => window.close()}
+                    className="bg-slate-900 text-white px-12 py-5 rounded-2xl font-black text-lg hover:bg-red-600 transition-all shadow-2xl"
+                  >
+                    إنهاء المراجعة وإغلاق البوابة
+                  </button>
+              </div>
+           </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans" dir="rtl">
         <motion.div 
@@ -118,12 +214,22 @@ export default function ExamPage() {
             </div>
           </div>
 
-          <button
-            onClick={() => window.close()}
-            className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold text-lg hover:bg-red-600 transition-all shadow-xl"
-          >
-            إغلاق بوابة الامتحان
-          </button>
+          <div className="flex flex-col gap-3">
+             <button
+                onClick={() => setShowReview(true)}
+                className="w-full bg-red-600 text-white py-4 rounded-xl font-black text-lg hover:bg-red-700 transition-all shadow-xl flex items-center justify-center gap-3 group"
+              >
+                مراجعة إجاباتي وتفسيرها
+                <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+              </button>
+              
+              <button
+                onClick={() => window.close()}
+                className="w-full bg-slate-100 text-slate-600 py-4 rounded-xl font-bold text-lg hover:bg-slate-200 transition-all"
+              >
+                إغلاق بوابة الامتحان
+              </button>
+          </div>
         </motion.div>
       </div>
     );
