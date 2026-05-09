@@ -66,7 +66,6 @@ export default function Layout({ children }: { children: ReactNode }) {
       
       if (data) {
         setAnnouncements(data);
-        // Calculate unread based on session storage
         const seen = JSON.parse(localStorage.getItem('seen_announcements') || '[]');
         const unread = data.filter(a => !seen.includes(a.id)).length;
         setUnreadCount(unread);
@@ -79,8 +78,15 @@ export default function Layout({ children }: { children: ReactNode }) {
       const channel = supabase.channel('layout_announcements')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'announcements' }, (payload) => {
           if (payload.new.is_active) {
-            setAnnouncements(prev => [payload.new, ...prev]);
-            setUnreadCount(prev => prev + 1);
+            setAnnouncements(prev => {
+              const updated = [payload.new, ...prev];
+              // Update unread count only if dropdown is not open
+              const seen = JSON.parse(localStorage.getItem('seen_announcements') || '[]');
+              if (!seen.includes(payload.new.id)) {
+                setUnreadCount(updated.filter(a => !seen.includes(a.id)).length);
+              }
+              return updated;
+            });
           }
         })
         .subscribe();
@@ -89,8 +95,9 @@ export default function Layout({ children }: { children: ReactNode }) {
   }, []);
 
   const markAllAsRead = () => {
-    const ids = announcements.map(a => a.id);
-    localStorage.setItem('seen_announcements', JSON.stringify(ids));
+    const currentSeen = JSON.parse(localStorage.getItem('seen_announcements') || '[]');
+    const newSeen = [...new Set([...currentSeen, ...announcements.map(a => a.id)])];
+    localStorage.setItem('seen_announcements', JSON.stringify(newSeen));
     setUnreadCount(0);
   };
 
