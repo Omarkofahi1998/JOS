@@ -1,5 +1,6 @@
 import { useEffect, lazy, Suspense } from "react";
 import { HashRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import { supabase } from "./lib/supabase";
@@ -85,6 +86,7 @@ export default function App() {
           } />
         </Routes>
       </Suspense>
+      <SpeedInsights />
     </Router>
   );
 }
