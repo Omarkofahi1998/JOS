@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Plus, LogOut, FileText, HelpCircle, Loader2, 
   CheckCircle2, AlertCircle, Sparkles, Trash2, Edit3, Layers, 
   Search, X, MessageSquare, Shield, Settings, Menu, Bell, User, Clock, ChevronRight, Megaphone,
-  Download, Image as ImageIcon, Eye, UserCheck, Mail, UploadCloud
+  Download, Image as ImageIcon, Eye, UserCheck, Mail, UploadCloud, Share2
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import * as XLSX from "xlsx";
@@ -1710,14 +1710,29 @@ export default function AdminDashboard() {
                           <h4 className="font-black text-slate-900 mb-2 truncate">{item.title || item.major || item.category || 'سجل جديد'}</h4>
                           <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 mb-6 flex-grow">{item.content || item.text || item.description || item.url}</p>
                           <div className="pt-4 border-t border-slate-50 flex items-center justify-between text-[10px] font-black text-slate-400 uppercase">
-                             <div className="flex items-center gap-1">
-                               {activeTab === 'announcements' ? (
-                                 <span className={`flex items-center gap-1 ${item.type === 'popup' ? 'text-red-500' : 'text-blue-500'}`}>
-                                    <Bell className="w-3 h-3" /> {item.type === 'popup' ? 'نافذة منبثقة' : 'شريط علوي'}
-                                 </span>
-                               ) : (
-                                 <><Clock className="w-3 h-3" /> {new Date(item.created_at || Date.now()).toLocaleDateString('ar-JO')}</>
-                               )}
+                             <div className="flex items-center gap-3">
+                                {activeTab === 'announcements' ? (
+                                  <span className={`flex items-center gap-1 ${item.type === 'popup' ? 'text-red-500' : 'text-blue-500'}`}>
+                                     <Bell className="w-3 h-3" /> {item.type === 'popup' ? 'نافذة منبثقة' : 'شريط علوي'}
+                                  </span>
+                                ) : (
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    <span>{new Date(item.created_at || Date.now()).toLocaleDateString('ar-JO')}</span>
+                                  </div>
+                                )}
+                                {activeTab === 'files' && (
+                                  <>
+                                    <div className="flex items-center gap-1 text-emerald-600">
+                                      <Download className="w-3.5 h-3.5" />
+                                      <span>{item.download_count || 0}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1 text-blue-600">
+                                      <Share2 className="w-3.5 h-3.5" />
+                                      <span>{item.share_count || 0}</span>
+                                    </div>
+                                  </>
+                                )}
                              </div>
                              <ChevronRight className="w-3 h-3" />
                           </div>

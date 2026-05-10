@@ -280,7 +280,7 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/mock-exams" className="bg-red-600 text-white px-10 py-4 rounded-xl font-bold text-lg hover:bg-white hover:text-slate-900 transition-all shadow-xl shadow-red-600/20">التدريب على الامتحانات</Link>
-            <Link to="/services" className="bg-green-600 text-white px-10 py-4 rounded-xl font-bold text-lg hover:bg-white hover:text-slate-900 transition-all shadow-xl shadow-green-600/20">تواصل معنا</Link>
+            <Link to="/contact" className="bg-green-600 text-white px-10 py-4 rounded-xl font-bold text-lg hover:bg-white hover:text-slate-900 transition-all shadow-xl shadow-green-600/20">تواصل معنا</Link>
           </div>
         </div>
       </section>

@@ -4,11 +4,13 @@ import { Search, ChevronDown, Loader2, FileText, Download, Calendar, HardDrive, 
 import { supabase } from "../lib/supabase";
 
 interface QuestionFile {
+  id: string | number;
   title: string;
   category: string;
   date: string;
   size: string;
   downloadCount: number;
+  shareCount: number;
   url: string;
 }
 
@@ -26,22 +28,38 @@ export default function Questions() {
   const [sharedId, setSharedId] = useState<string | null>(null);
   const location = useLocation();
 
-  const handleShare = async (title: string) => {
-    const url = `${window.location.origin}/#/questions/${encodeURIComponent(title)}`;
+  const handleShare = async (file: QuestionFile) => {
+    const url = `${window.location.origin}/#/questions/${encodeURIComponent(file.title)}`;
     const shareData = {
       title: "بنك أسئلة - Jo Students",
-      text: `ألقِ نظرة على هذا الملف في بنك أسئلة Jo Students: ${title}`,
+      text: `ألقِ نظرة على هذا الملف في بنك أسئلة Jo Students: ${file.title}`,
       url: url
     };
+
+    // Increment share count in Supabase
+    try {
+      if (supabase) {
+        setFilesList(prev => prev.map(f => 
+          f.id === file.id ? { ...f, shareCount: f.shareCount + 1 } : f
+        ));
+        
+        await supabase
+          .from('question_files')
+          .update({ share_count: file.shareCount + 1 })
+          .eq('id', file.id);
+      }
+    } catch (err) {
+      console.error("Error updating share count:", err);
+    }
 
     if (navigator.share) {
       try {
         await navigator.share(shareData);
       } catch (err) {
-        copyToClipboard(url, title);
+        copyToClipboard(url, file.title);
       }
     } else {
-      copyToClipboard(url, title);
+      copyToClipboard(url, file.title);
     }
   };
 
@@ -76,11 +94,13 @@ export default function Questions() {
         if (data && !error && data.length > 0) {
           // Map DB keys to component keys if they differ
           const mapped = data.map(item => ({
+            id: item.id,
             title: item.title,
             category: item.category,
             date: item.file_date || item.date,
             size: item.file_size || item.size,
             downloadCount: item.download_count || 0,
+            shareCount: item.share_count || 0,
             url: item.url
           }));
           setFilesList(mapped);
@@ -133,6 +153,31 @@ export default function Questions() {
     const matchesCategory = f.category === activeCategory;
     return matchesSearch && matchesCategory;
   });
+
+  const handleDownload = async (file: QuestionFile) => {
+    try {
+      // Optimistic update
+      setFilesList(prev => prev.map(f => 
+        f.id === file.id ? { ...f, downloadCount: f.downloadCount + 1 } : f
+      ));
+
+      // Update in Supabase
+      if (supabase) {
+        // Increment the count in the database
+        const { error } = await supabase
+          .from('question_files')
+          .update({ download_count: file.downloadCount + 1 })
+          .eq('id', file.id);
+        
+        if (error) throw error;
+      }
+    } catch (err) {
+      console.error("Error updating download count:", err);
+    }
+    
+    // Open in new tab
+    window.open(file.url, '_blank');
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10 md:py-16">
@@ -220,7 +265,7 @@ export default function Questions() {
                 <FileText className="w-6 h-6" />
               </div>
               <button 
-                onClick={() => handleShare(file.title)}
+                onClick={() => handleShare(file)}
                 className={`w-10 h-10 flex items-center justify-center transition-colors rounded-xl relative ${
                   searchTerm === file.title ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-50 text-slate-300 hover:text-red-600'
                 }`}
@@ -239,10 +284,18 @@ export default function Questions() {
               {file.title}
             </h3>
 
-            <div className="grid grid-cols-2 gap-2 pt-4 border-t border-slate-50 mt-auto">
+            <div className="grid grid-cols-4 gap-2 pt-4 border-t border-slate-50 mt-auto">
               <div className="flex items-center gap-1.5 text-slate-400">
                 <Calendar className="w-3.5 h-3.5" />
-                <span className="text-[10px] font-bold">{file.date}</span>
+                <span className="text-[10px] font-bold text-center truncate">{file.date}</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-slate-400 justify-center">
+                <Download className="w-3.5 h-3.5" />
+                <span className="text-[10px] font-bold">{file.downloadCount}</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-slate-400 justify-center">
+                <Share2 className="w-3.5 h-3.5" />
+                <span className="text-[10px] font-bold">{file.shareCount}</span>
               </div>
               <div className="flex items-center gap-1.5 text-slate-400 justify-end">
                 <HardDrive className="w-3.5 h-3.5" />
@@ -250,15 +303,13 @@ export default function Questions() {
               </div>
             </div>
 
-            <a 
-              href={file.url} 
-              target="_blank"
-              rel="noopener noreferrer"
+            <button 
+              onClick={() => handleDownload(file)}
               className="mt-6 w-full bg-red-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-700 transition-all active:scale-95 no-underline"
             >
               <Download className="w-4 h-4" />
               تحميل الملف
-            </a>
+            </button>
           </div>
         ))}
         {filtered.length === 0 && (
