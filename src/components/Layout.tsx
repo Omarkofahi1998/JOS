@@ -188,6 +188,12 @@ export default function Layout({ children }: { children: ReactNode }) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const getDashboardLink = () => {
+    if (profile?.role === 'admin') return '/admin/dashboard';
+    if (profile?.role === 'instructor') return '/instructor/dashboard';
+    return '/student/dashboard';
+  };
+
   return (
     <div className="min-h-screen flex flex-col font-sans text-slate-800 jordan-flag-gradient-soft" dir="rtl">
       {/* Back to Top Button */}
@@ -345,7 +351,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                          className="absolute top-full left-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-[60]"
                        >
                           <Link 
-                            to={profile?.role === 'admin' ? '/admin/dashboard' : profile?.role === 'service_provider' ? '/professional/dashboard' : '/instructor/dashboard'} 
+                            to={getDashboardLink()} 
                             className="flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-red-600 transition-colors"
                             onClick={() => setActiveDropdown(null)}
                           >
@@ -563,7 +569,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                          </div>
                       </div>
                       <Link
-                        to={profile?.role === 'admin' ? '/admin/dashboard' : '/instructor/dashboard'}
+                        to={getDashboardLink()}
                         onClick={() => setIsOpen(false)}
                         className="flex items-center justify-center gap-3 w-full py-4 rounded-2xl text-sm font-black bg-slate-900 text-white shadow-xl shadow-slate-900/10"
                       >

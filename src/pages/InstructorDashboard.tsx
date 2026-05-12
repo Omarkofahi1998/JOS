@@ -110,6 +110,14 @@ export default function InstructorDashboard() {
         setUser(session.user);
         fetchProfile(session.user.id);
         fetchInstructorData(session.user);
+        
+        // Ensure student role doesn't access instructor panel
+        supabase?.from('profiles').select('role').eq('id', session.user.id).single()
+          .then(({ data }) => {
+            if (data?.role === 'user') {
+              navigate("/student/dashboard");
+            }
+          });
       }
     });
 

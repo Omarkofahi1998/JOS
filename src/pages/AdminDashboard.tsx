@@ -461,8 +461,21 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!supabase) return;
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) navigate("/admin/login");
+      if (!session) {
+        navigate("/admin/login");
+        return;
+      }
+      
       setSession(session);
+
+      // Check role
+      supabase!.from('profiles').select('role').eq('id', session.user.id).single()
+        .then(({ data }) => {
+          if (data?.role !== 'admin') {
+            if (data?.role === 'user') navigate("/student/dashboard");
+            else navigate("/");
+          }
+        });
     });
     fetchData();
   }, [navigate]);

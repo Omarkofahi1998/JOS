@@ -17,6 +17,7 @@ const Reviews = lazy(() => import("./pages/Reviews"));
 const Services = lazy(() => import("./pages/Services"));
 const ExamPage = lazy(() => import("./pages/ExamPage"));
 const Login = lazy(() => import("./pages/Login"));
+const StudentDashboard = lazy(() => import("./pages/StudentDashboard"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const Contact = lazy(() => import("./pages/Contact"));
@@ -88,6 +89,7 @@ export default function App() {
                   <Route path="/job-board" element={<JobBoard />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/login" element={<Login />} />
+                  <Route path="/student/dashboard" element={<StudentDashboard />} />
                   <Route path="/admin/login" element={<AdminLogin />} />
                   <Route path="/admin/dashboard" element={<AdminDashboard />} />
                   <Route path="/marketplace" element={<Marketplace />} />
