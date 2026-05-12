@@ -46,19 +46,21 @@ export default function StudentDashboard() {
         // But users can be both, let's just show student view here.
       }
 
-      // Fetch Enrollments (Courses)
-      // Note: This assumes an 'enrollments' table exists or we join with products
-      const { data: enr } = await supabase!
-        .from('service_requests') // Reusing service_requests for service bookings
-        .select('*')
+      // Fetch All Bookings (Courses & Services)
+      const { data: bookings } = await supabase!
+        .from('user_bookings')
+        .select(`
+          *,
+          products:item_id (title),
+          services:item_id (title)
+        `)
         .eq('client_id', uid)
         .order('created_at', { ascending: false });
       
-      if (enr) setServiceRequests(enr);
-
-      // In a real app, you'd fetch from enrollments table
-      // For this demo, let's see if we can find any products linked to this user
-      // or just show an empty state for now.
+      if (bookings) {
+        setEnrollments(bookings.filter((b: any) => b.item_type === 'course'));
+        setServiceRequests(bookings.filter((b: any) => b.item_type === 'service'));
+      }
       
     } catch (err) {
       console.error("Error fetching student data:", err);
@@ -130,7 +132,7 @@ export default function StudentDashboard() {
               <div className="flex items-center justify-between p-4 bg-indigo-50 rounded-2xl">
                 <div className="text-right">
                   <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">الدورات المسجلة</div>
-                  <div className="text-xl font-black text-indigo-600">0</div>
+                  <div className="text-xl font-black text-indigo-600">{enrollments.length}</div>
                 </div>
                 <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-indigo-600 shadow-sm">
                   <BookOpen className="w-5 h-5" />
@@ -201,7 +203,9 @@ export default function StudentDashboard() {
                           }`}>
                             {req.status === 'completed' ? 'مكتمل' : req.status === 'processing' ? 'قيد العمل' : 'بانتظار المراجعة'}
                           </span>
-                          <h4 className="font-black text-slate-900">{req.service_type}</h4>
+                          <h4 className="font-black text-slate-900">
+                            {req.services?.title || req.item_type}
+                          </h4>
                         </div>
                         <p className="text-xs text-slate-400 font-bold">طلب في: {new Date(req.created_at).toLocaleDateString('ar-EG')}</p>
                       </div>
@@ -226,18 +230,46 @@ export default function StudentDashboard() {
               <h3 className="text-xl font-black text-slate-900">دوراتي التدريبية</h3>
             </div>
 
-            <div className="bg-white p-12 rounded-[2.5rem] border border-dashed border-slate-300 text-center">
-              <div className="w-16 h-16 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-4">
-                <BookOpen className="w-8 h-8" />
+            {enrollments.length === 0 ? (
+              <div className="bg-white p-12 rounded-[2.5rem] border border-dashed border-slate-300 text-center">
+                <div className="w-16 h-16 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <BookOpen className="w-8 h-8" />
+                </div>
+                <p className="text-slate-400 font-bold mb-4">لم تقم بالتسجيل في أي دورة بعد</p>
+                <button 
+                  onClick={() => navigate('/marketplace')}
+                  className="px-6 py-2 bg-slate-900 text-white rounded-xl text-xs font-black hover:bg-red-600 transition-all"
+                >
+                  تصفح المتجر الآن
+                </button>
               </div>
-              <p className="text-slate-400 font-bold mb-4">لم تقم بالتسجيل في أي دورة بعد</p>
-              <button 
-                onClick={() => navigate('/marketplace')}
-                className="px-6 py-2 bg-slate-900 text-white rounded-xl text-xs font-black hover:bg-red-600 transition-all"
-              >
-                تصفح المتجر الآن
-              </button>
-            </div>
+            ) : (
+              <div className="space-y-4">
+                {enrollments.map((enr) => (
+                  <motion.div 
+                    key={enr.id}
+                    className="bg-white p-6 rounded-3xl border border-slate-200 hover:border-blue-200 transition-all group"
+                  >
+                    <div className="flex items-center gap-6 text-right">
+                       <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shrink-0">
+                          <BookOpen className="w-6 h-6" />
+                       </div>
+                       <div className="flex-1">
+                          <h4 className="font-black text-slate-900 mb-1">{enr.products?.title || 'دورة تدريبية'}</h4>
+                          <div className="flex items-center justify-end gap-3">
+                             <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest ${
+                               enr.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'
+                             }`}>
+                                {enr.status === 'active' ? 'نشط' : 'قيد المراجعة'}
+                             </span>
+                             <span className="text-[10px] text-slate-400 font-bold">{new Date(enr.created_at).toLocaleDateString('ar-EG')}</span>
+                          </div>
+                       </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </section>
         </div>
       </div>

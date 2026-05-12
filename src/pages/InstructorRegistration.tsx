@@ -22,12 +22,18 @@ export default function InstructorRegistration() {
     if (!supabase) return;
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from('instructor_requests').insert({
-        fullName: formData.fullName,
+      const { error } = await supabase.from('system_submissions').insert({
+        type: 'instructor',
+        full_name: formData.fullName,
         email: formData.email,
         phone: formData.phone,
-        major: formData.major,
-        experience: formData.experience,
+        content: formData.experience,
+        metadata: {
+          major: formData.major,
+          degree: formData.degree,
+          years_of_experience: formData.yearsOfExperience,
+          linkedin_url: formData.linkedin
+        },
         status: 'pending'
       });
       if (error) throw error;

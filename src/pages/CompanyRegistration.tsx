@@ -22,15 +22,19 @@ export default function CompanyRegistration() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-        const { error } = await supabase.from('registrations').insert([
+        const { error } = await supabase.from('system_submissions').insert([
             {
-                type: 'company',
+                type: 'business',
                 full_name: formData.contactPerson,
-                entity_name: formData.companyName,
                 email: formData.email,
                 phone: formData.hrPhone,
-                specialization: formData.industry,
-                experience_summary: formData.about,
+                content: formData.about,
+                metadata: {
+                  company_name: formData.companyName,
+                  industry: formData.industry,
+                  website: formData.website,
+                  location: formData.location
+                },
                 status: 'pending'
             }
         ]);

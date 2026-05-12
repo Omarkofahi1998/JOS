@@ -62,19 +62,17 @@ export default function Marketplace() {
 
     setIsSubmitting(true);
     try {
-      // In a real app, this would insert into an 'enrollments' table
-      // For now we simulate success or if the table exists, we try to insert
       const { error } = await supabase!
-        .from('enrollments')
+        .from('user_bookings')
         .insert([{
-          user_id: user.id,
-          product_id: selectedProduct?.id,
+          client_id: user.id,
+          item_id: selectedProduct?.id,
+          item_type: 'course',
+          amount: selectedProduct?.price || 0,
           status: 'pending'
         }]);
 
-      if (error && !error.message.includes('relation "public.enrollments" does not exist')) {
-        throw error;
-      }
+      if (error) throw error;
 
       setShowSuccess(true);
       setTimeout(() => {

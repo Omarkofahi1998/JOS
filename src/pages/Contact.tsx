@@ -43,9 +43,13 @@ export default function Contact() {
 
     try {
       const { error } = await supabase
-        .from('contact_messages')
+        .from('system_submissions')
         .insert([{
-          ...formData,
+          type: 'contact',
+          full_name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          content: formData.message,
           created_at: new Date().toISOString()
         }]);
 

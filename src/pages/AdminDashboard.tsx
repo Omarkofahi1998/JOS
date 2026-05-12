@@ -5,7 +5,8 @@ import {
   LayoutDashboard, Plus, LogOut, FileText, HelpCircle, Loader2, BookOpen, 
   CheckCircle2, AlertCircle, Sparkles, Trash2, Edit3, Layers, 
   Search, X, MessageSquare, Shield, Settings, Menu, Bell, User, Clock, ChevronRight, Megaphone,
-  Download, Image as ImageIcon, Eye, UserCheck, Mail, UploadCloud, Share2, Briefcase, MapPin
+  Download, Image as ImageIcon, Eye, UserCheck, Mail, UploadCloud, Share2, Briefcase, MapPin,
+  Building2
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import * as XLSX from "xlsx";
@@ -61,31 +62,28 @@ export default function AdminDashboard() {
     
     console.log("Setting up Supabase Realtime...");
 
-    // Unified channel for both tables
+    // Unified channel for new submissions
     const adminChannel = supabase.channel('admin-updates')
       .on('postgres_changes', { 
         event: 'INSERT', 
         schema: 'public', 
-        table: 'instructor_requests' 
+        table: 'system_submissions' 
       }, (payload) => {
-        console.log("New Instructor Request Received:", payload);
-        const newReq = { ...payload.new, type: 'instructor_request' };
-        setNotifications(prev => [newReq, ...prev]);
-        setStatus({ type: 'success', msg: 'لديك طلب انضمام جديد: ' + (payload.new.fullName || '') });
-        // Also update the list immediately if user is on that tab
-        setInstructorRequests(prev => [payload.new, ...prev]);
-      })
-      .on('postgres_changes', { 
-        event: 'INSERT', 
-        schema: 'public', 
-        table: 'contact_messages' 
-      }, (payload) => {
-        console.log("New Contact Message Received:", payload);
-        const newMsg = { ...payload.new, type: 'contact_message' };
-        setNotifications(prev => [newMsg, ...prev]);
-        setStatus({ type: 'success', msg: 'لديك رسالة تواصل جديدة: ' + (payload.new.name || '') });
-        // Also update the list immediately if user is on that tab
-        setContacts(prev => [payload.new, ...prev]);
+        console.log("New Submission Received:", payload);
+        const submission = payload.new;
+        setNotifications(prev => [submission, ...prev]);
+        
+        let msg = 'لديك إشعار جديد';
+        if (submission.type === 'instructor') msg = 'طلب انضمام مدرس جديد: ' + submission.full_name;
+        else if (submission.type === 'contact') msg = 'رسالة تواصل جديدة من: ' + submission.full_name;
+        else if (submission.type === 'business') msg = 'طلب تسجيل شركة: ' + submission.full_name;
+        
+        setStatus({ type: 'success', msg });
+        
+        // Update specific lists
+        if (submission.type === 'instructor') setInstructorRequests(prev => [submission, ...prev]);
+        if (submission.type === 'contact') setContacts(prev => [submission, ...prev]);
+        if (submission.type === 'business') setRegistrations(prev => [submission, ...prev]);
       })
       .subscribe((status) => {
         console.log("Supabase Realtime Status:", status);
@@ -491,19 +489,17 @@ export default function AdminDashboard() {
     if (!supabase) return;
     setLoading(true);
     try {
-      const [q, f, s, settings, feat, rev, con, stats, instReq, ann, jobs, regs, prod] = await Promise.all([
+      const [q, f, s, settings, feat, rev, submissions, stats, ann, jobs, prod] = await Promise.all([
         supabase.from('questions').select('*').order('id', { ascending: false }),
         supabase.from('question_files').select('*').order('id', { ascending: false }),
         supabase.from('services').select('*').order('id', { ascending: false }),
         supabase.from('site_settings').select('key, value'),
         supabase.from('features').select('*').order('order_index', { ascending: true }),
         supabase.from('reviews').select('*').order('id', { ascending: false }),
-        supabase.from('contact_messages').select('*').order('id', { ascending: false }),
+        supabase.from('system_submissions').select('*').order('created_at', { ascending: false }),
         supabase.from('visitor_stats').select('count').eq('id', 1).single(),
-        supabase.from('instructor_requests').select('*').order('created_at', { ascending: false }),
         supabase.from('announcements').select('*').order('created_at', { ascending: false }),
         supabase.from('jobs').select('*').order('created_at', { ascending: false }),
-        supabase.from('registrations').select('*').order('created_at', { ascending: false }),
         supabase.from('products').select('*').order('created_at', { ascending: false })
       ]);
       if (q.data) setQuestions(q.data);
@@ -511,11 +507,15 @@ export default function AdminDashboard() {
       if (s.data) setServices(s.data);
       if (feat.data) setFeatures(feat.data);
       if (rev.data) setReviews(rev.data);
-      if (con.data) setContacts(con.data);
-      if (instReq.data) setInstructorRequests(instReq.data);
+      
+      if (submissions.data) {
+        setContacts(submissions.data.filter((item: any) => item.type === 'contact'));
+        setInstructorRequests(submissions.data.filter((item: any) => item.type === 'instructor'));
+        setRegistrations(submissions.data.filter((item: any) => item.type === 'business'));
+      }
+
       if (ann.data) setAnnouncements(ann.data);
       if (jobs.data) setAdminJobs(jobs.data);
-      if (regs.data) setRegistrations(regs.data);
       if (prod.data) setAcademyProducts(prod.data);
       
       if (settings.data) {
@@ -1279,6 +1279,7 @@ export default function AdminDashboard() {
     { id: 'settings', name: 'بناء الهوية', icon: <Settings className="w-5 h-5" /> },
     { id: 'announcements', name: 'نظام الإعلانات', icon: <Megaphone className="w-5 h-5" /> },
     { id: 'instructor_requests', name: 'طلبات الانضمام', icon: <UserCheck className="w-5 h-5" /> },
+    { id: 'registrations', name: 'طلبات الشركات', icon: <Building2 className="w-5 h-5" /> },
   ];
 
   if (!session) return null;
@@ -1862,16 +1863,16 @@ export default function AdminDashboard() {
                         <tbody>
                             {instructorRequests.map(req => (
                                 <tr key={req.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-all group text-right">
-                                    <td className="px-6 py-4 text-sm font-bold text-slate-900">{req.fullName}</td>
+                                    <td className="px-6 py-4 text-sm font-bold text-slate-900">{req.full_name || req.fullName}</td>
                                     <td className="px-6 py-4 text-sm text-red-600 font-bold">{req.email}</td>
                                     <td className="px-6 py-4 text-sm text-slate-600">{req.phone}</td>
-                                    <td className="px-6 py-4 text-sm text-slate-600 font-black">{req.major}</td>
-                                    <td className="px-6 py-4 text-sm text-slate-400 max-w-[150px] truncate">{req.experience || "لا توجد خبرة"}</td>
+                                    <td className="px-6 py-4 text-sm text-slate-600 font-black">{req.metadata?.major || req.major}</td>
+                                    <td className="px-6 py-4 text-sm text-slate-400 max-w-[150px] truncate">{req.content || req.experience || "لا توجد خبرة"}</td>
                                     <td className="px-6 py-4 text-sm text-slate-400">{new Date(req.created_at).toLocaleDateString()}</td>
                                     <td className="px-6 py-4 border-l border-slate-100">
                                         <div className="flex items-center justify-center">
                                             <button 
-                                                onClick={() => deleteItem('instructor_requests', req.id)} 
+                                                onClick={() => deleteItem('system_submissions', req.id)} 
                                                 className="p-2 bg-red-50 text-red-400 hover:bg-red-600 hover:text-white rounded-lg transition-all"
                                                 title="حذف الطلب"
                                             >
@@ -1887,6 +1888,52 @@ export default function AdminDashboard() {
                                                 title="عرض التفاصيل الكاملة"
                                             >
                                                 <Eye className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+              )}
+
+              {subTab === 'list' && activeTab === 'registrations' && (
+                <div className="overflow-x-auto">
+                    <table className="w-full text-right border-collapse">
+                        <thead>
+                            <tr className="bg-slate-50 border-b border-slate-200">
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">اسم المنشأة</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">المسؤول</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">التخصص</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">الهاتف</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">التاريخ</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase text-center border-l border-slate-100">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {registrations.map(reg => (
+                                <tr key={reg.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-all group text-right">
+                                    <td className="px-6 py-4 text-sm font-black text-slate-900">{reg.metadata?.company_name || reg.entity_name}</td>
+                                    <td className="px-6 py-4 text-sm font-bold text-slate-600">{reg.full_name}</td>
+                                    <td className="px-6 py-4 text-sm text-red-600 font-bold">{reg.metadata?.industry || reg.specialization}</td>
+                                    <td className="px-6 py-4 text-sm text-slate-600">{reg.phone}</td>
+                                    <td className="px-6 py-4 text-sm text-slate-400">{new Date(reg.created_at).toLocaleDateString()}</td>
+                                    <td className="px-6 py-4 border-l border-slate-100">
+                                        <div className="flex items-center justify-center gap-2">
+                                            <button 
+                                                onClick={() => setViewingRequest(reg)} 
+                                                className="p-2 bg-slate-100 text-slate-500 hover:text-slate-900 rounded-lg transition-all"
+                                                title="عرض التفاصيل"
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                            </button>
+                                            <button 
+                                                onClick={() => deleteItem('system_submissions', reg.id)} 
+                                                className="p-2 bg-red-50 text-red-400 hover:bg-red-600 hover:text-white rounded-lg transition-all"
+                                                title="حذف الطلب"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>
                                     </td>
@@ -2695,7 +2742,9 @@ export default function AdminDashboard() {
                         {viewingRequest ? "مراجعة طلب الانضمام" : "مراجعة الرسالة"}
                       </span>
                     </div>
-                    <h2 className="text-2xl font-black">{viewingRequest ? viewingRequest.fullName : viewingMessage.name}</h2>
+                    <h2 className="text-2xl font-black">
+                      {viewingRequest ? (viewingRequest.full_name || viewingRequest.fullName) : (viewingMessage.full_name || viewingMessage.name)}
+                    </h2>
                     <div className="flex items-center justify-end gap-2 text-slate-400 mt-1">
                       <span className="text-xs font-bold">{viewingRequest ? viewingRequest.email : viewingMessage.email}</span>
                       <Mail className="w-3 h-3" />
@@ -2712,17 +2761,29 @@ export default function AdminDashboard() {
                         <p className="font-bold text-slate-900 text-sm ltr">{viewingRequest.phone}</p>
                       </div>
                       <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 transition-colors hover:border-red-100">
-                        <p className="text-[9px] font-black text-slate-400 uppercase mb-1">المادة / التخصص</p>
-                        <p className="font-black text-red-600 text-sm truncate">{viewingRequest.major}</p>
+                        <p className="text-[9px] font-black text-slate-400 uppercase mb-1">
+                          {viewingRequest.type === 'business' ? 'الشركة' : 'المادة / التخصص'}
+                        </p>
+                        <p className="font-black text-red-600 text-sm truncate">
+                          {viewingRequest.metadata?.major || viewingRequest.major || viewingRequest.metadata?.company_name || viewingRequest.entity_name}
+                        </p>
                       </div>
                     </div>
+                    {viewingRequest.type === 'business' && (
+                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                            <p className="text-[9px] font-black text-slate-400 uppercase mb-1">الموقع الإلكتروني / العنوان</p>
+                            <p className="text-xs font-bold text-slate-900">
+                                {viewingRequest.metadata?.website} - {viewingRequest.metadata?.location}
+                            </p>
+                        </div>
+                    )}
                     <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
                       <div className="flex items-center justify-end gap-2 mb-3 pb-2 border-b border-slate-200/50">
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">التفاصيل والخبرة</span>
                         <HelpCircle className="w-3 h-3 text-slate-300" />
                       </div>
                       <p className="text-xs text-slate-600 leading-relaxed font-medium whitespace-pre-wrap max-h-40 overflow-y-auto custom-scrollbar pr-1">
-                        {viewingRequest.experience || "لا توجد تفاصيل إضافية مزودة."}
+                        {viewingRequest.content || viewingRequest.experience || viewingRequest.experience_summary || "لا توجد تفاصيل إضافية مزودة."}
                       </p>
                     </div>
                     <div className="flex items-center justify-between pt-2">
@@ -2731,7 +2792,7 @@ export default function AdminDashboard() {
                         {new Date(viewingRequest.created_at).toLocaleDateString('ar-JO')}
                       </span>
                       <div className="flex gap-2">
-                         <button onClick={() => { deleteItem('instructor_requests', viewingRequest.id); setViewingRequest(null); }} className="px-5 py-2.5 bg-red-50 text-red-600 rounded-xl font-black text-[10px] hover:bg-red-600 hover:text-white transition-all shadow-sm">حذف</button>
+                         <button onClick={() => { deleteItem('system_submissions', viewingRequest.id); setViewingRequest(null); }} className="px-5 py-2.5 bg-red-50 text-red-600 rounded-xl font-black text-[10px] hover:bg-red-600 hover:text-white transition-all shadow-sm">حذف</button>
                          <a href={`mailto:${viewingRequest.email}`} className="px-5 py-2.5 bg-slate-900 text-white rounded-xl font-black text-[10px] hover:bg-red-600 transition-all shadow-md">تواصل الآن</a>
                       </div>
                     </div>
@@ -2746,7 +2807,7 @@ export default function AdminDashboard() {
                         <MessageSquare className="w-3 h-3 text-slate-300" />
                       </div>
                       <p className="text-xs text-slate-600 leading-relaxed font-medium whitespace-pre-wrap max-h-48 overflow-y-auto custom-scrollbar pr-1">
-                        {viewingMessage.message}
+                        {viewingMessage.content || viewingMessage.message}
                       </p>
                     </div>
                     <div className="flex items-center justify-between pt-2">
@@ -2755,7 +2816,7 @@ export default function AdminDashboard() {
                         {new Date(viewingMessage.created_at || Date.now()).toLocaleDateString('ar-JO')}
                       </span>
                       <div className="flex gap-2">
-                         <button onClick={() => { deleteItem('contact_messages', viewingMessage.id); setViewingMessage(null); }} className="px-5 py-2.5 bg-red-50 text-red-600 rounded-xl font-black text-[10px] hover:bg-red-600 hover:text-white transition-all shadow-sm">حذف</button>
+                         <button onClick={() => { deleteItem('system_submissions', viewingMessage.id); setViewingMessage(null); }} className="px-5 py-2.5 bg-red-50 text-red-600 rounded-xl font-black text-[10px] hover:bg-red-600 hover:text-white transition-all shadow-sm">حذف</button>
                          <a href={`mailto:${viewingMessage.email}`} className="px-5 py-2.5 bg-slate-900 text-white rounded-xl font-black text-[10px] hover:bg-red-600 transition-all shadow-md">رد ايميل</a>
                       </div>
                     </div>

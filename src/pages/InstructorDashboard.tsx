@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   BookOpen, Users, DollarSign, 
   Settings, LogOut, Plus, Edit3, Trash2, 
@@ -23,6 +24,7 @@ interface Toast {
 }
 
 export default function InstructorDashboard() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('courses');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);

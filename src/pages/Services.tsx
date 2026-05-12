@@ -130,12 +130,12 @@ export default function Services() {
     setIsSubmitting(true);
     try {
       const { error } = await supabase!
-        .from('service_requests')
+        .from('user_bookings')
         .insert([{
           provider_id: selectedService.provider_id,
           client_id: user.id,
-          client_name: profile?.full_name || user.email?.split('@')[0],
-          service_type: selectedService.title,
+          item_id: selectedService.id,
+          item_type: 'service',
           amount: selectedService.price || 0,
           status: 'pending'
         }]);
