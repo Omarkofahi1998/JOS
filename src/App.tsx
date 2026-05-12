@@ -6,14 +6,24 @@ import { supabase } from "./lib/supabase";
 
 // Lazy load non-critical pages
 import InstructorRegistration from "./pages/InstructorRegistration";
+const ServiceProviderRegistration = lazy(() => import("./pages/ServiceProviderRegistration"));
+const CompanyRegistration = lazy(() => import("./pages/CompanyRegistration"));
+const Marketplace = lazy(() => import("./pages/Marketplace"));
+const InstructorDashboard = lazy(() => import("./pages/InstructorDashboard"));
+const InstructorLogin = lazy(() => import("./pages/InstructorLogin"));
 const MockExams = lazy(() => import("./pages/MockExams"));
 const Questions = lazy(() => import("./pages/Questions"));
 const Reviews = lazy(() => import("./pages/Reviews"));
 const Services = lazy(() => import("./pages/Services"));
 const ExamPage = lazy(() => import("./pages/ExamPage"));
+const Login = lazy(() => import("./pages/Login"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const Contact = lazy(() => import("./pages/Contact"));
+const JobBoard = lazy(() => import("./pages/JobBoard"));
+
+const ProfessionalServicesLogin = lazy(() => import("./pages/ProfessionalServicesLogin"));
+const ProfessionalDashboard = lazy(() => import("./pages/ProfessionalDashboard"));
 
 function LoadingFallback() {
   return (
@@ -75,10 +85,19 @@ export default function App() {
                   <Route path="/questions/:fileTitle" element={<Questions />} />
                   <Route path="/reviews" element={<Reviews />} />
                   <Route path="/services" element={<Services />} />
+                  <Route path="/job-board" element={<JobBoard />} />
                   <Route path="/contact" element={<Contact />} />
+                  <Route path="/login" element={<Login />} />
                   <Route path="/admin/login" element={<AdminLogin />} />
                   <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                  <Route path="/marketplace" element={<Marketplace />} />
+                  <Route path="/instructor/login" element={<InstructorLogin />} />
+                  <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
                   <Route path="/instructor-registration" element={<InstructorRegistration />} />
+                  <Route path="/service-provider-registration" element={<ServiceProviderRegistration />} />
+                  <Route path="/company-registration" element={<CompanyRegistration />} />
+                  <Route path="/professional-services/login" element={<ProfessionalServicesLogin />} />
+                  <Route path="/professional/dashboard" element={<ProfessionalDashboard />} />
                 </Routes>
               </Suspense>
             </Layout>

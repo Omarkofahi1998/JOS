@@ -1,7 +1,8 @@
-import { ArrowLeft, BookOpen, CheckCircle, Clock, Star, Users, Sparkles, HelpCircle } from "lucide-react";
+import { ArrowLeft, BookOpen, CheckCircle, Clock, Star, Users, Sparkles, HelpCircle, ShoppingCart, Megaphone } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { motion } from "motion/react";
 import { supabase } from "../lib/supabase";
 
 interface Feature {
@@ -32,13 +33,32 @@ export default function Home() {
   const [randomActiveOffset, setRandomActiveOffset] = useState<number>(0);
 
   const [featuresList, setFeaturesList] = useState<Feature[]>([]);
+  const [isPaused, setIsPaused] = useState(false);
+  const [activeAnnouncement, setActiveAnnouncement] = useState<any>(null);
 
   useEffect(() => {
     // Generate a random offset to make the active trainees revolve around 50-120
-    // Base 80, offsets: -20, 0, 20, 40 -> Resulting in 60, 80, 100, 120
     const offsets = [-20, 0, 20, 40];
     const offset = offsets[Math.floor(Math.random() * offsets.length)];
     setRandomActiveOffset(offset);
+  }, []);
+
+  useEffect(() => {
+    async function fetchAnnouncements() {
+      if (!supabase) return;
+      const { data } = await supabase
+        .from('announcements')
+        .select('*')
+        .eq('is_active', true)
+        .eq('type', 'banner')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (data && data[0]) {
+        setActiveAnnouncement(data[0]);
+      }
+    }
+    fetchAnnouncements();
   }, []);
 
   useEffect(() => {
@@ -103,7 +123,7 @@ export default function Home() {
         ]);
 
         setStats({
-          trainees: (visitorRes.data?.count || 2500).toLocaleString() + '+',
+          trainees: (visitorRes.data?.count || 0).toLocaleString() + '+',
           questions: (questionsRes.data?.length || 0).toLocaleString() + '+',
           exams: (filesRes.count || 0).toLocaleString() + '+',
           majors: Array.from(new Set(questionsRes.data?.map(q => q.major) || [])).length + '+'
@@ -143,17 +163,40 @@ export default function Home() {
   };
 
   return (
-    <div className="space-y-20 pb-20 bg-slate-50">
+    <div className="space-y-12 pb-12 bg-slate-50">
+      {/* Dynamic Announcement Banner */}
+      {activeAnnouncement && (
+        <div className="bg-red-600 text-white overflow-hidden relative group">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row items-center justify-center gap-3 md:gap-8 text-center md:text-right relative z-10">
+            <div className="flex items-center gap-2">
+              <Megaphone className="w-5 h-5 animate-bounce" />
+              <span className="font-black text-sm md:text-base">{activeAnnouncement.title}</span>
+            </div>
+            <p className="text-xs md:text-sm font-bold text-red-50 max-w-2xl">{activeAnnouncement.content}</p>
+            {activeAnnouncement.button_text && (
+              <a 
+                href={activeAnnouncement.button_url || "#"} 
+                className="bg-white text-red-600 px-6 py-1.5 rounded-full text-xs font-black hover:bg-slate-900 hover:text-white transition-all shadow-lg"
+              >
+                {activeAnnouncement.button_text}
+              </a>
+            )}
+          </div>
+          {/* Decorative shine */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-[100%] animate-[shimmer_3s_infinite]" />
+        </div>
+      )}
+
       {/* Hero Section */}
-      <section className="relative min-h-[500px] md:h-[600px] flex items-center bg-white border-b border-slate-200 overflow-hidden py-12 md:py-0">
+      <section className="relative min-h-[450px] md:h-[550px] flex items-center bg-white border-b border-slate-200 overflow-hidden py-10 md:py-0">
         {/* Abstract National Colors Decoration */}
         <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-red-600/5 to-transparent pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-1/3 h-full bg-gradient-to-r from-green-600/5 to-transparent pointer-events-none" />
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="text-right">
-              <div className="flex items-center gap-2 mb-6 justify-end">
+            <div className="text-center md:text-right">
+              <div className="flex items-center gap-2 mb-6 justify-center md:justify-end">
                 <span className="bg-red-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                   JO Students
                 </span>
@@ -163,22 +206,30 @@ export default function Home() {
                 {settings.hero_title}
               </h1>
 
-              <p className="text-lg md:text-xl text-slate-600 mb-8 leading-relaxed font-medium md:max-w-lg mr-auto">
+              <p className="text-lg md:text-xl text-slate-600 mb-8 leading-relaxed font-medium max-w-sm md:max-w-lg mx-auto md:mr-0 md:ml-0">
                 {settings.hero_subtitle}
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-end">
+              <div className="flex flex-col sm:flex-row-reverse flex-wrap gap-3 md:gap-4 justify-center md:justify-start">
                 <Link
                   to="/mock-exams"
-                  className="bg-red-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-900 transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-600/20"
+                  className="w-full sm:w-auto bg-red-600 text-white px-6 py-3.5 rounded-xl font-bold text-base md:text-lg hover:bg-slate-900 transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-600/20 active:scale-95"
                 >
-                  ابدأ التدريب
                   <ArrowLeft className="w-5 h-5" />
+                  ابدأ التدريب
+                </Link>
+                <Link
+                  to="/marketplace"
+                  className="w-full sm:w-auto bg-slate-900 text-white px-6 py-3.5 rounded-xl font-bold text-base md:text-lg hover:bg-red-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20 active:scale-95"
+                >
+                  <ShoppingCart className="w-5 h-5 ml-1" />
+                  الأكاديمية المهنية
                 </Link>
                 <Link
                   to="/services"
-                  className="bg-green-700 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-green-800 transition-all shadow-lg shadow-green-700/10"
+                  className="w-full sm:w-auto bg-emerald-600 text-white px-6 py-3.5 rounded-xl font-bold text-base md:text-lg hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 active:scale-95"
                 >
+                  <Sparkles className="w-5 h-5 ml-1" />
                   الخدمات المهنية
                 </Link>
               </div>
@@ -210,7 +261,7 @@ export default function Home() {
 
       {/* Stats */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 bg-white p-6 md:p-10 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 bg-white p-4 md:p-8 rounded-2xl border border-slate-200 shadow-sm">
            {[
              { label: 'متدرب نشط', val: (80 + randomActiveOffset + onlineCount).toLocaleString() },
              { label: 'سؤال تدريبي', val: stats.questions },
@@ -234,48 +285,145 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-right">
-        <div className="mb-12">
-          <h2 className="text-3xl font-black text-slate-900 mb-4">أدوات النجاح والتفوق</h2>
-          <div className="w-16 h-1 bg-red-600 rounded-full" />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {featuresList.map((feature, index) => (
-            <div
-              key={feature.id}
-              className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all text-right group"
+      {/* Tools of Success - Compact Vertical Ticker */}
+      <section className="bg-white py-8 md:py-12 border-y border-slate-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center gap-6 md:gap-10">
+          {/* Header Part */}
+          <div className="w-full md:w-1/3 text-center md:text-right">
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="inline-flex items-center gap-2 px-3 py-1 bg-red-50 text-red-600 rounded-lg text-[10px] font-black mb-3"
             >
-              <div className={`w-12 h-12 ${feature.color_class} rounded-xl flex items-center justify-center mb-6`}>
-                {getIcon(feature.icon_name, feature.color_class)}
-              </div>
-              <h3 className="text-xl font-black text-slate-900 mb-3">{feature.title}</h3>
-              <p className="text-slate-500 leading-relaxed mb-6 text-sm font-medium">
-                {feature.description}
-              </p>
-              <Link
-                to={feature.link_path}
-                className="inline-flex items-center gap-2 text-red-600 font-bold text-sm"
-              >
-                اكتشف المزيد
-                <ArrowLeft className="w-4 h-4" />
-              </Link>
+              <Sparkles className="w-3 h-3" />
+              <span>أدواتك للتميز</span>
+            </motion.div>
+            <h2 className="text-xl md:text-2xl font-black text-slate-900 mb-2">أدوات النجاح</h2>
+            <p className="text-slate-500 text-xs md:text-sm font-medium leading-relaxed max-w-sm mx-auto md:mr-0">
+              تعرف على أهم الأدوات التي صممناها لمساعدتك في رحلتك التعليمية.
+            </p>
+          </div>
+
+          {/* Ticker Part */}
+          <div className="w-full md:w-2/3">
+            <div 
+              className="bg-slate-50 rounded-[2rem] border border-slate-100 p-2 md:p-3 overflow-hidden h-32 md:h-32 relative group"
+              onMouseEnter={() => setIsPaused(true)}
+              onMouseLeave={() => setIsPaused(false)}
+            >
+              {featuresList.length > 0 ? (
+                <div className="h-full">
+                  <motion.div
+                    animate={{ 
+                      y: isPaused ? undefined : ["0%", `-${(featuresList.length - 1) * 100}%`, "0%"]
+                    }}
+                    transition={{
+                      duration: featuresList.length * 4,
+                      ease: "linear",
+                      repeat: Infinity,
+                    }}
+                    className="flex flex-col h-full"
+                  >
+                    {featuresList.map((feature, idx) => (
+                      <div 
+                        key={`${feature.id}-${idx}`} 
+                        className="h-full flex-shrink-0 flex items-center justify-between px-4 md:px-6 py-2"
+                        style={{ height: "100%" }}
+                      >
+                        <div className="flex items-center gap-4 md:gap-6 text-right w-full">
+                          <div className={`w-12 h-12 md:w-14 md:h-14 ${feature.color_class} rounded-[1.25rem] flex items-center justify-center shrink-0 shadow-lg shadow-current/10 group-hover:scale-105 transition-transform`}>
+                            {getIcon(feature.icon_name, "w-6 h-6")}
+                          </div>
+                          <div className="min-w-0 flex-grow">
+                            <h3 className="text-base md:text-xl font-black text-slate-900 mb-0.5 md:mb-1 truncate">{feature.title}</h3>
+                            <p className="text-[10px] md:text-sm text-slate-500 font-medium line-clamp-2 leading-snug">
+                              {feature.description}
+                            </p>
+                          </div>
+                          <Link 
+                            to={feature.link_path}
+                            className="bg-white px-4 py-2 rounded-xl border border-slate-200 text-red-600 font-black text-xs hover:bg-red-600 hover:text-white hover:border-red-600 transition-all shadow-sm hidden sm:flex items-center gap-2"
+                          >
+                            <span>استكشف</span>
+                            <ArrowLeft className="w-3.5 h-3.5" />
+                          </Link>
+                          <Link 
+                            to={feature.link_path}
+                            className="sm:hidden bg-white p-3 rounded-xl border border-slate-200 text-red-600 shadow-sm"
+                          >
+                            <ArrowLeft className="w-4 h-4" />
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </motion.div>
+                </div>
+              ) : (
+                <div className="h-full flex items-center justify-center">
+                  <div className="flex items-center gap-4 px-6 opacity-30">
+                    <div className="w-12 h-12 bg-slate-200 rounded-2xl animate-pulse" />
+                    <div className="space-y-2">
+                       <div className="w-32 h-4 bg-slate-200 rounded-full animate-pulse" />
+                       <div className="w-48 h-3 bg-slate-200 rounded-full animate-pulse" />
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Fade effects */}
+              <div className="absolute top-0 inset-x-0 h-4 bg-gradient-to-b from-slate-50 to-transparent pointer-events-none z-10" />
+              <div className="absolute bottom-0 inset-x-0 h-4 bg-gradient-to-t from-slate-50 to-transparent pointer-events-none z-10" />
             </div>
-          ))}
-          {featuresList.length === 0 && !supabase && (
-             <div className="col-span-full p-12 text-center text-slate-400 font-bold border-2 border-dashed border-slate-100 rounded-3xl">
-                بانتظار ربط قاعدة البيانات لعرض الأدوات...
-             </div>
-          )}
+          </div>
+        </div>
+      </section>
+
+
+      {/* Join our Experts Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm group hover:border-red-600 transition-all">
+            <div className="w-14 h-14 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-red-600 group-hover:text-white transition-colors">
+              <BookOpen className="w-7 h-7" />
+            </div>
+            <h3 className="text-2xl font-black text-slate-900 mb-3">هل أنت مدرب معتمد؟</h3>
+            <p className="text-slate-500 font-bold text-sm mb-8 leading-relaxed">
+              انضم إلى نخبة المدربين في الأردن، وقدم دوراتك واختباراتك لآلاف الطلاب والمهنيين المتحمسين للتعلم.
+            </p>
+            <Link 
+              to="/instructor-registration" 
+              className="inline-flex items-center gap-2 bg-slate-900 text-white px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-red-600 transition-all"
+            >
+              قدم طلب اعتماد مدرب
+              <ArrowLeft className="w-4 h-4 ml-1" />
+            </Link>
+          </div>
+
+          <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm group hover:border-blue-600 transition-all">
+            <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+              <Sparkles className="w-7 h-7" />
+            </div>
+            <h3 className="text-2xl font-black text-slate-900 mb-3">خبير في الخدمات المهنية؟</h3>
+            <p className="text-slate-500 font-bold text-sm mb-8 leading-relaxed">
+              ساعد الآخرين في تحسين سيرهم الذاتية، الاستعداد للمقابلات، أو التخطيط لمسارهم الوظيفي كخبير معتمد.
+            </p>
+            <Link 
+              to="/service-provider-registration" 
+              className="inline-flex items-center gap-2 bg-slate-900 text-white px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-all"
+            >
+              انضم كخبير مهني
+              <ArrowLeft className="w-4 h-4 ml-1" />
+            </Link>
+          </div>
         </div>
       </section>
 
       {/* Simple CTA */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-slate-900 rounded-3xl p-8 md:p-16 text-center relative overflow-hidden text-white">
-          <h2 className="text-3xl md:text-5xl font-black mb-6">استعد لمستقبلك المهني اليوم</h2>
-          <p className="text-slate-400 text-lg mb-10 max-w-2xl mx-auto">
+        <div className="bg-slate-900 rounded-3xl p-6 md:p-12 text-center relative overflow-hidden text-white">
+          <h2 className="text-3xl md:text-5xl font-black mb-4">استعد لمستقبلك المهني اليوم</h2>
+          <p className="text-slate-400 text-lg mb-8 max-w-2xl mx-auto">
             انضم إلى آلاف المتقدمين الناجحين وابدأ التدريب الآن مع بنك الأسئلة الأحدث والخدمات الأكثر احترافية.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

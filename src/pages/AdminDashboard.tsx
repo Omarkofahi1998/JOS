@@ -2,10 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { 
-  LayoutDashboard, Plus, LogOut, FileText, HelpCircle, Loader2, 
+  LayoutDashboard, Plus, LogOut, FileText, HelpCircle, Loader2, BookOpen, 
   CheckCircle2, AlertCircle, Sparkles, Trash2, Edit3, Layers, 
   Search, X, MessageSquare, Shield, Settings, Menu, Bell, User, Clock, ChevronRight, Megaphone,
-  Download, Image as ImageIcon, Eye, UserCheck, Mail, UploadCloud, Share2
+  Download, Image as ImageIcon, Eye, UserCheck, Mail, UploadCloud, Share2, Briefcase, MapPin
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import * as XLSX from "xlsx";
@@ -18,8 +18,8 @@ const CATEGORIES = ["مختبرات", "تمريض", "قانون", "معلم صف
 
 export default function AdminDashboard() {
   const [session, setSession] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'questions' | 'files' | 'services' | 'settings' | 'features' | 'reviews' | 'contacts' | 'instructor_requests' | 'announcements'>('questions');
-  const [subTab, setSubTab] = useState<'add' | 'list' | 'bulk'>('list');
+  const [activeTab, setActiveTab] = useState<'questions' | 'files' | 'services' | 'settings' | 'features' | 'reviews' | 'contacts' | 'instructor_requests' | 'announcements' | 'academy_products' | 'jobs'>('questions');
+  const [subTab, setSubTab] = useState<'add' | 'list' | 'bulk' | 'approvals'>('list');
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
   const [status, setStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
@@ -43,6 +43,9 @@ export default function AdminDashboard() {
   const [contacts, setContacts] = useState<any[]>([]);
   const [instructorRequests, setInstructorRequests] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [adminJobs, setAdminJobs] = useState<any[]>([]);
+  const [registrations, setRegistrations] = useState<any[]>([]);
+  const [academyProducts, setAcademyProducts] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [onlineCount, setOnlineCount] = useState<number>(0);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -475,7 +478,7 @@ export default function AdminDashboard() {
     if (!supabase) return;
     setLoading(true);
     try {
-      const [q, f, s, settings, feat, rev, con, stats, instReq, ann] = await Promise.all([
+      const [q, f, s, settings, feat, rev, con, stats, instReq, ann, jobs, regs, prod] = await Promise.all([
         supabase.from('questions').select('*').order('id', { ascending: false }),
         supabase.from('question_files').select('*').order('id', { ascending: false }),
         supabase.from('services').select('*').order('id', { ascending: false }),
@@ -485,7 +488,10 @@ export default function AdminDashboard() {
         supabase.from('contact_messages').select('*').order('id', { ascending: false }),
         supabase.from('visitor_stats').select('count').eq('id', 1).single(),
         supabase.from('instructor_requests').select('*').order('created_at', { ascending: false }),
-        supabase.from('announcements').select('*').order('created_at', { ascending: false })
+        supabase.from('announcements').select('*').order('created_at', { ascending: false }),
+        supabase.from('jobs').select('*').order('created_at', { ascending: false }),
+        supabase.from('registrations').select('*').order('created_at', { ascending: false }),
+        supabase.from('products').select('*').order('created_at', { ascending: false })
       ]);
       if (q.data) setQuestions(q.data);
       if (f.data) setFiles(f.data);
@@ -495,6 +501,9 @@ export default function AdminDashboard() {
       if (con.data) setContacts(con.data);
       if (instReq.data) setInstructorRequests(instReq.data);
       if (ann.data) setAnnouncements(ann.data);
+      if (jobs.data) setAdminJobs(jobs.data);
+      if (regs.data) setRegistrations(regs.data);
+      if (prod.data) setAcademyProducts(prod.data);
       
       if (settings.data) {
         const obj: any = {};
@@ -1249,6 +1258,7 @@ export default function AdminDashboard() {
   const sidebarItems = [
     { id: 'questions', name: 'بنك الأسئلة', icon: <HelpCircle className="w-5 h-5" /> },
     { id: 'files', name: 'بنك الملفات', icon: <FileText className="w-5 h-5" /> },
+    { id: 'academy_products', name: 'منتجات الأكاديمية', icon: <BookOpen className="w-5 h-5" /> },
     { id: 'services', name: 'الخدمات المهنية', icon: <Sparkles className="w-5 h-5" /> },
     { id: 'features', name: 'أدوات التفوق', icon: <Layers className="w-5 h-5" /> },
     { id: 'reviews', name: 'المراجعات', icon: <MessageSquare className="w-5 h-5" /> },
@@ -1279,12 +1289,12 @@ export default function AdminDashboard() {
       <motion.aside 
         initial={false}
         animate={{ 
-          width: sidebarOpen ? 280 : (window.innerWidth < 1024 ? 0 : 80),
-          x: (sidebarOpen) ? 0 : (window.innerWidth < 1024 ? 280 : 0)
+          width: sidebarOpen ? 220 : (window.innerWidth < 1024 ? 0 : 64),
+          x: (sidebarOpen) ? 0 : (window.innerWidth < 1024 ? 220 : 0)
         }}
         className={`bg-white border-l border-slate-200 h-screen fixed lg:sticky top-0 flex flex-col z-[60] shadow-sm transition-all overflow-hidden`}
       >
-        <div className="p-6 flex items-center justify-between border-b border-slate-50">
+        <div className="p-4 flex items-center justify-between border-b border-slate-50">
           {sidebarOpen && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3">
               <img 
@@ -1301,12 +1311,12 @@ export default function AdminDashboard() {
           </button>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+        <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
           {sidebarItems.map((item) => (
             <button
               key={item.id}
               onClick={() => { setActiveTab(item.id as any); setSubTab('list'); resetForms(); }}
-              className={`w-full flex items-center gap-4 p-3 rounded-2xl transition-all relative group ${
+              className={`w-full flex items-center gap-4 p-2.5 rounded-xl transition-all relative group ${
                 activeTab === item.id ? 'bg-red-50 text-red-600' : 'text-slate-500 hover:bg-slate-50'
               }`}
             >
@@ -1342,10 +1352,10 @@ export default function AdminDashboard() {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-slate-50">
+        <div className="p-3 border-t border-slate-50">
           <button 
             onClick={handleLogout}
-            className="w-full flex items-center gap-4 p-3 rounded-2xl text-slate-400 hover:bg-red-50 hover:text-red-600 transition-all font-bold text-sm"
+            className="w-full flex items-center gap-4 p-2.5 rounded-xl text-slate-400 hover:bg-red-50 hover:text-red-600 transition-all font-bold text-sm"
           >
             <LogOut className="w-5 h-5" />
             {sidebarOpen && <span>تسجيل الخروج</span>}
@@ -1356,7 +1366,7 @@ export default function AdminDashboard() {
       {/* Main Content */}
       <main className="flex-1 h-screen overflow-y-auto relative custom-scrollbar w-full">
         {/* Top Header */}
-        <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200/50 px-4 md:px-8 py-4 flex items-center justify-between">
+        <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200/50 px-3 md:px-6 py-3 flex items-center justify-between">
            <div className="flex items-center gap-3 md:gap-4">
               <button 
                 onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -1463,15 +1473,15 @@ export default function AdminDashboard() {
           </div>
         </header>
 
-        <div className="p-4 md:p-8 max-w-7xl mx-auto">
+        <div className="p-3 md:p-6 max-w-7xl mx-auto">
           {/* Action Tabs */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
             <div className="flex flex-wrap gap-2">
               {activeTab !== 'settings' && activeTab !== 'contacts' && (
                 <>
                   <button 
                     onClick={() => setSubTab('list')}
-                    className={`px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all border-2 ${
+                    className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all border-2 ${
                       subTab === 'list' ? 'bg-slate-900 text-white border-slate-900 shadow-xl' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'
                     }`}
                   >
@@ -1479,7 +1489,7 @@ export default function AdminDashboard() {
                   </button>
                   <button 
                     onClick={() => { setSubTab('add'); resetForms(); }}
-                    className={`px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all border-2 ${
+                    className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all border-2 ${
                       subTab === 'add' ? 'bg-slate-900 text-white border-slate-900 shadow-xl' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'
                     }`}
                   >
@@ -1488,7 +1498,7 @@ export default function AdminDashboard() {
                   {activeTab === 'questions' && (
                     <button 
                       onClick={() => setSubTab('bulk')}
-                      className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all border ${
+                      className={`px-4 py-2 rounded-xl font-bold text-sm transition-all border ${
                         subTab === 'bulk' ? 'bg-red-600 text-white border-red-600 shadow-lg' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
                       }`}
                     >
@@ -1498,7 +1508,7 @@ export default function AdminDashboard() {
                   {activeTab === 'files' && (
                     <button 
                       onClick={() => setSubTab('bulk_gen')}
-                      className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all border ${
+                      className={`px-4 py-2 rounded-xl font-bold text-sm transition-all border ${
                         subTab === 'bulk_gen' ? 'bg-blue-600 text-white border-blue-600 shadow-lg' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
                       }`}
                     >
@@ -1656,8 +1666,88 @@ export default function AdminDashboard() {
                           ))}
                       </tbody>
                     </table>
+                  ) : activeTab === 'jobs' ? (
+                    <div className="space-y-6">
+                      <div className="flex gap-4 mb-6">
+                        <button 
+                          onClick={() => setSubTab('list')} 
+                          className={`px-4 py-2 rounded-xl text-xs font-black ${subTab === 'list' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'}`}
+                        >
+                          كافة الوظائف
+                        </button>
+                        <button 
+                          onClick={() => setSubTab('approvals')} 
+                          className={`px-4 py-2 rounded-xl text-xs font-black relative ${subTab === 'approvals' ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-500'}`}
+                        >
+                          بانتظار الموافقة
+                          {adminJobs.filter(j => j.status === 'pending').length > 0 && (
+                            <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center border-2 border-white">
+                              {adminJobs.filter(j => j.status === 'pending').length}
+                            </span>
+                          )}
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {adminJobs
+                          .filter(j => subTab === 'approvals' ? j.status === 'pending' : true)
+                          .filter(j => j.title.includes(searchTerm) || j.company.includes(searchTerm))
+                          .map(job => (
+                            <div key={job.id} className="bg-white border border-slate-200 rounded-3xl p-6 hover:shadow-lg transition-all">
+                              <div className="flex justify-between items-start mb-4">
+                                <div>
+                                  <h3 className="font-black text-slate-900">{job.title}</h3>
+                                  <p className="text-xs text-red-600 font-bold">{job.company}</p>
+                                </div>
+                                <span className={`px-2 py-1 rounded text-[10px] font-black uppercase ${job.status === 'published' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+                                  {job.status === 'published' ? 'منشورة' : 'قيد المراجعة'}
+                                </span>
+                              </div>
+                              
+                              <div className="space-y-2 mb-6">
+                                <div className="flex items-center gap-2 text-xs text-slate-500">
+                                  <MapPin className="w-3.5 h-3.5" /> {job.location} • {job.type}
+                                </div>
+                                <div className="flex items-center gap-2 text-xs text-slate-500">
+                                  <User className="w-3.5 h-3.5" /> الخبرة: {job.experience}
+                                </div>
+                                <div className="flex items-center gap-2 text-xs text-slate-500">
+                                  <Mail className="w-3.5 h-3.5" /> التواصل: {job.contact}
+                                </div>
+                              </div>
+
+                              <div className="flex gap-2 border-t pt-4">
+                                {job.status === 'pending' && (
+                                  <button 
+                                    onClick={() => {
+                                      const updated = adminJobs.map(j => j.id === job.id ? {...j, status: 'published'} : j);
+                                      setAdminJobs(updated);
+                                      setStatus({ type: 'success', msg: 'تمت الموافقة على الوظيفة ونشرها بنجاح' });
+                                    }}
+                                    className="flex-grow bg-emerald-600 text-white py-2 rounded-xl text-xs font-black hover:bg-emerald-700 transition-all"
+                                  >
+                                    موافقة ونشر
+                                  </button>
+                                )}
+                                <button 
+                                  onClick={() => {
+                                    setAdminJobs(adminJobs.filter(j => j.id !== job.id));
+                                    setStatus({ type: 'success', msg: 'تم حذف إعلان الوظيفة' });
+                                  }}
+                                  className="px-4 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-black hover:bg-red-100 transition-all"
+                                >
+                                  حذف
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                      {adminJobs.filter(j => subTab === 'approvals' ? j.status === 'pending' : true).length === 0 && (
+                        <div className="col-span-full text-center py-20 text-slate-300 font-bold">لا يوجد وظائف حالياً</div>
+                      )}
+                    </div>
                   ) : (
-                    (activeTab === 'files' ? files : activeTab === 'services' ? services : activeTab === 'features' ? features : activeTab === 'announcements' ? announcements : reviews)
+                    (activeTab === 'files' ? files : activeTab === 'services' ? services : activeTab === 'features' ? features : activeTab === 'announcements' ? announcements : activeTab === 'academy_products' ? academyProducts : reviews)
                       .filter(item => {
                         const matchesSearch = (item.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
                                              (item.description || item.content || "").toLowerCase().includes(searchTerm.toLowerCase());

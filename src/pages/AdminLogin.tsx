@@ -28,12 +28,25 @@ export default function AdminLogin() {
     setError(null);
     
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (authError) throw authError;
+
+      // Verify role
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (profileError || profile?.role !== 'admin') {
+        await supabase.auth.signOut();
+        throw new Error("عذراً، لا تمتلك صلاحيات الوصول للوحة التحكم.");
+      }
+
       navigate("/admin/dashboard");
     } catch (err: any) {
       setError(err.message || "حدث خطأ أثناء الدخول");

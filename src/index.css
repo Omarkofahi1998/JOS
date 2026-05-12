@@ -5,6 +5,11 @@
 }
 
 @layer base {
+  html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
   body {
     font-family: var(--font-sans);
     background-color: #fcfcfc;
@@ -27,6 +32,14 @@
 }
 
 @layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
   @media (max-width: 640px) {
     .mobile-text-snug {
       line-height: 1.4;
