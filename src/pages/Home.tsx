@@ -44,6 +44,18 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    const increment = async () => {
+      try {
+        await supabase.rpc('increment_visitor_count');
+      } catch (err) {
+        console.log("Visitor count failed");
+      }
+    };
+
+    increment();
+  }, []);
+
+  useEffect(() => {
     async function fetchAnnouncements() {
       if (!supabase) return;
       const { data } = await supabase

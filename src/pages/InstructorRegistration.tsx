@@ -1,7 +1,7 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import { supabase } from "../lib/supabase";
 import { Link } from "react-router-dom";
-import { Award, Users, Target, UploadCloud } from "lucide-react";
+import { Award, Users, Target } from "lucide-react";
 
 export default function InstructorRegistration() {
   const [formData, setFormData] = useState({ 
@@ -14,8 +14,6 @@ export default function InstructorRegistration() {
     linkedin: '', 
     degree: 'بكالوريوس' 
   });
-  const [file, setFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -23,22 +21,7 @@ export default function InstructorRegistration() {
     e.preventDefault();
     if (!supabase) return;
     setIsSubmitting(true);
-    let fileUrl = null;
-    
     try {
-      if (file) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
-        const { data, error: uploadError } = await supabase.storage
-          .from('submissions')
-          .upload(fileName, file);
-        
-        if (uploadError) throw uploadError;
-        
-        const { data: publicUrlData } = supabase.storage.from('submissions').getPublicUrl(fileName);
-        fileUrl = publicUrlData.publicUrl;
-      }
-
       const { error } = await supabase.from('system_submissions').insert({
         type: 'instructor',
         full_name: formData.fullName,
@@ -49,8 +32,7 @@ export default function InstructorRegistration() {
           major: formData.major,
           degree: formData.degree,
           years_of_experience: formData.yearsOfExperience,
-          linkedin_url: formData.linkedin,
-          certificate_url: fileUrl
+          linkedin_url: formData.linkedin
         },
         status: 'pending'
       });
@@ -157,15 +139,8 @@ export default function InstructorRegistration() {
                     <h3 className="text-sm font-black mb-4 text-slate-700 flex items-center gap-2">الشهادات والخبرات (PDF/صور)</h3>
                     <div className="space-y-1">
                         <span className="text-[10px] font-black text-slate-400 uppercase mr-1">الشهادة الجامعية أو شهادات الخبرة *</span>
-                        <input type="file" ref={fileInputRef} onChange={e => setFile(e.target.files?.[0] || null)} className="hidden" accept=".pdf,.jpg,.jpeg,.png" />
-                        <div 
-                          className="flex items-center justify-center w-full h-24 border border-slate-200 rounded-2xl bg-white hover:bg-slate-50 cursor-pointer transition-all"
-                          onClick={() => fileInputRef.current?.click()}
-                        >
-                            <span className="text-xs font-bold text-slate-400 flex items-center gap-2">
-                              <UploadCloud className="w-5 h-5"/>
-                              {file ? file.name : "تحميل ملف"}
-                            </span>
+                        <div className="flex items-center justify-center w-full h-24 border border-slate-200 rounded-2xl bg-white hover:bg-slate-50 cursor-pointer transition-all">
+                            <span className="text-xs font-bold text-slate-400">تحميل ملف</span>
                         </div>
                     </div>
                 </div>
