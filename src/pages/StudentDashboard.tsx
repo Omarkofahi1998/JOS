@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import OnlineUsers from "../components/OnlineUsers";
 import { 
   BookOpen, 
   MessageSquare, 
@@ -113,13 +114,16 @@ export default function StudentDashboard() {
             </p>
           </div>
 
-          <button 
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-6 py-3 bg-slate-50 text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-2xl font-black text-sm transition-all"
-          >
-            <LogOut className="w-4 h-4" />
-            تسجيل الخروج
-          </button>
+          <div className="flex flex-col items-center gap-4">
+            <OnlineUsers />
+            <button 
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-6 py-3 bg-slate-50 text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-2xl font-black text-sm transition-all"
+            >
+              <LogOut className="w-4 h-4" />
+              تسجيل الخروج
+            </button>
+          </div>
         </div>
       </div>
 
