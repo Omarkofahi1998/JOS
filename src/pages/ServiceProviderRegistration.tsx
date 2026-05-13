@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Award, Users, Target, CheckCircle2, Sparkles, Briefcase, Rocket, ArrowRight } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { Award, Users, Target, CheckCircle2, Sparkles, Briefcase, Rocket, ArrowRight, UploadCloud } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { supabase } from "../lib/supabase";
@@ -15,21 +15,43 @@ export default function ServiceProviderRegistration() {
     yearsInField: '',
     previousClients: ''
   });
+  const [file, setFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    let fileUrl = null;
     try {
-        const { error } = await supabase.from('registrations').insert([
+        if (file) {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
+            const { data, error: uploadError } = await supabase.storage
+              .from('submissions')
+              .upload(fileName, file);
+            
+            if (uploadError) throw uploadError;
+            
+            const { data: publicUrlData } = supabase.storage.from('submissions').getPublicUrl(fileName);
+            fileUrl = publicUrlData.publicUrl;
+        }
+
+        const { error } = await supabase.from('system_submissions').insert([
             {
                 type: 'service_provider',
                 full_name: formData.fullName,
                 email: formData.email,
                 phone: formData.phone,
-                specialization: formData.serviceCategory,
-                experience_summary: formData.experience,
+                content: formData.experience,
+                metadata: {
+                  service_category: formData.serviceCategory,
+                  portfolio_link: formData.portfolioLink,
+                  years_in_field: formData.yearsInField,
+                  previous_clients: formData.previousClients,
+                  certificate_url: fileUrl
+                },
                 status: 'pending'
             }
         ]);
@@ -180,9 +202,13 @@ export default function ServiceProviderRegistration() {
                     <h3 className="text-sm font-black text-slate-700 flex items-center gap-2">إثباتات الخبرة ونماذج الأعمال</h3>
                     <div className="space-y-1">
                         <span className="text-[10px] font-black text-slate-400 uppercase mr-1">شهادات خبرة أو نماذج أعمال (PDF/صور) *</span>
-                        <div className="flex flex-col items-center justify-center w-full h-32 border border-slate-200 rounded-2xl bg-white hover:bg-slate-50 cursor-pointer transition-all">
-                            <Award className="w-6 h-6 text-slate-300 mb-2" />
-                            <span className="text-xs font-bold text-slate-400">تحميل ملف</span>
+                        <input type="file" ref={fileInputRef} onChange={e => setFile(e.target.files?.[0] || null)} className="hidden" accept=".pdf,.jpg,.jpeg,.png" />
+                        <div 
+                           className="flex flex-col items-center justify-center w-full h-32 border border-slate-200 rounded-2xl bg-white hover:bg-slate-50 cursor-pointer transition-all"
+                           onClick={() => fileInputRef.current?.click()}
+                        >
+                            <UploadCloud className="w-6 h-6 text-slate-300 mb-2" />
+                            <span className="text-xs font-bold text-slate-400">{file ? file.name : "تحميل ملف"}</span>
                         </div>
                     </div>
                 </div>
