@@ -1401,6 +1401,18 @@ export default function AdminDashboard() {
     }
   };
 
+  const getBadgeCount = (id: string) => {
+    if (id === 'services') return services.filter((s: any) => s.status === 'pending').length;
+    if (id === 'jobs') return adminJobs.filter((j: any) => !j.is_active).length;
+    if (id === 'academy_products') return academyProducts.filter((p: any) => p.status === 'pending').length;
+    if (id === 'instructor_requests') return instructorRequests.filter((r: any) => r.status === 'pending' || !r.status).length;
+    if (id === 'contacts') return contacts.filter((c: any) => c.status === 'pending' || !c.status).length;
+    if (id === 'registrations') return registrations.filter((r: any) => r.status === 'pending' || !r.status).length;
+    if (id === 'service_providers') return serviceProviders.filter((r: any) => r.status === 'pending' || !r.status).length;
+    if (id === 'user_bookings') return userBookings.filter((b: any) => b.status === 'pending').length;
+    return 0;
+  };
+
   const sidebarItems = [
     { id: 'questions', name: 'بنك الأسئلة', icon: <HelpCircle className="w-5 h-5" /> },
     { id: 'files', name: 'بنك الملفات', icon: <FileText className="w-5 h-5" /> },
@@ -1472,28 +1484,22 @@ export default function AdminDashboard() {
             >
               <div className={`relative ${activeTab === item.id ? 'text-red-600' : 'text-slate-400 group-hover:text-red-600'}`}>
                 {item.icon}
-                {!sidebarOpen && item.id === 'contacts' && contacts.length > 0 && (
-                  <span className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-blue-600 text-white text-[8px] font-black flex items-center justify-center rounded-full border border-white">
-                    {contacts.length}
-                  </span>
-                )}
-                {!sidebarOpen && item.id === 'instructor_requests' && instructorRequests.length > 0 && (
+                {!sidebarOpen && getBadgeCount(item.id) > 0 && (
                   <span className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-red-600 text-white text-[8px] font-black flex items-center justify-center rounded-full border border-white">
-                    {instructorRequests.length}
+                    {getBadgeCount(item.id)}
                   </span>
                 )}
               </div>
               {sidebarOpen && <span className="font-bold text-sm whitespace-nowrap">{item.name}</span>}
               
               {/* Count Badges (Expanded Sidebar) */}
-              {sidebarOpen && item.id === 'contacts' && contacts.length > 0 && (
-                <span className="mr-auto bg-blue-100 text-blue-600 text-[10px] font-black px-2 py-0.5 rounded-full">
-                  {contacts.length}
-                </span>
-              )}
-              {sidebarOpen && item.id === 'instructor_requests' && instructorRequests.length > 0 && (
-                <span className="mr-auto bg-red-100 text-red-600 text-[10px] font-black px-2 py-0.5 rounded-full">
-                  {instructorRequests.length}
+              {sidebarOpen && getBadgeCount(item.id) > 0 && (
+                <span className={`mr-auto text-[10px] font-black px-2 py-0.5 rounded-full ${
+                  item.id === 'contacts' ? 'bg-blue-100 text-blue-600' : 
+                  item.id === 'instructor_requests' ? 'bg-red-100 text-red-600' : 
+                  'bg-orange-100 text-orange-600'
+                }`}>
+                  {getBadgeCount(item.id)}
                 </span>
               )}
 
@@ -1953,22 +1959,22 @@ export default function AdminDashboard() {
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      {activeTab === 'services' && (
+                      {(activeTab === 'services' || activeTab === 'academy_products') && (
                         <div className="flex gap-4 mb-6">
                           <button 
                             onClick={() => setSubTab('list')} 
                             className={`px-4 py-2 rounded-xl text-xs font-black ${subTab === 'list' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'}`}
                           >
-                            كافة الخدمات
+                            {activeTab === 'services' ? 'كافة الخدمات' : 'كافة المنتجات'}
                           </button>
                           <button 
                             onClick={() => setSubTab('approvals')} 
                             className={`px-4 py-2 rounded-xl text-xs font-black relative ${subTab === 'approvals' ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-500'}`}
                           >
                             بانتظار الموافقة
-                            {services.filter(s => s.status === 'pending').length > 0 && (
+                            { (activeTab === 'services' ? services : academyProducts).filter(s => s.status === 'pending').length > 0 && (
                               <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center border-2 border-white">
-                                {services.filter(s => s.status === 'pending').length}
+                                {(activeTab === 'services' ? services : academyProducts).filter(s => s.status === 'pending').length}
                               </span>
                             )}
                           </button>
@@ -1981,8 +1987,8 @@ export default function AdminDashboard() {
                         const matchesSearch = (item.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
                                              (item.description || item.content || "").toLowerCase().includes(searchTerm.toLowerCase());
                         
-                        // Fix: Only show pending in approvals tab, and non-pending in list tab for services
-                        if (activeTab === 'services') {
+                        // Fix: Only show pending in approvals tab, and non-pending in list tab for services & products
+                        if (activeTab === 'services' || activeTab === 'academy_products') {
                           if (subTab === 'approvals') return matchesSearch && item.status === 'pending';
                           return matchesSearch && item.status !== 'pending';
                         }
@@ -2031,7 +2037,7 @@ export default function AdminDashboard() {
                                    {item.is_active ? 'نشط' : 'متوقف'}
                                  </span>
                                )}
-                               {activeTab === 'services' && (
+                               {(activeTab === 'services' || activeTab === 'academy_products') && (
                                  <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${item.status === 'active' ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-500'}`}>
                                    {item.status === 'active' ? 'نشط' : 'بانتظار الموافقة'}
                                  </span>
@@ -2042,12 +2048,13 @@ export default function AdminDashboard() {
                           <h4 className="font-black text-slate-900 mb-2 truncate">{item.title || item.major || item.category || 'سجل جديد'}</h4>
                           <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 mb-6 flex-grow">{item.content || item.text || item.description || item.url}</p>
                           
-                          {activeTab === 'services' && item.status === 'pending' && (
+                          {(activeTab === 'services' || activeTab === 'academy_products') && item.status === 'pending' && (
                             <button 
                               onClick={async () => {
-                                const { error } = await supabase!.from('services').update({ status: 'active' }).eq('id', item.id);
+                                const table = activeTab === 'services' ? 'services' : 'products';
+                                const { error } = await supabase!.from(table).update({ status: 'active' }).eq('id', item.id);
                                 if (!error) {
-                                  setStatus({ type: 'success', msg: 'تمت الموافقة على الخدمة ونشرها بنجاح' });
+                                  setStatus({ type: 'success', msg: `تمت الموافقة على ${activeTab === 'services' ? 'الخدمة' : 'المنتج'} ونشره بنجاح` });
                                   fetchData();
                                 } else {
                                   setStatus({ type: 'error', msg: error.message });
@@ -2055,7 +2062,7 @@ export default function AdminDashboard() {
                               }}
                               className="w-full mb-4 py-2 bg-emerald-600 text-white rounded-xl text-[10px] font-black hover:bg-emerald-700 transition-all uppercase tracking-widest"
                             >
-                              موافقة ونشر الخدمة
+                              موافقة ونشر {activeTab === 'services' ? 'الخدمة' : 'المنتج'}
                             </button>
                           )}
 
@@ -2119,7 +2126,22 @@ export default function AdminDashboard() {
                                     <td className="px-6 py-4 text-sm text-slate-400 max-w-[150px] truncate">{req.content || req.experience || "لا توجد خبرة"}</td>
                                     <td className="px-6 py-4 text-sm text-slate-400">{new Date(req.created_at).toLocaleDateString()}</td>
                                     <td className="px-6 py-4 border-l border-slate-100">
-                                        <div className="flex items-center justify-center">
+                                        <div className="flex items-center justify-center gap-2">
+                                            {req.status !== 'approved' && (
+                                              <button 
+                                                  onClick={async () => {
+                                                    const { error } = await supabase.from('system_submissions').update({ status: 'approved' }).eq('id', req.id);
+                                                    if (!error) {
+                                                      setStatus({ type: 'success', msg: 'تمت الموافقة على الطلب بنجاح' });
+                                                      fetchData();
+                                                    }
+                                                  }}
+                                                  className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg transition-all"
+                                                  title="موافقة"
+                                              >
+                                                  <CheckCircle2 className="w-4 h-4" />
+                                              </button>
+                                            )}
                                             <button 
                                                 onClick={() => deleteItem('system_submissions', req.id)} 
                                                 className="p-2 bg-red-50 text-red-400 hover:bg-red-600 hover:text-white rounded-lg transition-all"
@@ -2230,6 +2252,21 @@ export default function AdminDashboard() {
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-2">
+                                            {reg.status !== 'approved' && (
+                                              <button 
+                                                  onClick={async () => {
+                                                    const { error } = await supabase.from('system_submissions').update({ status: 'approved' }).eq('id', reg.id);
+                                                    if (!error) {
+                                                      setStatus({ type: 'success', msg: 'تمت الموافقة على الطلب بنجاح' });
+                                                      fetchData();
+                                                    }
+                                                  }}
+                                                  className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg transition-all"
+                                                  title="موافقة"
+                                              >
+                                                  <CheckCircle2 className="w-4 h-4" />
+                                              </button>
+                                            )}
                                             <button 
                                                 onClick={() => setViewingRequest({
                                                     ...reg,
@@ -2281,6 +2318,21 @@ export default function AdminDashboard() {
                                     <td className="px-6 py-4 text-sm text-slate-400">{new Date(reg.created_at).toLocaleDateString()}</td>
                                     <td className="px-6 py-4 border-l border-slate-100">
                                         <div className="flex items-center justify-center gap-2">
+                                            {reg.status !== 'approved' && (
+                                              <button 
+                                                  onClick={async () => {
+                                                    const { error } = await supabase.from('system_submissions').update({ status: 'approved' }).eq('id', reg.id);
+                                                    if (!error) {
+                                                      setStatus({ type: 'success', msg: 'تمت الموافقة على الطلب بنجاح' });
+                                                      fetchData();
+                                                    }
+                                                  }}
+                                                  className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg transition-all"
+                                                  title="موافقة"
+                                              >
+                                                  <CheckCircle2 className="w-4 h-4" />
+                                              </button>
+                                            )}
                                             <button 
                                                 onClick={() => setViewingRequest(reg)} 
                                                 className="p-2 bg-slate-100 text-slate-500 hover:text-slate-900 rounded-lg transition-all"
