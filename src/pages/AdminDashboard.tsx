@@ -79,13 +79,37 @@ export default function AdminDashboard() {
         if (submission.type === 'instructor') msg = 'طلب انضمام مدرس جديد: ' + submission.full_name;
         else if (submission.type === 'contact') msg = 'رسالة تواصل جديدة من: ' + submission.full_name;
         else if (submission.type === 'business') msg = 'طلب تسجيل شركة: ' + submission.full_name;
+        else if (submission.type === 'service_provider') msg = 'طلب انضمام مقدم خدمة: ' + submission.full_name;
         
         setStatus({ type: 'success', msg });
         
         // Update specific lists
         if (submission.type === 'instructor') setInstructorRequests(prev => [submission, ...prev]);
-        if (submission.type === 'contact') setContacts(prev => [submission, ...prev]);
-        if (submission.type === 'business') setRegistrations(prev => [submission, ...prev]);
+        else if (submission.type === 'contact') setContacts(prev => [submission, ...prev]);
+        else if (submission.type === 'business') setRegistrations(prev => [submission, ...prev]);
+        else if (submission.type === 'service_provider') setServiceProviders(prev => [submission, ...prev]);
+      })
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'user_bookings' 
+      }, (payload) => {
+        console.log("New Booking Received:", payload);
+        const booking = payload.new;
+        setNotifications(prev => [{...booking, notif_type: 'booking'}, ...prev]);
+        setStatus({ type: 'success', msg: 'حجز/شراء جديد من: ' + booking.user_name });
+        setUserBookings(prev => [booking, ...prev]);
+      })
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'jobs' 
+      }, (payload) => {
+        console.log("New Job Received:", payload);
+        const job = payload.new;
+        setNotifications(prev => [{...job, notif_type: 'job'}, ...prev]);
+        setStatus({ type: 'success', msg: 'وظيفة جديدة بانتظار الموافقة: ' + job.title });
+        setAdminJobs(prev => [job, ...prev]);
       })
       .subscribe((status) => {
         console.log("Supabase Realtime Status:", status);
@@ -533,6 +557,7 @@ export default function AdminDashboard() {
         setInstructorRequests(submissions.data.filter((item: any) => item.type === 'instructor'));
         setRegistrations(submissions.data.filter((item: any) => item.type === 'business'));
         setServiceProviders(submissions.data.filter((item: any) => item.type === 'service_provider'));
+        setNotifications(submissions.data.filter((item: any) => item.status === 'pending' || item.status === 'new' || !item.status));
       }
 
       if (ann.data) setAnnouncements(ann.data);
@@ -1536,35 +1561,73 @@ export default function AdminDashboard() {
                             </div>
                         ) : (
                             <div className="space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
-                                {notifications.map((n, i) => (
-                                    <button 
-                                      key={i} 
-                                      onClick={() => { 
-                                        setActiveTab(n.type === 'instructor_request' ? 'instructor_requests' : 'contacts'); 
-                                        setShowNotifications(false); 
-                                        setNotifications(prev => prev.filter((_, idx) => idx !== i));
-                                      }} 
-                                      className="group w-full text-right p-3 hover:bg-slate-50 rounded-xl transition-all border-b border-slate-50 last:border-0 flex gap-3"
-                                    >
-                                        <div className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center transition-colors ${
-                                          n.type === 'instructor_request' ? 'bg-red-50 text-red-600 group-hover:bg-red-100' : 'bg-blue-50 text-blue-600 group-hover:bg-blue-100'
-                                        }`}>
-                                          {n.type === 'instructor_request' ? <UserCheck className="w-5 h-5" /> : <MessageSquare className="w-5 h-5" />}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                                                  n.type === 'instructor_request' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
-                                                }`}>
-                                                    {n.type === 'instructor_request' ? 'طلب انضمام' : 'رسالة جديدة'}
-                                                </span>
-                                                <span className="text-[10px] text-slate-400">{new Date(n.created_at || Date.now()).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' })}</span>
+                                {notifications.map((n, i) => {
+                                    let icon = <MessageSquare className="w-5 h-5" />;
+                                    let iconBg = 'bg-blue-50 text-blue-600 group-hover:bg-blue-100';
+                                    let badgeBg = 'bg-blue-50 text-blue-600';
+                                    let title = 'رسالة جديدة';
+                                    let nameStr = n.full_name || n.name || n.user_name || n.company_name || n.title;
+                                    let descStr = n.message || n.major || n.subject || (n.notif_type === 'booking' ? `طلب المنتج ${n.item_id}` : (n.notif_type === 'job' ? n.title : ''));
+                                    let targetTab = 'contacts';
+                                    
+                                    if (n.notif_type === 'booking') {
+                                        icon = <CheckCircle2 className="w-5 h-5" />;
+                                        iconBg = 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100';
+                                        badgeBg = 'bg-emerald-50 text-emerald-600';
+                                        title = 'مبيعات وحجوزات';
+                                        targetTab = 'user_bookings';
+                                    } else if (n.notif_type === 'job') {
+                                        icon = <Briefcase className="w-5 h-5" />;
+                                        iconBg = 'bg-amber-50 text-amber-600 group-hover:bg-amber-100';
+                                        badgeBg = 'bg-amber-50 text-amber-600';
+                                        title = 'وظيفة جديدة';
+                                        targetTab = 'jobs';
+                                    } else if (n.type === 'instructor') {
+                                        icon = <UserCheck className="w-5 h-5" />;
+                                        iconBg = 'bg-red-50 text-red-600 group-hover:bg-red-100';
+                                        badgeBg = 'bg-red-50 text-red-600';
+                                        title = 'طلب انضمام';
+                                        targetTab = 'instructor_requests';
+                                    } else if (n.type === 'business') {
+                                        icon = <Building2 className="w-5 h-5" />;
+                                        iconBg = 'bg-purple-50 text-purple-600 group-hover:bg-purple-100';
+                                        badgeBg = 'bg-purple-50 text-purple-600';
+                                        title = 'تسجيل شركة';
+                                        targetTab = 'registrations';
+                                    } else if (n.type === 'service_provider') {
+                                        icon = <User className="w-5 h-5" />;
+                                        iconBg = 'bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100';
+                                        badgeBg = 'bg-indigo-50 text-indigo-600';
+                                        title = 'مقدم خدمة';
+                                        targetTab = 'service_providers';
+                                    }
+
+                                    return (
+                                        <button 
+                                          key={i} 
+                                          onClick={() => { 
+                                            setActiveTab(targetTab as any); 
+                                            setShowNotifications(false); 
+                                            setNotifications(prev => prev.filter((_, idx) => idx !== i));
+                                          }} 
+                                          className="group w-full text-right p-3 hover:bg-slate-50 rounded-xl transition-all border-b border-slate-50 last:border-0 flex gap-3"
+                                        >
+                                            <div className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center transition-colors ${iconBg}`}>
+                                              {icon}
                                             </div>
-                                            <div className="text-sm font-bold text-slate-900 truncate">{n.fullName || n.name}</div>
-                                            <div className="text-xs text-slate-500 truncate">{n.major || n.subject || n.message}</div>
-                                        </div>
-                                    </button>
-                                ))}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${badgeBg}`}>
+                                                        {title}
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-400">{new Date(n.created_at || Date.now()).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                </div>
+                                                <div className="text-sm font-bold text-slate-900 truncate">{nameStr}</div>
+                                                <div className="text-xs text-slate-500 truncate">{descStr}</div>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
                             </div>
                         )}
                         {notifications.length > 0 && (
