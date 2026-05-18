@@ -134,6 +134,8 @@ export default function Services() {
         .insert([{
           provider_id: selectedService.provider_id,
           client_id: user.id,
+          user_name: userProfile?.full_name || user.email?.split('@')[0],
+          user_email: user.email,
           item_id: selectedService.id,
           item_type: 'service',
           amount: selectedService.price || 0,

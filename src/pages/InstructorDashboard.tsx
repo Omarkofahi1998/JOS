@@ -107,6 +107,7 @@ export default function InstructorDashboard() {
   };
 
   useEffect(() => {
+    let subscription: any = null;
     supabase?.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setUser(session.user);
@@ -120,44 +121,77 @@ export default function InstructorDashboard() {
               navigate("/student/dashboard");
             }
           });
+
+        subscription = supabase.channel('instructor-bookings')
+          .on('postgres_changes', { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'user_bookings',
+            filter: `provider_id=eq.${session.user.id}`
+          }, (payload) => {
+            console.log("New booking Recieved", payload);
+            fetchInstructorData(session.user);
+            const booking = payload.new;
+            const newNotif: Notification = {
+              id: booking.id,
+              title: 'طالب جديد!',
+              message: `قام ${booking.user_name || 'طالب'} بالتسجيل في دورتك`,
+              time: 'الآن',
+              type: 'enrollment',
+              read: false
+            };
+            setNotifications(prev => [newNotif, ...prev]);
+            addToast("تسجيل طالب جديد في دورتك!", "success");
+          })
+          .subscribe();
       }
     });
 
-    const timer = setTimeout(() => {
-      if (!user) return;
-      const newNotif: Notification = {
-        id: Date.now().toString(),
-        title: 'طالب جديد!',
-        message: 'قام أحد الطلاب بالتسجيل في دورتك الآن',
-        time: 'الآن',
-        type: 'enrollment',
-        read: false
-      };
-      setNotifications(prev => [newNotif, ...prev]);
-      addToast("تسجيل طالب جديد في دورتك!", "success");
-    }, 15000);
-    return () => clearTimeout(timer);
+    return () => {
+      if (subscription) supabase?.removeChannel(subscription);
+    };
   }, []);
 
-  const fetchInstructorData = async (user: any) => {
+  const fetchInstructorData = async (userObj: any) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase!
+      const { data: prods, error } = await supabase!
         .from('products')
-        .select('*');
+        .select('*')
+        .eq('instructor_id', userObj.id);
       
       if (error) throw error;
 
-      if (data) {
-        setInstructorProducts(data);
-        const totalStudents = data.reduce((acc, curr) => acc + (curr.students_count || 0), 0);
-        const avgRating = data.length > 0 ? (data.reduce((acc, curr) => acc + (curr.rating || 0), 0) / data.length).toFixed(1) : "0.0";
+      const { data: bookings } = await supabase!
+        .from('user_bookings')
+        .select('*')
+        .eq('provider_id', userObj.id)
+        .eq('item_type', 'course')
+        .order('created_at', { ascending: false });
+
+      if (bookings) {
+        const mappedNotifs: Notification[] = bookings.slice(0, 10).map(b => ({
+            id: b.id,
+            title: 'طالب مسجل',
+            message: `تسجيل ${b.user_name || 'مستخدم مجهول'} بنجاح`,
+            time: new Date(b.created_at).toLocaleDateString('ar-JO'),
+            type: 'enrollment',
+            read: true
+        }));
+        setNotifications(mappedNotifs);
+      }
+
+      if (prods) {
+        setInstructorProducts(prods);
+        const totalStudents = bookings?.length || prods.reduce((acc, curr) => acc + (curr.students_count || 0), 0);
+        const totalEarnings = bookings?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
+        const avgRating = prods.length > 0 ? (prods.reduce((acc, curr) => acc + (curr.rating || 0), 0) / prods.length).toFixed(1) : "0.0";
         
         setStats([
           { label: "مجموع الطلاب", value: totalStudents.toLocaleString(), icon: <Users />, color: "text-indigo-600", bg: "bg-indigo-50" },
-          { label: "الأرباح الكلية", value: "0 JOD", icon: <DollarSign />, color: "text-emerald-600", bg: "bg-emerald-50" },
+          { label: "الأرباح الكلية", value: `${totalEarnings} JOD`, icon: <DollarSign />, color: "text-emerald-600", bg: "bg-emerald-50" },
           { label: "متوسط التقييم", value: avgRating, icon: <Star />, color: "text-orange-600", bg: "bg-orange-50" },
-          { label: "الدورات النشطة", value: data.length.toString(), icon: <BookOpen />, color: "text-slate-600", bg: "bg-slate-50" },
+          { label: "الدورات النشطة", value: prods.length.toString(), icon: <BookOpen />, color: "text-slate-600", bg: "bg-slate-50" },
         ]);
       }
     } catch (err) {

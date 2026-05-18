@@ -66,9 +66,12 @@ export default function Marketplace() {
         .from('user_bookings')
         .insert([{
           client_id: user.id,
+          user_name: userProfile?.full_name || user.email?.split('@')[0],
+          user_email: user.email,
           item_id: selectedProduct?.id,
           item_type: 'course',
           amount: selectedProduct?.price || 0,
+          provider_id: selectedProduct?.instructor_id,
           status: 'pending'
         }]);
 

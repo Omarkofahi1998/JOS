@@ -20,7 +20,7 @@ export default function ProfessionalDashboard() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
-  const [requests, setRequests] = useState<ServiceRequest[]>([]);
+  const [requests, setRequests] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [showAddServiceModal, setShowAddServiceModal] = useState(false);
   const [isSubmittingService, setIsSubmittingService] = useState(false);
@@ -37,6 +37,7 @@ export default function ProfessionalDashboard() {
   });
 
   useEffect(() => {
+    let subscription: any = null;
     supabase?.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setUser(session.user);
@@ -44,10 +45,31 @@ export default function ProfessionalDashboard() {
         fetchRequests(session.user.id);
         fetchServices(session.user.id);
         fetchStats(session.user.id);
+
+        subscription = supabase.channel('pro-bookings')
+          .on('postgres_changes', { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'user_bookings',
+            filter: `provider_id=eq.${session.user.id}`
+          }, (payload) => {
+            console.log("New booking Recieved", payload);
+            fetchRequests(session.user.id);
+            fetchStats(session.user.id);
+            // Could add a toast notification here
+          })
+          .subscribe();
+
       } else {
         window.location.href = "/professional-services/login";
       }
     });
+
+    return () => {
+      if (subscription) {
+        supabase?.removeChannel(subscription);
+      }
+    };
   }, []);
 
   const fetchServices = async (userId: string) => {
@@ -94,8 +116,9 @@ export default function ProfessionalDashboard() {
 
   const fetchRequests = async (userId: string) => {
     const { data, error } = await supabase!
-      .from('service_requests')
-      .select('*')
+      .from('user_bookings')
+      .select('*, services:item_id(title)')
+      .eq('item_type', 'service')
       .eq('provider_id', userId)
       .order('created_at', { ascending: false });
     
@@ -104,8 +127,9 @@ export default function ProfessionalDashboard() {
 
   const fetchStats = async (userId: string) => {
     const { data, error } = await supabase!
-      .from('service_requests')
+      .from('user_bookings')
       .select('amount, status')
+      .eq('item_type', 'service')
       .eq('provider_id', userId);
 
     if (!error && data) {
@@ -237,9 +261,9 @@ export default function ProfessionalDashboard() {
                     {requests.map((req: any) => (
                       <tr key={req.id} className="hover:bg-slate-50 transition-colors">
                         <td className="p-4">
-                          <div className="font-bold text-slate-900 text-sm">{req.client_name}</div>
+                          <div className="font-bold text-slate-900 text-sm">{req.user_name || req.user_email?.split('@')[0] || 'مستخدم مجهول'}</div>
                         </td>
-                        <td className="p-4 text-xs font-bold text-slate-600">{req.service_type}</td>
+                        <td className="p-4 text-xs font-bold text-slate-600">{req.services?.title || '-'}</td>
                         <td className="p-4 text-sm font-black text-slate-900">{req.amount}</td>
                         <td className="p-4">
                           <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
