@@ -22,14 +22,14 @@ export default function ServiceProviderRegistration() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-        const { error } = await supabase.from('registrations').insert([
+        const { error } = await supabase.from('system_submissions').insert([
             {
                 type: 'service_provider',
                 full_name: formData.fullName,
                 email: formData.email,
                 phone: formData.phone,
-                specialization: formData.serviceCategory,
-                experience_summary: formData.experience,
+                // using JSON payload in content/message field for extras
+                content: `Service Category: ${formData.serviceCategory}\nExperience: ${formData.experience}\nYears in field: ${formData.yearsInField}\nPrevious clients: ${formData.previousClients}`,
                 status: 'pending'
             }
         ]);

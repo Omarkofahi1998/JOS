@@ -19,7 +19,7 @@ const CATEGORIES = ["مختبرات", "تمريض", "قانون", "معلم صف
 
 export default function AdminDashboard() {
   const [session, setSession] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'questions' | 'files' | 'services' | 'settings' | 'features' | 'reviews' | 'contacts' | 'instructor_requests' | 'announcements' | 'academy_products' | 'jobs'>('questions');
+  const [activeTab, setActiveTab] = useState<'questions' | 'files' | 'services' | 'settings' | 'features' | 'reviews' | 'contacts' | 'instructor_requests' | 'registrations' | 'service_providers' | 'announcements' | 'academy_products' | 'jobs' | 'user_bookings'>('questions');
   const [subTab, setSubTab] = useState<'add' | 'list' | 'bulk' | 'approvals'>('list');
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
@@ -46,7 +46,9 @@ export default function AdminDashboard() {
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [adminJobs, setAdminJobs] = useState<any[]>([]);
   const [registrations, setRegistrations] = useState<any[]>([]);
+  const [serviceProviders, setServiceProviders] = useState<any[]>([]);
   const [academyProducts, setAcademyProducts] = useState<any[]>([]);
+  const [userBookings, setUserBookings] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [onlineCount, setOnlineCount] = useState<number>(0);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -506,7 +508,7 @@ export default function AdminDashboard() {
     if (!supabase) return;
     setLoading(true);
     try {
-      const [q, f, s, settings, feat, rev, submissions, stats, ann, jobs, prod] = await Promise.all([
+      const [q, f, s, settings, feat, rev, submissions, stats, ann, jobs, prod, bookings] = await Promise.all([
         supabase.from('questions').select('*').order('id', { ascending: false }),
         supabase.from('question_files').select('*').order('id', { ascending: false }),
         supabase.from('services').select('*').order('id', { ascending: false }),
@@ -517,7 +519,8 @@ export default function AdminDashboard() {
         supabase.from('visitor_stats').select('count').eq('id', 1).single(),
         supabase.from('announcements').select('*').order('created_at', { ascending: false }),
         supabase.from('jobs').select('*').order('created_at', { ascending: false }),
-        supabase.from('products').select('*').order('created_at', { ascending: false })
+        supabase.from('products').select('*').order('created_at', { ascending: false }),
+        supabase.from('user_bookings').select('*, products:item_id (title, type), services:item_id (title)').order('created_at', { ascending: false })
       ]);
       if (q.data) setQuestions(q.data);
       if (f.data) setFiles(f.data);
@@ -529,11 +532,13 @@ export default function AdminDashboard() {
         setContacts(submissions.data.filter((item: any) => item.type === 'contact'));
         setInstructorRequests(submissions.data.filter((item: any) => item.type === 'instructor'));
         setRegistrations(submissions.data.filter((item: any) => item.type === 'business'));
+        setServiceProviders(submissions.data.filter((item: any) => item.type === 'service_provider'));
       }
 
       if (ann.data) setAnnouncements(ann.data);
       if (jobs.data) setAdminJobs(jobs.data);
       if (prod.data) setAcademyProducts(prod.data);
+      if (bookings.data) setUserBookings(bookings.data);
       
       if (settings.data) {
         const obj: any = {};
@@ -1376,6 +1381,7 @@ export default function AdminDashboard() {
     { id: 'files', name: 'بنك الملفات', icon: <FileText className="w-5 h-5" /> },
     { id: 'academy_products', name: 'منتجات الأكاديمية', icon: <BookOpen className="w-5 h-5" /> },
     { id: 'jobs', name: 'الوظائف', icon: <Sparkles className="w-5 h-5" /> },
+    { id: 'user_bookings', name: 'المبيعات والحجوزات', icon: <BookOpen className="w-5 h-5" /> },
     { id: 'services', name: 'الخدمات المهنية', icon: <Sparkles className="w-5 h-5" /> },
     { id: 'features', name: 'أدوات التفوق', icon: <Layers className="w-5 h-5" /> },
     { id: 'reviews', name: 'المراجعات', icon: <MessageSquare className="w-5 h-5" /> },
@@ -1384,6 +1390,7 @@ export default function AdminDashboard() {
     { id: 'announcements', name: 'نظام الإعلانات', icon: <Megaphone className="w-5 h-5" /> },
     { id: 'instructor_requests', name: 'طلبات الانضمام', icon: <UserCheck className="w-5 h-5" /> },
     { id: 'registrations', name: 'طلبات الشركات', icon: <Building2 className="w-5 h-5" /> },
+    { id: 'service_providers', name: 'مقدمي الخدمات', icon: <User className="w-5 h-5" /> },
   ];
 
   if (!session) return null;
@@ -1595,7 +1602,7 @@ export default function AdminDashboard() {
           {/* Action Tabs */}
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
             <div className="flex flex-wrap gap-2">
-              {activeTab !== 'settings' && activeTab !== 'contacts' && activeTab !== 'instructor_requests' && activeTab !== 'registrations' && (
+              {activeTab !== 'settings' && activeTab !== 'contacts' && activeTab !== 'instructor_requests' && activeTab !== 'registrations' && activeTab !== 'service_providers' && activeTab !== 'user_bookings' && (
                 <>
                   <button 
                     onClick={() => setSubTab('list')}
@@ -2010,6 +2017,117 @@ export default function AdminDashboard() {
                                                 title="عرض التفاصيل الكاملة"
                                             >
                                                 <Eye className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+              )}
+
+              {subTab === 'list' && activeTab === 'user_bookings' && (
+                <div className="overflow-x-auto">
+                    <table className="w-full text-right border-collapse">
+                        <thead>
+                            <tr className="bg-slate-50 border-b border-slate-200">
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">اسم العميل</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">البريد الإلكتروني</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">الخدمة / المنتج</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">النوع</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">السعر</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">حالة الدفع</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {userBookings.map(booking => (
+                                <tr key={booking.id} className="border-b border-slate-100 hover:bg-slate-50 transition-all">
+                                    <td className="px-6 py-4 font-bold text-slate-900">{booking.user_name}</td>
+                                    <td className="px-6 py-4 text-sm text-slate-500">{booking.user_email}</td>
+                                    <td className="px-6 py-4 font-bold text-slate-900">{booking.item_type === 'product' ? booking.products?.title : booking.item_type === 'service' ? booking.services?.title : '-'}</td>
+                                    <td className="px-6 py-4 text-sm text-slate-500">{booking.item_type === 'product' ? 'منتج أكاديمية' : 'خدمة مهنية'}</td>
+                                    <td className="px-6 py-4 text-sm font-bold text-emerald-600">{booking.amount} ريال</td>
+                                    <td className="px-6 py-4">
+                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${booking.status === 'completed' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+                                            {booking.status === 'completed' ? 'مكتمل' : 'قيد الانتظار'}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-2">
+                                            {booking.status !== 'completed' && (
+                                                <button 
+                                                    onClick={async () => {
+                                                        const { error } = await supabase!.from('user_bookings').update({ status: 'completed' }).eq('id', booking.id);
+                                                        if (!error) {
+                                                            setStatus({ type: 'success', msg: 'تم تحديث حالة الدفع إلى مكتمل' });
+                                                            fetchData();
+                                                        } else {
+                                                            setStatus({ type: 'error', msg: 'حدث خطأ أثناء التحديث' });
+                                                        }
+                                                    }}
+                                                    className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg transition-all"
+                                                    title="تأكيد الدفع"
+                                                >
+                                                    <CheckCircle2 className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    {userBookings.length === 0 && (
+                        <div className="text-center py-20 text-slate-300 font-bold">لا يوجد مبيعات أو حجوزات حالياً</div>
+                    )}
+                </div>
+              )}
+
+              {subTab === 'list' && activeTab === 'service_providers' && (
+                <div className="overflow-x-auto">
+                    <table className="w-full text-right border-collapse">
+                        <thead>
+                            <tr className="bg-slate-50 border-b border-slate-200">
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">اسم المقدم</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">البريد الإلكتروني</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">رقم الهاتف</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">حالة الطلب</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {serviceProviders.map(reg => (
+                                <tr key={reg.id} className="border-b border-slate-100 hover:bg-slate-50 transition-all">
+                                    <td className="px-6 py-4 font-bold text-slate-900">{reg.full_name || reg.name}</td>
+                                    <td className="px-6 py-4 text-sm text-slate-500">{reg.email}</td>
+                                    <td className="px-6 py-4 text-sm text-slate-500">{reg.phone}</td>
+                                    <td className="px-6 py-4">
+                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${reg.status === 'read' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+                                            {reg.status === 'read' ? 'مقروء' : 'جديد'}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-2">
+                                            <button 
+                                                onClick={() => setViewingRequest({
+                                                    ...reg,
+                                                    name: reg.full_name || reg.name,
+                                                    organization: 'مقدم خدمات محترف',
+                                                    notes: reg.content || reg.message
+                                                })}
+                                                className="p-2 bg-slate-100 text-slate-600 hover:bg-slate-900 hover:text-white rounded-lg transition-all"
+                                                title="عرض التفاصيل"
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                            </button>
+                                            <button 
+                                                onClick={() => deleteItem('system_submissions', reg.id)} 
+                                                className="p-2 bg-red-50 text-red-400 hover:bg-red-600 hover:text-white rounded-lg transition-all"
+                                                title="حذف الطلب"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>
                                     </td>
