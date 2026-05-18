@@ -1980,8 +1980,14 @@ export default function AdminDashboard() {
                       .filter(item => {
                         const matchesSearch = (item.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
                                              (item.description || item.content || "").toLowerCase().includes(searchTerm.toLowerCase());
-                        const matchesApproval = activeTab === 'services' && subTab === 'approvals' ? item.status === 'pending' : true;
-                        return matchesSearch && matchesApproval;
+                        
+                        // Fix: Only show pending in approvals tab, and non-pending in list tab for services
+                        if (activeTab === 'services') {
+                          if (subTab === 'approvals') return matchesSearch && item.status === 'pending';
+                          return matchesSearch && item.status !== 'pending';
+                        }
+                        
+                        return matchesSearch;
                       }).map((item, idx) => (
                         <motion.div 
                           key={item.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.05 }}
