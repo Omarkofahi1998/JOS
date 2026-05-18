@@ -1952,16 +1952,41 @@ export default function AdminDashboard() {
                       )}
                     </div>
                   ) : (
-                    (activeTab === 'files' ? files : activeTab === 'services' ? services : activeTab === 'features' ? features : activeTab === 'announcements' ? announcements : activeTab === 'academy_products' ? academyProducts : reviews)
+                    <div className="space-y-6">
+                      {activeTab === 'services' && (
+                        <div className="flex gap-4 mb-6">
+                          <button 
+                            onClick={() => setSubTab('list')} 
+                            className={`px-4 py-2 rounded-xl text-xs font-black ${subTab === 'list' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'}`}
+                          >
+                            كافة الخدمات
+                          </button>
+                          <button 
+                            onClick={() => setSubTab('approvals')} 
+                            className={`px-4 py-2 rounded-xl text-xs font-black relative ${subTab === 'approvals' ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-500'}`}
+                          >
+                            بانتظار الموافقة
+                            {services.filter(s => s.status === 'pending').length > 0 && (
+                              <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center border-2 border-white">
+                                {services.filter(s => s.status === 'pending').length}
+                              </span>
+                            )}
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {(activeTab === 'files' ? files : activeTab === 'services' ? services : activeTab === 'features' ? features : activeTab === 'announcements' ? announcements : activeTab === 'academy_products' ? academyProducts : reviews)
                       .filter(item => {
                         const matchesSearch = (item.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
                                              (item.description || item.content || "").toLowerCase().includes(searchTerm.toLowerCase());
-                        return matchesSearch;
+                        const matchesApproval = activeTab === 'services' && subTab === 'approvals' ? item.status === 'pending' : true;
+                        return matchesSearch && matchesApproval;
                       }).map((item, idx) => (
                         <motion.div 
                           key={item.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.05 }}
                           className={`p-6 bg-white border rounded-3xl transition-all group flex flex-col h-full ${
-                             activeTab === 'announcements' && item.is_active 
+                             (activeTab === 'announcements' && item.is_active) || (activeTab === 'services' && item.status === 'active')
                              ? 'border-emerald-200 shadow-lg shadow-emerald-500/5' 
                              : 'border-slate-100 hover:border-red-100 hover:shadow-xl hover:shadow-red-500/5'
                           }`}
@@ -2000,11 +2025,34 @@ export default function AdminDashboard() {
                                    {item.is_active ? 'نشط' : 'متوقف'}
                                  </span>
                                )}
+                               {activeTab === 'services' && (
+                                 <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${item.status === 'active' ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-500'}`}>
+                                   {item.status === 'active' ? 'نشط' : 'بانتظار الموافقة'}
+                                 </span>
+                               )}
                                <span className="text-[10px] font-black text-slate-300 uppercase"># {item.id}</span>
                              </div>
                           </div>
                           <h4 className="font-black text-slate-900 mb-2 truncate">{item.title || item.major || item.category || 'سجل جديد'}</h4>
                           <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 mb-6 flex-grow">{item.content || item.text || item.description || item.url}</p>
+                          
+                          {activeTab === 'services' && item.status === 'pending' && (
+                            <button 
+                              onClick={async () => {
+                                const { error } = await supabase!.from('services').update({ status: 'active' }).eq('id', item.id);
+                                if (!error) {
+                                  setStatus({ type: 'success', msg: 'تمت الموافقة على الخدمة ونشرها بنجاح' });
+                                  fetchData();
+                                } else {
+                                  setStatus({ type: 'error', msg: error.message });
+                                }
+                              }}
+                              className="w-full mb-4 py-2 bg-emerald-600 text-white rounded-xl text-[10px] font-black hover:bg-emerald-700 transition-all uppercase tracking-widest"
+                            >
+                              موافقة ونشر الخدمة
+                            </button>
+                          )}
+
                           <div className="pt-4 border-t border-slate-50 flex items-center justify-between text-[10px] font-black text-slate-400 uppercase">
                              <div className="flex items-center gap-3">
                                 {activeTab === 'announcements' ? (
@@ -2033,10 +2081,13 @@ export default function AdminDashboard() {
                              <ChevronRight className="w-3 h-3" />
                           </div>
                         </motion.div>
-                    ))
-                  )}
-                </div>
-              )}
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
               {subTab === 'list' && activeTab === 'instructor_requests' && (
                 <div className="overflow-x-auto">
                     <table className="w-full text-right border-collapse">
