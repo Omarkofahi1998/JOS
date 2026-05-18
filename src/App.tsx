@@ -25,6 +25,7 @@ const JobBoard = lazy(() => import("./pages/JobBoard"));
 
 const ProfessionalServicesLogin = lazy(() => import("./pages/ProfessionalServicesLogin"));
 const ProfessionalDashboard = lazy(() => import("./pages/ProfessionalDashboard"));
+const ServiceDetails = lazy(() => import("./pages/ServiceDetails"));
 
 function LoadingFallback() {
   return (
@@ -100,6 +101,7 @@ export default function App() {
                   <Route path="/company-registration" element={<CompanyRegistration />} />
                   <Route path="/professional-services/login" element={<ProfessionalServicesLogin />} />
                   <Route path="/professional/dashboard" element={<ProfessionalDashboard />} />
+                  <Route path="/service/:id" element={<ServiceDetails />} />
                 </Routes>
               </Suspense>
             </Layout>

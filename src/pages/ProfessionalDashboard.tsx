@@ -28,7 +28,9 @@ export default function ProfessionalDashboard() {
     title: '',
     description: '',
     price: '',
-    category: 'تعديل سيرة ذاتية'
+    category: 'تعديل سيرة ذاتية',
+    contact_method: 'whatsapp',
+    contact_info: ''
   });
   const [stats, setStats] = useState({
     total: 0,
@@ -96,6 +98,8 @@ export default function ProfessionalDashboard() {
           description: newService.description,
           price: parseFloat(newService.price),
           category: newService.category,
+          contact_method: newService.contact_method,
+          contact_info: newService.contact_info,
           icon_name: 'Sparkles',
           bg_color: 'bg-blue-50',
           status: 'pending' // Force pending status for admin approval
@@ -104,7 +108,14 @@ export default function ProfessionalDashboard() {
       if (error) throw error;
       
       setShowAddServiceModal(false);
-      setNewService({ title: '', description: '', price: '', category: 'تعديل سيرة ذاتية' });
+      setNewService({ 
+        title: '', 
+        description: '', 
+        price: '', 
+        category: 'تعديل سيرة ذاتية',
+        contact_method: 'whatsapp',
+        contact_info: ''
+      });
       fetchServices(user.id);
     } catch (err) {
       console.error("Error adding service:", err);
@@ -411,6 +422,33 @@ export default function ProfessionalDashboard() {
                         <option value="تحسين LinkedIn">تحسين LinkedIn</option>
                         <option value="تدريب مقابلات">تدريب مقابلات</option>
                       </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 mr-1">طريقة التواصل</label>
+                      <select 
+                        required
+                        className="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-blue-600 focus:bg-white transition-all font-bold text-xs appearance-none"
+                        value={newService.contact_method}
+                        onChange={e => setNewService({...newService, contact_method: e.target.value})}
+                      >
+                        <option value="whatsapp">واتساب</option>
+                        <option value="email">بريد إلكتروني</option>
+                        <option value="phone">اتصال مباشر</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 mr-1">رقم التواصل / الإيميل</label>
+                      <input 
+                        required
+                        type="text" 
+                        className="w-full h-12 px-6 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-blue-600 focus:bg-white transition-all font-bold text-sm"
+                        placeholder={newService.contact_method === 'email' ? 'example@mail.com' : '9627XXXXXXXX'}
+                        value={newService.contact_info}
+                        onChange={e => setNewService({...newService, contact_info: e.target.value})}
+                      />
                     </div>
                   </div>
 

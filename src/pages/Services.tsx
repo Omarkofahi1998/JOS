@@ -8,9 +8,6 @@ export default function Services() {
   const navigate = useNavigate();
   const [servicesList, setServicesList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedService, setSelectedService] = useState<any>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
 
@@ -121,41 +118,6 @@ export default function Services() {
     }
     fetchServices();
   }, []);
-  const handleConfirmRequest = async () => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const { error } = await supabase!
-        .from('user_bookings')
-        .insert([{
-          provider_id: selectedService.provider_id,
-          client_id: user.id,
-          user_name: userProfile?.full_name || user.email?.split('@')[0],
-          user_email: user.email,
-          item_id: selectedService.id,
-          item_type: 'service',
-          amount: selectedService.price || 0,
-          status: 'pending'
-        }]);
-
-      if (error) throw error;
-      
-      setShowSuccess(true);
-      setTimeout(() => {
-        setShowSuccess(false);
-        setSelectedService(null);
-      }, 3000);
-    } catch (err) {
-      console.error("Error requesting service:", err);
-      alert("حدث خطأ أثناء تقديم الطلب");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   return (
     <div className="bg-slate-50 min-h-screen">
@@ -247,7 +209,7 @@ export default function Services() {
                 
                 <div className="flex items-center justify-between pt-3 border-t border-slate-50">
                   <button 
-                    onClick={() => s.isReal ? setSelectedService(s) : alert("هذه الخدمة ستتوفر قريباً")}
+                    onClick={() => s.isReal ? navigate(`/service/${s.id}`) : alert("هذه الخدمة ستتوفر قريباً")}
                     className="flex items-center gap-1.5 text-red-600 font-black text-[11px] md:text-xs hover:gap-2.5 transition-all group/btn"
                   >
                     <span>احجز الآن</span>
@@ -267,90 +229,6 @@ export default function Services() {
           </div>
         )}
       </section>
-
-      {/* Request Modal */}
-      <AnimatePresence>
-        {selectedService && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => !isSubmitting && setSelectedService(null)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-xl"
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/20"
-            >
-              {showSuccess ? (
-                <div className="p-12 text-center">
-                  <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <CheckCircle className="w-10 h-10" />
-                  </div>
-                  <h2 className="text-2xl font-black text-slate-900 mb-2">تم استلام طلبك!</h2>
-                  <p className="text-slate-500 font-bold">سيقوم الخبير بمراجعة طلبك والتواصل معك قريباً.</p>
-                </div>
-              ) : (
-                <div className="p-8 md:p-10">
-                  <div className="flex justify-between items-center mb-8 text-right">
-                    <div>
-                      <h2 className="text-xl font-black text-slate-900">تأكيد طلب الخدمة</h2>
-                      <p className="text-xs font-bold text-slate-400 mt-1">أنت على وشك طلب خدمة احترافية</p>
-                    </div>
-                    <button onClick={() => setSelectedService(null)} className="w-10 h-10 bg-slate-50 text-slate-400 rounded-xl flex items-center justify-center hover:bg-red-50 hover:text-red-600 transition-all">
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 mb-8 text-right">
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className={`w-12 h-12 ${selectedService.color} rounded-2xl flex items-center justify-center shrink-0`}>
-                        {selectedService.icon}
-                      </div>
-                      <div>
-                        <h3 className="font-black text-slate-900 leading-tight">{selectedService.title}</h3>
-                        <p className="text-[10px] font-black text-red-600 uppercase tracking-widest mt-1">{selectedService.category}</p>
-                      </div>
-                    </div>
-                    <p className="text-xs text-slate-500 font-bold leading-relaxed">
-                      {selectedService.desc}
-                    </p>
-                    <div className="mt-4 pt-4 border-t border-slate-200 flex justify-between items-center">
-                      <span className="text-sm font-black text-slate-900">{selectedService.price} JOD</span>
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">التكلفة المتوقعة</span>
-                    </div>
-                  </div>
-
-                  <button 
-                    onClick={handleConfirmRequest}
-                    disabled={isSubmitting}
-                    className="w-full h-16 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-600 transition-all duration-300 shadow-xl shadow-slate-900/10 flex items-center justify-center gap-3 disabled:opacity-50"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        جاري إرسال الطلب...
-                      </>
-                    ) : (
-                      <>
-                        تأكيد وإرسال للمراجعة
-                        <ArrowLeft className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-                  
-                  <p className="text-center text-[10px] font-bold text-slate-400 mt-6 max-w-[250px] mx-auto">
-                    بضغطك على تأكيد، سيتم إرسال بياناتك للخبير المعتمد لمراجعتها والبدء بالعمل.
-                  </p>
-                </div>
-              )}
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
