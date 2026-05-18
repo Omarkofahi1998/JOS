@@ -1375,6 +1375,7 @@ export default function AdminDashboard() {
     { id: 'questions', name: 'بنك الأسئلة', icon: <HelpCircle className="w-5 h-5" /> },
     { id: 'files', name: 'بنك الملفات', icon: <FileText className="w-5 h-5" /> },
     { id: 'academy_products', name: 'منتجات الأكاديمية', icon: <BookOpen className="w-5 h-5" /> },
+    { id: 'jobs', name: 'الوظائف', icon: <Sparkles className="w-5 h-5" /> },
     { id: 'services', name: 'الخدمات المهنية', icon: <Sparkles className="w-5 h-5" /> },
     { id: 'features', name: 'أدوات التفوق', icon: <Layers className="w-5 h-5" /> },
     { id: 'reviews', name: 'المراجعات', icon: <MessageSquare className="w-5 h-5" /> },
