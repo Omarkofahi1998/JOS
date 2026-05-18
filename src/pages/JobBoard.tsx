@@ -153,6 +153,8 @@ export default function JobBoard() {
           type: newJob.type,
           description: newJob.description,
           salary_range: newJob.salary,
+          experience: newJob.experience,
+          contact: newJob.contact,
           is_active: false // Admin must approve
         }
       ]);
