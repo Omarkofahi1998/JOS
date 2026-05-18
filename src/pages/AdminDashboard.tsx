@@ -428,6 +428,14 @@ export default function AdminDashboard() {
   const [sDesc, setSDesc] = useState("");
   const [sIcon, setSIcon] = useState("Settings");
   const [sColor, setSColor] = useState("bg-slate-50");
+  const [sPrice, setSPrice] = useState("");
+  const [sPriceJod, setSPriceJod] = useState("");
+  const [sCategory, setSCategory] = useState("خدمات طلابية");
+  const [sProviderId, setSProviderId] = useState("");
+  const [sContactMethod, setSContactMethod] = useState("whatsapp");
+  const [sContactInfo, setSContactInfo] = useState("");
+  const [sIsActive, setSIsActive] = useState(true);
+  const [sStatus, setSStatus] = useState("active");
 
   const [featTitle, setFeatTitle] = useState("");
   const [featDesc, setFeatDesc] = useState("");
@@ -627,6 +635,16 @@ export default function AdminDashboard() {
     setFUrl("");
     setSTitle("");
     setSDesc("");
+    setSIcon("Settings");
+    setSColor("bg-slate-50");
+    setSPrice("");
+    setSPriceJod("");
+    setSCategory("خدمات طلابية");
+    setSProviderId("");
+    setSContactMethod("whatsapp");
+    setSContactInfo("");
+    setSIsActive(true);
+    setSStatus("active");
     setFeatTitle("");
     setFeatDesc("");
     setRTitle("");
@@ -771,7 +789,21 @@ export default function AdminDashboard() {
     if (!supabase) return;
     setLoading(true);
     try {
-      const payload = { title: sTitle, description: sDesc, icon_name: sIcon, bg_color: sColor };
+      const payload = { 
+        title: sTitle, 
+        description: sDesc, 
+        icon_name: sIcon, 
+        bg_color: sColor,
+        price: sPrice ? parseFloat(sPrice) : 0,
+        price_jod: sPriceJod ? parseFloat(sPriceJod) : null,
+        category: sCategory,
+        provider_id: sProviderId || null,
+        contact_method: sContactMethod,
+        contact_info: sContactInfo,
+        is_active: sIsActive,
+        is_active_status: sIsActive,
+        status: sStatus
+      };
       let error;
       if (editingId) ({ error } = await supabase.from('services').update(payload).eq('id', editingId));
       else ({ error } = await supabase.from('services').insert(payload));
@@ -985,7 +1017,7 @@ export default function AdminDashboard() {
         old_price: parseFloat(prodOldPrice) || null,
         category: prodCategory,
         type: prodType,
-        thumbnail: prodThumbnail
+        thumbnail_url: prodThumbnail
       };
       
       let error;
@@ -2008,10 +2040,36 @@ export default function AdminDashboard() {
                                 <button 
                                   onClick={() => {
                                     if(activeTab === 'files') { setEditingId(item.id); setFTitle(item.title); setFCategory(item.category); setFUrl(item.url); setFSize(item.file_size); setSubTab('add'); }
-                                    else if(activeTab === 'services') { setEditingId(item.id); setSTitle(item.title); setSDesc(item.description); setSIcon(item.icon_name || "Settings"); setSColor(item.bg_color || "bg-slate-50"); setSubTab('add'); }
+                                    else if(activeTab === 'services') { 
+                                      setEditingId(item.id); 
+                                      setSTitle(item.title); 
+                                      setSDesc(item.description); 
+                                      setSIcon(item.icon_name || "Settings"); 
+                                      setSColor(item.bg_color || "bg-slate-50"); 
+                                      setSPrice(item.price?.toString() || "");
+                                      setSPriceJod(item.price_jod?.toString() || "");
+                                      setSCategory(item.category || "خدمات طلابية");
+                                      setSProviderId(item.provider_id || "");
+                                      setSContactMethod(item.contact_method || "whatsapp");
+                                      setSContactInfo(item.contact_info || "");
+                                      setSIsActive(item.is_active ?? true);
+                                      setSStatus(item.status || "active");
+                                      setSubTab('add'); 
+                                    }
                                     else if(activeTab === 'features') { setEditingId(item.id); setFeatTitle(item.title); setFeatDesc(item.description); setFeatIcon(item.icon_name || "BookOpen"); setFeatColor(item.color_class || "bg-red-50"); setFeatPath(item.link_path || "/"); setFeatOrder(item.order_index || 0); setSubTab('add'); }
                                     else if(activeTab === 'reviews') { setEditingId(item.id); setRTitle(item.title); setRDesc(item.description); setRAuthor(item.author || "Jo Students"); setRReference(item.reference_name || ""); setRReadTime(item.read_time || "٥ دقائق"); setRDate(item.file_date || ""); setRFileUrl(item.file_url || ""); setRImageUrl(item.image_url || ""); setSubTab('add'); }
-                                    else if(activeTab === 'academy_products') { setEditingId(item.id); setProdTitle(item.title); setProdDesc(item.description || ""); setProdInstructor(item.instructor_name || ""); setProdPrice(item.price?.toString() || ""); setProdOldPrice(item.old_price?.toString() || ""); setProdCategory(item.category || "دورات تدريبية"); setProdType(item.type || "course"); setProdThumbnail(item.thumbnail || ""); setSubTab('add'); }
+                                    else if(activeTab === 'academy_products') { 
+                                      setEditingId(item.id); 
+                                      setProdTitle(item.title); 
+                                      setProdDesc(item.description || ""); 
+                                      setProdInstructor(item.instructor_name || ""); 
+                                      setProdPrice(item.price?.toString() || ""); 
+                                      setProdOldPrice(item.old_price?.toString() || ""); 
+                                      setProdCategory(item.category || "دورات تدريبية"); 
+                                      setProdType(item.type || "course"); 
+                                      setProdThumbnail(item.thumbnail_url || ""); 
+                                      setSubTab('add'); 
+                                    }
                                     else if(activeTab === 'announcements') { 
                                       setEditingId(item.id); 
                                       setAnnTitle(item.title); 
@@ -2572,12 +2630,57 @@ export default function AdminDashboard() {
               
               {/* ADD/EDIT FORM FOR SERVICES */}
               {subTab === 'add' && activeTab === 'services' && (
-                <form onSubmit={addService} className="space-y-8 max-w-2xl mx-auto py-6">
+                <form onSubmit={addService} className="space-y-8 max-w-3xl mx-auto py-6">
                    <div className="space-y-8 bg-slate-50 p-10 rounded-[3rem] border border-slate-200">
-                      <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">عنوان الخدمة</label><input type="text" required className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600" value={sTitle} onChange={e => setSTitle(e.target.value)} /></div>
-                      <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">الوصف التفصيلي</label><textarea rows={6} required className="w-full p-6 bg-white border border-slate-200 rounded-3xl outline-none focus:border-red-600" value={sDesc} onChange={e => setSDesc(e.target.value)} /></div>
+                      <div className="space-y-2 text-right">
+                        <label className="text-xs font-black text-slate-400 uppercase">عنوان الخدمة</label>
+                        <input type="text" required className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-bold" value={sTitle} onChange={e => setSTitle(e.target.value)} />
+                      </div>
                       
-                      <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2 text-right">
+                        <label className="text-xs font-black text-slate-400 uppercase">الوصف التفصيلي</label>
+                        <textarea rows={6} required className="w-full p-6 bg-white border border-slate-200 rounded-3xl outline-none focus:border-red-600" value={sDesc} onChange={e => setSDesc(e.target.value)} />
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         <div className="space-y-2 text-right">
+                            <label className="text-xs font-black text-slate-400 uppercase">التصنيف</label>
+                            <input type="text" className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none" value={sCategory} onChange={e => setSCategory(e.target.value)} />
+                         </div>
+                         <div className="space-y-2 text-right">
+                            <label className="text-xs font-black text-slate-400 uppercase">معرف المزود (Provider UUID)</label>
+                            <input type="text" className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none font-mono text-[10px]" placeholder="اتركه فارغاً للنظام" value={sProviderId} onChange={e => setSProviderId(e.target.value)} />
+                         </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         <div className="space-y-2 text-right">
+                            <label className="text-xs font-black text-slate-400 uppercase">السعر بالدينار (JOD)</label>
+                            <input type="number" step="0.01" className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none" value={sPriceJod} onChange={e => setSPriceJod(e.target.value)} />
+                         </div>
+                         <div className="space-y-2 text-right">
+                            <label className="text-xs font-black text-slate-400 uppercase">السعر الافتراضي</label>
+                            <input type="number" step="0.01" className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none" value={sPrice} onChange={e => setSPrice(e.target.value)} />
+                         </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         <div className="space-y-2 text-right">
+                            <label className="text-xs font-black text-slate-400 uppercase">وسيلة التواصل</label>
+                            <select className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none" value={sContactMethod} onChange={e => setSContactMethod(e.target.value)}>
+                               <option value="whatsapp">واتساب</option>
+                               <option value="phone">هاتف</option>
+                               <option value="email">ايميل</option>
+                               <option value="link">رابط خارجي</option>
+                            </select>
+                         </div>
+                         <div className="space-y-2 text-right">
+                            <label className="text-xs font-black text-slate-400 uppercase">معلومات التواصل</label>
+                            <input type="text" className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none font-mono" placeholder="رقم الهاتف أو الرابط" value={sContactInfo} onChange={e => setSContactInfo(e.target.value)} />
+                         </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                          <div className="space-y-2 text-right">
                             <label className="text-xs font-black text-slate-400 uppercase">الأيقونة</label>
                             <select className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none" value={sIcon} onChange={e => setSIcon(e.target.value)}>
@@ -2586,6 +2689,9 @@ export default function AdminDashboard() {
                                <option value="Star">نجمة</option>
                                <option value="Award">جائزة</option>
                                <option value="Tool">أداة</option>
+                               <option value="Zap">صاعقة</option>
+                               <option value="Activity">نشاط</option>
+                               <option value="Shield">درع</option>
                             </select>
                          </div>
                          <div className="space-y-2 text-right">
@@ -2595,11 +2701,36 @@ export default function AdminDashboard() {
                                <option value="bg-red-50">أحمر فاتح</option>
                                <option value="bg-blue-50">أزرق فاتح</option>
                                <option value="bg-emerald-50">أخضر فاتح</option>
+                               <option value="bg-amber-50">عنبري فاتح</option>
+                               <option value="bg-purple-50">بنفسجي فاتح</option>
                             </select>
                          </div>
                       </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         <div className="space-y-2 text-right">
+                            <label className="text-xs font-black text-slate-400 uppercase">الحالة</label>
+                            <select className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none" value={sStatus} onChange={e => setSStatus(e.target.value)}>
+                               <option value="active">نشط (منشور)</option>
+                               <option value="pending">قيد الانتظار</option>
+                               <option value="rejected">مرفوض</option>
+                            </select>
+                         </div>
+                         <div className="space-y-2 text-right flex items-center justify-end gap-4 pt-8">
+                            <label className="text-xs font-black text-slate-400 uppercase">تفعيل الخدمة</label>
+                            <button 
+                              type="button"
+                              onClick={() => setSIsActive(!sIsActive)}
+                              className={`w-14 h-7 rounded-full transition-all relative ${sIsActive ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                            >
+                              <div className={`absolute top-1 w-5 h-5 rounded-full bg-white transition-all ${sIsActive ? 'left-1' : 'left-8'}`} />
+                            </button>
+                         </div>
+                      </div>
                    </div>
-                   <button type="submit" className="w-full h-16 bg-slate-900 text-white rounded-[2rem] font-black hover:bg-red-600 transition-all shadow-2xl">تحديث الخدمات</button>
+                   <button type="submit" className="w-full h-16 bg-slate-900 text-white rounded-[2rem] font-black hover:bg-red-600 transition-all shadow-2xl">
+                     {editingId ? 'تحديث الخدمة' : 'إضافة خدمة جديدة'}
+                   </button>
                 </form>
               )}
 
