@@ -419,6 +419,23 @@ export default function AdminDashboard() {
   const [rFileUrl, setRFileUrl] = useState("");
   const [rImageUrl, setRImageUrl] = useState("");
 
+  const [prodTitle, setProdTitle] = useState("");
+  const [prodDesc, setProdDesc] = useState("");
+  const [prodInstructor, setProdInstructor] = useState("");
+  const [prodPrice, setProdPrice] = useState("");
+  const [prodOldPrice, setProdOldPrice] = useState("");
+  const [prodCategory, setProdCategory] = useState("دورات تدريبية");
+  const [prodType, setProdType] = useState<'course' | 'session' | 'file'>('course');
+  const [prodThumbnail, setProdThumbnail] = useState("");
+
+  const [jobTitle, setJobTitle] = useState("");
+  const [jobCompany, setJobCompany] = useState("");
+  const [jobLocation, setJobLocation] = useState("");
+  const [jobType, setJobType] = useState("دوام كامل");
+  const [jobExp, setJobExp] = useState("");
+  const [jobContact, setJobContact] = useState("");
+  const [jobStatus, setJobStatus] = useState<'published' | 'pending'>('published');
+
   const [bulkGenText, setBulkGenText] = useState("");
   const [bulkGenFileName, setBulkGenFileName] = useState("");
   const [bulkCategory, setBulkCategory] = useState("عام");
@@ -588,6 +605,23 @@ export default function AdminDashboard() {
     setRReference("");
     setRFileUrl("");
     setRImageUrl("");
+    
+    setProdTitle("");
+    setProdDesc("");
+    setProdInstructor("");
+    setProdPrice("");
+    setProdOldPrice("");
+    setProdCategory("دورات تدريبية");
+    setProdType("course");
+    setProdThumbnail("");
+
+    setJobTitle("");
+    setJobCompany("");
+    setJobLocation("");
+    setJobType("دوام كامل");
+    setJobExp("");
+    setJobContact("");
+    setJobStatus("published");
     
     setAnnTitle("");
     setAnnContent("");
@@ -907,6 +941,75 @@ export default function AdminDashboard() {
 
   // Bulk Generation Logic
   const [alsoSaveToDB, setAlsoSaveToDB] = useState(false);
+
+  const addProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabase) return;
+    setLoading(true);
+    try {
+      const payload = {
+        title: prodTitle,
+        description: prodDesc,
+        instructor_name: prodInstructor,
+        price: parseFloat(prodPrice) || 0,
+        old_price: parseFloat(prodOldPrice) || null,
+        category: prodCategory,
+        type: prodType,
+        thumbnail: prodThumbnail
+      };
+      
+      let error;
+      if (editingId) {
+        ({ error } = await supabase.from('products').update(payload).eq('id', editingId));
+      } else {
+        ({ error } = await supabase.from('products').insert(payload));
+      }
+      
+      if (error) throw error;
+      setStatus({ type: 'success', msg: editingId ? 'تم التعديل بنجاح' : 'تمت الإضافة بنجاح' });
+      resetForms();
+      setSubTab('list');
+      fetchData();
+    } catch (err: any) {
+      setStatus({ type: 'error', msg: "فشل الحفظ: " + err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addJob = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabase) return;
+    setLoading(true);
+    try {
+      const payload = {
+        title: jobTitle,
+        company: jobCompany,
+        location: jobLocation,
+        type: jobType,
+        experience: jobExp,
+        contact: jobContact,
+        status: jobStatus
+      };
+      
+      let error;
+      if (editingId) {
+        ({ error } = await supabase.from('jobs').update(payload).eq('id', editingId));
+      } else {
+        ({ error } = await supabase.from('jobs').insert(payload));
+      }
+      
+      if (error) throw error;
+      setStatus({ type: 'success', msg: editingId ? 'تم التعديل بنجاح' : 'تمت الإضافة بنجاح' });
+      resetForms();
+      setSubTab('list');
+      fetchData();
+    } catch (err: any) {
+      setStatus({ type: 'error', msg: "فشل الحفظ: " + err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleBulkGen = async (type: 'pdf' | 'docx') => {
     try {
@@ -1499,16 +1602,18 @@ export default function AdminDashboard() {
                       subTab === 'list' ? 'bg-slate-900 text-white border-slate-900 shadow-xl' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'
                     }`}
                   >
-                    عرض بنك الأسئلة
+                    عرض السجلات
                   </button>
-                  <button 
-                    onClick={() => { setSubTab('add'); resetForms(); }}
-                    className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all border-2 ${
-                      subTab === 'add' ? 'bg-slate-900 text-white border-slate-900 shadow-xl' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'
-                    }`}
-                  >
-                    {editingId ? 'تعديل السجل' : 'إضافة سؤال جديد'}
-                  </button>
+                  {activeTab !== 'instructor_requests' && activeTab !== 'registrations' && activeTab !== 'contacts' && (
+                    <button 
+                      onClick={() => { setSubTab('add'); resetForms(); }}
+                      className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all border-2 ${
+                        subTab === 'add' ? 'bg-slate-900 text-white border-slate-900 shadow-xl' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'
+                      }`}
+                    >
+                      {editingId ? 'تعديل السجل' : 'إضافة سجل جديد'}
+                    </button>
+                  )}
                   {activeTab === 'questions' && (
                     <button 
                       onClick={() => setSubTab('bulk')}
@@ -1731,12 +1836,32 @@ export default function AdminDashboard() {
                               </div>
 
                               <div className="flex gap-2 border-t pt-4">
+                                <button 
+                                  onClick={() => {
+                                    setEditingId(job.id);
+                                    setJobTitle(job.title);
+                                    setJobCompany(job.company);
+                                    setJobLocation(job.location);
+                                    setJobType(job.type);
+                                    setJobExp(job.experience);
+                                    setJobContact(job.contact);
+                                    setJobStatus(job.status);
+                                    setSubTab('add');
+                                  }}
+                                  className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-black hover:bg-slate-200 transition-all"
+                                >
+                                  تعديل
+                                </button>
                                 {job.status === 'pending' && (
                                   <button 
-                                    onClick={() => {
-                                      const updated = adminJobs.map(j => j.id === job.id ? {...j, status: 'published'} : j);
-                                      setAdminJobs(updated);
-                                      setStatus({ type: 'success', msg: 'تمت الموافقة على الوظيفة ونشرها بنجاح' });
+                                    onClick={async () => {
+                                      const { error } = await supabase!.from('jobs').update({ status: 'published' }).eq('id', job.id);
+                                      if (!error) {
+                                        setStatus({ type: 'success', msg: 'تمت الموافقة على الوظيفة ونشرها بنجاح' });
+                                        fetchData();
+                                      } else {
+                                        setStatus({ type: 'error', msg: error.message });
+                                      }
                                     }}
                                     className="flex-grow bg-emerald-600 text-white py-2 rounded-xl text-xs font-black hover:bg-emerald-700 transition-all"
                                   >
@@ -1744,10 +1869,7 @@ export default function AdminDashboard() {
                                   </button>
                                 )}
                                 <button 
-                                  onClick={() => {
-                                    setAdminJobs(adminJobs.filter(j => j.id !== job.id));
-                                    setStatus({ type: 'success', msg: 'تم حذف إعلان الوظيفة' });
-                                  }}
+                                  onClick={() => deleteItem('jobs', job.id)}
                                   className="px-4 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-black hover:bg-red-100 transition-all"
                                 >
                                   حذف
@@ -1783,6 +1905,7 @@ export default function AdminDashboard() {
                                     else if(activeTab === 'services') { setEditingId(item.id); setSTitle(item.title); setSDesc(item.description); setSIcon(item.icon_name || "Settings"); setSColor(item.bg_color || "bg-slate-50"); setSubTab('add'); }
                                     else if(activeTab === 'features') { setEditingId(item.id); setFeatTitle(item.title); setFeatDesc(item.description); setFeatIcon(item.icon_name || "BookOpen"); setFeatColor(item.color_class || "bg-red-50"); setFeatPath(item.link_path || "/"); setFeatOrder(item.order_index || 0); setSubTab('add'); }
                                     else if(activeTab === 'reviews') { setEditingId(item.id); setRTitle(item.title); setRDesc(item.description); setRAuthor(item.author || "Jo Students"); setRReference(item.reference_name || ""); setRReadTime(item.read_time || "٥ دقائق"); setRDate(item.file_date || ""); setRFileUrl(item.file_url || ""); setRImageUrl(item.image_url || ""); setSubTab('add'); }
+                                    else if(activeTab === 'academy_products') { setEditingId(item.id); setProdTitle(item.title); setProdDesc(item.description || ""); setProdInstructor(item.instructor_name || ""); setProdPrice(item.price?.toString() || ""); setProdOldPrice(item.old_price?.toString() || ""); setProdCategory(item.category || "دورات تدريبية"); setProdType(item.type || "course"); setProdThumbnail(item.thumbnail || ""); setSubTab('add'); }
                                     else if(activeTab === 'announcements') { 
                                       setEditingId(item.id); 
                                       setAnnTitle(item.title); 
@@ -1800,7 +1923,7 @@ export default function AdminDashboard() {
                                   }}
                                   className="p-2 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-xl"
                                 ><Edit3 className="w-4 h-4" /></button>
-                                <button onClick={() => deleteItem(activeTab === 'files' ? 'question_files' : activeTab, item.id)} className="p-2 bg-red-50 text-red-300 hover:text-red-600 rounded-xl"><Trash2 className="w-4 h-4" /></button>
+                                <button onClick={() => deleteItem(activeTab === 'files' ? 'question_files' : activeTab === 'academy_products' ? 'products' : activeTab, item.id)} className="p-2 bg-red-50 text-red-300 hover:text-red-600 rounded-xl"><Trash2 className="w-4 h-4" /></button>
                              </div>
                              <div className="flex items-center gap-2">
                                {activeTab === 'announcements' && (
@@ -1960,29 +2083,30 @@ export default function AdminDashboard() {
                               </button>
                               <button 
                                 onClick={async () => {
-                                   const { error } = await supabase!.from('contact_messages').update({ is_read: !msg.is_read }).eq('id', msg.id);
+                                   const newStatus = msg.status === 'read' ? 'pending' : 'read';
+                                   const { error } = await supabase!.from('system_submissions').update({ status: newStatus }).eq('id', msg.id);
                                    if(!error) fetchData();
                                 }}
-                                className={`p-2 rounded-xl transition-all ${msg.is_read ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-blue-600'}`}
-                                title={msg.is_read ? "تحديد كغير مقروء" : "تحديد كمقروء"}
+                                className={`p-2 rounded-xl transition-all ${msg.status === 'read' ? 'bg-slate-100 text-slate-400' : 'bg-blue-50 text-blue-600'}`}
+                                title={msg.status === 'read' ? "تحديد كغير مقروء" : "تحديد كمقروء"}
                               >
                                  <CheckCircle2 className="w-5 h-5" />
                               </button>
-                              <button onClick={() => deleteItem('contact_messages', msg.id)} className="p-2 bg-red-50 text-red-300 hover:text-red-600 rounded-xl">
+                              <button onClick={() => deleteItem('system_submissions', msg.id)} className="p-2 bg-red-50 text-red-300 hover:text-red-600 rounded-xl">
                                  <Trash2 className="w-5 h-5" />
                               </button>
                            </div>
                            <div className="text-right">
                               <div className="flex items-center justify-end gap-2 mb-1">
-                                 {!msg.is_read && <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />}
-                                 <h3 className="font-black text-slate-900 text-lg">{msg.name}</h3>
+                                 {msg.status !== 'read' && <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />}
+                                 <h3 className="font-black text-slate-900 text-lg">{msg.full_name || msg.name}</h3>
                               </div>
                               <span className="text-sm text-red-600 font-bold">{msg.email}</span>
                            </div>
                         </div>
                         <div className="space-y-4">
                            <div className="bg-white p-4 rounded-2xl border border-slate-100"><p className="text-[10px] font-black text-slate-300 uppercase mb-1">الموضوع</p><p className="text-sm font-bold text-slate-900">{msg.subject}</p></div>
-                           <div className="bg-white p-4 rounded-2xl border border-slate-100"><p className="text-[10px] font-black text-slate-300 uppercase mb-1">الرسالة</p><p className="text-sm text-slate-600 leading-relaxed">{msg.message}</p></div>
+                           <div className="bg-white p-4 rounded-2xl border border-slate-100"><p className="text-[10px] font-black text-slate-300 uppercase mb-1">الرسالة</p><p className="text-sm text-slate-600 leading-relaxed">{msg.content || msg.message}</p></div>
                         </div>
                      </div>
                    ))}
@@ -2420,6 +2544,84 @@ export default function AdminDashboard() {
                    <button type="submit" className="w-full h-16 bg-slate-900 text-white rounded-[2rem] font-black hover:bg-emerald-600 transition-all shadow-2xl">حفظ الإعلان الآن</button>
                 </form>
               )}
+              {/* ADD/EDIT FORM FOR PRODUCTS */}
+              {subTab === 'add' && activeTab === 'academy_products' && (
+                <form onSubmit={addProduct} className="space-y-8 max-w-3xl mx-auto py-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-slate-50 p-10 rounded-[3rem] border border-slate-200">
+                    <div className="space-y-2 col-span-2 text-right">
+                      <label className="text-xs font-black text-slate-400 uppercase">اسم المنتج / الدورة</label>
+                      <input type="text" required className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-bold" value={prodTitle} onChange={e => setProdTitle(e.target.value)} />
+                    </div>
+                    <div className="space-y-2 col-span-2 text-right">
+                      <label className="text-xs font-black text-slate-400 uppercase">الوصف</label>
+                      <textarea rows={4} required className="w-full p-6 bg-white border border-slate-200 rounded-3xl outline-none focus:border-red-600" value={prodDesc} onChange={e => setProdDesc(e.target.value)} />
+                    </div>
+                    <div className="space-y-2 text-right">
+                      <label className="text-xs font-black text-slate-400 uppercase">المدرب / المقدم</label>
+                      <input type="text" className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600" value={prodInstructor} onChange={e => setProdInstructor(e.target.value)} />
+                    </div>
+                    <div className="space-y-2 text-right">
+                      <label className="text-xs font-black text-slate-400 uppercase">التصنيف</label>
+                      <input type="text" className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600" value={prodCategory} onChange={e => setProdCategory(e.target.value)} placeholder="دورات تدريبية, الخ..." />
+                    </div>
+                    <div className="space-y-2 text-right">
+                      <label className="text-xs font-black text-slate-400 uppercase">السعر الحالي</label>
+                      <input type="number" required step="0.01" className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600" value={prodPrice} onChange={e => setProdPrice(e.target.value)} />
+                    </div>
+                    <div className="space-y-2 text-right">
+                      <label className="text-xs font-black text-slate-400 uppercase">السعر القديم (اختياري)</label>
+                      <input type="number" step="0.01" className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600" value={prodOldPrice} onChange={e => setProdOldPrice(e.target.value)} />
+                    </div>
+                    <div className="space-y-2 text-right">
+                      <label className="text-xs font-black text-slate-400 uppercase">النوع</label>
+                      <select className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600" value={prodType} onChange={e => setProdType(e.target.value as any)}>
+                        <option value="course">دورة مسجلة</option>
+                        <option value="session">جلسة مباشرة</option>
+                        <option value="file">ملف / ملزمة</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2 text-right col-span-2">
+                       <label className="text-xs font-black text-slate-400 uppercase">رابط الصورة (Thumbnail)</label>
+                       <input type="url" className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-mono text-sm" value={prodThumbnail} onChange={e => setProdThumbnail(e.target.value)} />
+                    </div>
+                  </div>
+                  <button type="submit" className="w-full h-16 bg-slate-900 text-white rounded-[2rem] font-black hover:bg-emerald-600 transition-all shadow-2xl">حفظ المنتج الآن</button>
+                </form>
+              )}
+
+              {/* ADD/EDIT FORM FOR JOBS */}
+              {subTab === 'add' && activeTab === 'jobs' && (
+                <form onSubmit={addJob} className="space-y-8 max-w-3xl mx-auto py-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-slate-50 p-10 rounded-[3rem] border border-slate-200">
+                    <div className="space-y-2 col-span-2 text-right">
+                      <label className="text-xs font-black text-slate-400 uppercase">المسمى الوظيفي</label>
+                      <input type="text" required className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-bold" value={jobTitle} onChange={e => setJobTitle(e.target.value)} />
+                    </div>
+                    <div className="space-y-2 text-right">
+                      <label className="text-xs font-black text-slate-400 uppercase">الجهة / الشركة</label>
+                      <input type="text" required className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600" value={jobCompany} onChange={e => setJobCompany(e.target.value)} />
+                    </div>
+                    <div className="space-y-2 text-right">
+                      <label className="text-xs font-black text-slate-400 uppercase">الموقع / المدينة</label>
+                      <input type="text" required className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600" value={jobLocation} onChange={e => setJobLocation(e.target.value)} />
+                    </div>
+                    <div className="space-y-2 text-right">
+                      <label className="text-xs font-black text-slate-400 uppercase">نوع الدوام</label>
+                      <input type="text" className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600" value={jobType} onChange={e => setJobType(e.target.value)} placeholder="دوام كامل, جزئي..." />
+                    </div>
+                    <div className="space-y-2 text-right">
+                      <label className="text-xs font-black text-slate-400 uppercase">الخبرة المطلوبة</label>
+                      <input type="text" className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600" value={jobExp} onChange={e => setJobExp(e.target.value)} />
+                    </div>
+                    <div className="space-y-2 text-right col-span-2">
+                       <label className="text-xs font-black text-slate-400 uppercase">معلومات التواصل للتقديم</label>
+                       <input type="text" required className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600" value={jobContact} onChange={e => setJobContact(e.target.value)} placeholder="ايميل أو رقم هاتف أو رابط" />
+                    </div>
+                  </div>
+                  <button type="submit" className="w-full h-16 bg-slate-900 text-white rounded-[2rem] font-black hover:bg-emerald-600 transition-all shadow-2xl">حفظ الوظيفة الآن</button>
+                </form>
+              )}
+
               {/* BULK ADD VIEW */}
               {subTab === 'bulk' && activeTab === 'questions' && (
                 <form onSubmit={handleBulkAdd} className="space-y-8 animate-in fade-in duration-500">
