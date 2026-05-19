@@ -2,10 +2,7 @@ import express from "express";
 import axios from "axios";
 import { createServer as createViteServer } from "vite";
 import path from "path";
-import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function startServer() {
   const app = express();
@@ -75,6 +72,20 @@ async function startServer() {
     const imageUrl = req.query.url as string;
     if (!imageUrl) {
       return res.status(400).send("URL parameter is required");
+    }
+
+    try {
+      const parsedUrl = new URL(imageUrl);
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+        return res.status(403).send("Invalid protocol");
+      }
+      // Basic SSRF mitigation (not exhaustive, but prevents basic localhost/loopback attacks)
+      const hostname = parsedUrl.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('10.') || hostname.startsWith('192.168.') || hostname.startsWith('169.254.')) {
+        return res.status(403).send("Forbidden IP/Hostname");
+      }
+    } catch (e) {
+      return res.status(400).send("Invalid URL format");
     }
 
     const fetchWithRetry = async (url: string, retries = 3, delay = 1000) => {

@@ -610,26 +610,46 @@ export default function AdminDashboard() {
     else if (req.type === 'service_provider') role = 'service_provider';
 
     try {
-      const { data: sessionData } = await supabase!.auth.getSession();
-      const token = sessionData.session?.access_token;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
-      const response = await fetch('/api/create-user', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          email: req.email,
-          password: approvalPassword,
-          fullName: req.full_name || req.fullName || "User",
-          role: role,
-          metadata: req.metadata || {}
-        })
+      if (!supabaseUrl || !supabaseServiceKey) {
+        throw new Error("يجب إضافة VITE_SUPABASE_SERVICE_ROLE_KEY في ملف البيئة الخاص بك لهذا الخيار");
+      }
+
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+      // Create User in Supabase Auth
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email: req.email,
+        password: approvalPassword,
+        email_confirm: true,
+        user_metadata: {
+          full_name: req.full_name || req.fullName || "User",
+          role: role
+        }
       });
 
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "فشل في إنشاء الحساب");
+      if (authError) throw new Error(authError.message);
+
+      const newUserId = authData.user.id;
+
+      let targetTable = '';
+      if (role === 'instructor') targetTable = 'instructors_data';
+      else if (role === 'company') targetTable = 'companies_data';
+      else if (role === 'service_provider') targetTable = 'service_providers_data';
+
+      if (targetTable) {
+        const { error: insertError } = await supabaseAdmin.from(targetTable).insert([{
+          id: newUserId,
+          details: req.metadata || {}
+        }]);
+        if (insertError) console.error("Error inserting into target table:", insertError);
+      }
+
+      // We explicitly update profile role since trigger might set it to 'user'
+      await supabaseAdmin.from('profiles').update({ role: role }).eq('id', newUserId);
 
       // Update submission status to approved
       const { error: updateError } = await supabase!.from('system_submissions').update({ status: 'approved' }).eq('id', req.id);
