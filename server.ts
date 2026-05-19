@@ -3,12 +3,73 @@ import axios from "axios";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
+import { createClient } from "@supabase/supabase-js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
+  
+  app.use(express.json());
+
+  app.post("/api/create-user", async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthorized: Missing or invalid token" });
+    }
+    const token = authHeader.split(" ")[1];
+
+    const { email, password, role, fullName, metadata } = req.body;
+
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return res.status(500).json({ error: "Missing Supabase URL or Service Role Key in server environment." });
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+    try {
+      // Verify admin role
+      const { data: { user }, error: authUserError } = await supabaseAdmin.auth.getUser(token);
+      if (authUserError || !user) throw new Error("Invalid token.");
+
+      const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
+      
+      if (!profile || profile.role !== 'admin') {
+        return res.status(403).json({ error: "Forbidden: Admin access required." });
+      }
+
+      // 1. Create User in Supabase Auth
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name: fullName, role: role, ...metadata }
+      });
+
+      if (authError) throw authError;
+
+      // 2. Add User to Profiles Table
+      const { error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .insert({
+          id: authData.user.id,
+          email,
+          full_name: fullName,
+          role: role,
+          created_at: new Date().toISOString()
+        });
+        
+      if (profileError) throw profileError;
+
+      res.status(200).json({ message: "User created successfully", user: authData.user });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
 
   app.get("/api/proxy-image", async (req, res) => {
     const imageUrl = req.query.url as string;

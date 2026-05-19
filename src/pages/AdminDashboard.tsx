@@ -492,6 +492,9 @@ export default function AdminDashboard() {
   const [annFileUrl, setAnnFileUrl] = useState("");
   const [annFile, setAnnFile] = useState<File | null>(null);
   const [viewingRequest, setViewingRequest] = useState<any | null>(null);
+  const [isApproving, setIsApproving] = useState(false);
+  const [approvalPassword, setApprovalPassword] = useState("");
+  const [approvingLoading, setApprovingLoading] = useState(false);
   const [viewingMessage, setViewingMessage] = useState<any | null>(null);
 
   const [generatedBlob, setGeneratedBlob] = useState<{ blob: Blob, name: string, type: string } | null>(null);
@@ -589,6 +592,58 @@ export default function AdminDashboard() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleApproveAndCreateUser = async (req: any) => {
+    if (!approvalPassword) {
+      setStatus({ type: 'error', msg: 'يرجى إدخال كلمة مرور للحساب الجديد' });
+      return;
+    }
+
+    setApprovingLoading(true);
+    setStatus(null);
+
+    let role = 'user';
+    if (req.type === 'instructor') role = 'instructor';
+    else if (req.type === 'business') role = 'company';
+    else if (req.type === 'service_provider') role = 'service_provider';
+
+    try {
+      const { data: sessionData } = await supabase!.auth.getSession();
+      const token = sessionData.session?.access_token;
+
+      const response = await fetch('/api/create-user', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          email: req.email,
+          password: approvalPassword,
+          fullName: req.full_name || req.fullName || "User",
+          role: role,
+          metadata: req.metadata || {}
+        })
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "فشل في إنشاء الحساب");
+
+      // Update submission status to approved
+      const { error: updateError } = await supabase!.from('system_submissions').update({ status: 'approved' }).eq('id', req.id);
+      if (updateError) throw updateError;
+
+      setStatus({ type: 'success', msg: 'تمت الموافقة وإنشاء الحساب بنجاح' });
+      setViewingRequest(null);
+      setIsApproving(false);
+      setApprovalPassword("");
+      fetchData();
+    } catch (err: any) {
+      setStatus({ type: 'error', msg: err.message || 'حدث خطأ' });
+    } finally {
+      setApprovingLoading(false);
     }
   };
 
@@ -3338,7 +3393,7 @@ export default function AdminDashboard() {
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 sm:p-6"
-            onClick={() => { setViewingRequest(null); setViewingMessage(null); }}
+            onClick={() => { setViewingRequest(null); setIsApproving(false); setViewingMessage(null); }}
           >
             <motion.div 
               initial={{ scale: 0.95, opacity: 0, y: 10 }}
@@ -3352,7 +3407,7 @@ export default function AdminDashboard() {
                  <div className="absolute -top-10 -left-10 w-40 h-40 bg-red-600/20 rounded-full blur-3xl" />
                  
                  <button 
-                    onClick={() => { setViewingRequest(null); setViewingMessage(null); }}
+                    onClick={() => { setViewingRequest(null); setIsApproving(false); setViewingMessage(null); }}
                     className="absolute left-6 top-7 p-2.5 bg-white/10 hover:bg-red-500 rounded-xl transition-all z-20 group"
                  >
                    <X className="w-5 h-5 group-hover:rotate-90 transition-transform" />
@@ -3408,15 +3463,53 @@ export default function AdminDashboard() {
                         {viewingRequest.content || viewingRequest.experience || viewingRequest.experience_summary || "لا توجد تفاصيل إضافية مزودة."}
                       </p>
                     </div>
-                    <div className="flex items-center justify-between pt-2">
-                      <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {new Date(viewingRequest.created_at).toLocaleDateString('ar-JO')}
-                      </span>
-                      <div className="flex gap-2">
-                         <button onClick={() => { deleteItem('system_submissions', viewingRequest.id); setViewingRequest(null); }} className="px-5 py-2.5 bg-red-50 text-red-600 rounded-xl font-black text-[10px] hover:bg-red-600 hover:text-white transition-all shadow-sm">حذف</button>
-                         <a href={`mailto:${viewingRequest.email}`} className="px-5 py-2.5 bg-slate-900 text-white rounded-xl font-black text-[10px] hover:bg-red-600 transition-all shadow-md">تواصل الآن</a>
-                      </div>
+                    <div className="flex flex-col gap-4 pt-2 mt-2">
+                      {isApproving ? (
+                        <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 animate-in fade-in slide-in-from-bottom-2">
+                          <p className="text-xs font-black text-emerald-800 mb-3 text-right">سيتم إنشاء حساب لهذا المستخدم تلقائياً بنفس بريده الإلكتروني. يرجى إدخال كلمة مرور للحساب الجديد:</p>
+                          <div className="flex gap-2">
+                            <button
+                               onClick={() => handleApproveAndCreateUser(viewingRequest)}
+                               disabled={approvingLoading || !approvalPassword}
+                               className="px-6 py-2 bg-emerald-600 text-white rounded-xl font-black text-[10px] hover:bg-emerald-700 transition-all disabled:opacity-50 flex items-center justify-center min-w-[100px]"
+                            >
+                               {approvingLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "إنشاء حساب وموافقة"}
+                            </button>
+                            <input
+                               type="text"
+                               placeholder="كلمة المرور للحساب..."
+                               value={approvalPassword}
+                               onChange={e => setApprovalPassword(e.target.value)}
+                               className="flex-1 bg-white border border-emerald-200 rounded-xl px-3 text-sm focus:border-emerald-500 outline-none"
+                            />
+                            <button
+                               onClick={() => { setIsApproving(false); setApprovalPassword(""); }}
+                               className="px-4 py-2 bg-white text-slate-500 rounded-xl font-black text-[10px] border border-slate-200 hover:bg-slate-50 transition-all"
+                            >
+                               إلغاء
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {new Date(viewingRequest.created_at).toLocaleDateString('ar-JO')}
+                          </span>
+                          <div className="flex gap-2">
+                            {viewingRequest.status !== 'approved' && (
+                              <button 
+                                onClick={() => setIsApproving(true)}
+                                className="px-5 py-2.5 bg-emerald-50 text-emerald-600 rounded-xl font-black text-[10px] hover:bg-emerald-600 hover:text-white transition-all shadow-sm flex items-center gap-1"
+                              >
+                                <CheckCircle2 className="w-3 h-3" /> موافقة وإنشاء حساب
+                              </button>
+                            )}
+                            <button onClick={() => { deleteItem('system_submissions', viewingRequest.id); setViewingRequest(null); }} className="px-5 py-2.5 bg-red-50 text-red-600 rounded-xl font-black text-[10px] hover:bg-red-600 hover:text-white transition-all shadow-sm">حذف</button>
+                            <a href={`mailto:${viewingRequest.email}`} className="px-5 py-2.5 bg-slate-900 text-white rounded-xl font-black text-[10px] hover:bg-red-600 transition-all shadow-md">تواصل الآن</a>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </>
                 ) : (

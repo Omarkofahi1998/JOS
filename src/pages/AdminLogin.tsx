@@ -2,12 +2,14 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { Lock, Mail, Loader2, ArrowRight } from "lucide-react";
+import ForgotPasswordModal from "../components/ForgotPasswordModal";
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -106,6 +108,14 @@ export default function AdminLogin() {
             </div>
           )}
 
+          <div className="flex items-center justify-between text-xs px-1">
+             <button type="button" onClick={() => setIsForgotModalOpen(true)} className="text-slate-400 hover:text-red-600 transition-colors font-bold tracking-tight">نسيت كلمة المرور؟</button>
+             <div className="flex items-center gap-2">
+                <input type="checkbox" id="remember" className="accent-red-600" />
+                <label htmlFor="remember" className="text-slate-500 font-bold">تذكرني</label>
+             </div>
+          </div>
+
           <button
             type="submit"
             disabled={loading}
@@ -116,6 +126,8 @@ export default function AdminLogin() {
           </button>
         </form>
       </div>
+
+      <ForgotPasswordModal isOpen={isForgotModalOpen} onClose={() => setIsForgotModalOpen(false)} />
     </div>
   );
 }
