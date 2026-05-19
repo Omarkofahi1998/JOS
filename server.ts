@@ -29,9 +29,9 @@ async function startServer() {
       return res.status(500).json({ error: "Missing Supabase URL or Service Role Key in server environment." });
     }
 
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
     try {
+      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
       // Verify admin role
       const { data: { user }, error: authUserError } = await supabaseAdmin.auth.getUser(token);
       if (authUserError || !user) throw new Error("Invalid token.");
