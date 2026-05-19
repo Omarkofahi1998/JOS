@@ -13,7 +13,7 @@ export default function Services() {
 
   const handleShare = async (e: React.MouseEvent, service: any) => {
     e.stopPropagation();
-    const url = `${window.location.origin}/service/${service.id}`;
+    const url = `${window.location.origin}/#/service/${service.id}`;
     const text = `اكتشف خدمة ${service.title} على منصة طلاب الأردن - بوابتك للتميز المهني.`;
 
     if (navigator.share) {

@@ -71,7 +71,7 @@ export default function Marketplace() {
 
   const handleShare = async (e: React.MouseEvent, product: Product) => {
     e.stopPropagation();
-    const url = `${window.location.origin}/marketplace?id=${product.id}`;
+    const url = `${window.location.origin}/#/marketplace?id=${product.id}`;
     const text = `شاهد دورة ${product.title} من تقديم ${product.instructor_name} على منصة طلاب الأردن - أكاديمية المسار المهني.`;
 
     if (navigator.share) {
@@ -109,14 +109,41 @@ export default function Marketplace() {
 
     setIsSubmitting(true);
     try {
+      // Step 1: Ensure profile exists locally or in DB to avoid FK constraint error (23503)
+      if (!profile) {
+        const { data: currentProfile, error: profileError } = await supabase!
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (profileError || !currentProfile) {
+          // Attempt to create a minimal profile if missing
+          const { data: newProfile } = await supabase!
+            .from('profiles')
+            .upsert({
+              id: user.id,
+              email: user.email,
+              full_name: user.user_metadata?.full_name || user.email?.split('@')[0],
+              role: 'user'
+            })
+            .select()
+            .single();
+          if (newProfile) setProfile(newProfile);
+        } else {
+          setProfile(currentProfile);
+        }
+      }
+
+      // Step 2: Create the booking
       const { error } = await supabase!
         .from('user_bookings')
         .insert([{
           client_id: user.id,
-          user_name: profile?.full_name || user.email?.split('@')[0],
+          user_name: profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0],
           user_email: user.email,
-          item_id: selectedProduct?.id,
-          item_type: 'course',
+          item_id: selectedProduct?.id?.toString(), // Ensure string for mixed ID types
+          item_type: 'product',
           amount: selectedProduct?.price || 0,
           provider_id: selectedProduct?.instructor_id,
           status: 'pending'
@@ -131,7 +158,7 @@ export default function Marketplace() {
       }, 3000);
     } catch (err) {
       console.error("Error enrolling:", err);
-      alert("حدث خطأ أثناء طلب الانضمام");
+      alert("حدث خطأ أثناء طلب الانضمام. يرجى التأكد من تحديث قاعدة البيانات بالأعمدة المطلوبة.");
     } finally {
       setIsSubmitting(false);
     }

@@ -269,7 +269,8 @@ export default function ServiceDetails() {
                   <button 
                     onClick={() => {
                         const phone = service?.contact_info || "";
-                        const text = encodeURIComponent(`شاهد هذه الخدمة: ${service?.title}\n${window.location.href}`);
+                        const shareUrl = `${window.location.origin}/#/service/${service?.id}`;
+                        const text = encodeURIComponent(`شاهد هذه الخدمة: ${service?.title}\n${shareUrl}`);
                         window.open(`https://wa.me/${phone.replace(/\+/g, '')}?text=${text}`, '_blank');
                     }}
                     className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center hover:bg-emerald-50 hover:text-emerald-600 transition-all"
