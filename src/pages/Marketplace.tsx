@@ -4,7 +4,7 @@ import {
   Search, Filter, BookOpen, Video, FileText, 
   Users, Star, ChevronRight, ShoppingCart, 
   ArrowRight, Sparkles, Play, GraduationCap,
-  Award, Navigation, Briefcase, X, CheckCircle, Loader2, ArrowLeft
+  Award, Navigation, Briefcase, X, CheckCircle, Loader2, ArrowLeft, Share2, MessageCircle
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
@@ -22,6 +22,9 @@ interface Product {
   students_count: number;
   thumbnail: string;
   description: string;
+  contact_info?: string;
+  contact_method?: string;
+  instructor_id?: string;
 }
 
 const categories = ["الكل", "دورات تدريبية", "التطوير المهني المستمر CPD", "امتحانات تنافسية وبنوك اسئلة"];
@@ -40,6 +43,9 @@ export default function Marketplace() {
   const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const productId = searchParams.get('id');
+    
     supabase?.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setUser(session.user);
@@ -51,8 +57,49 @@ export default function Marketplace() {
       const { data } = await supabase!.from('profiles').select('*').eq('id', uid).single();
       if (data) setProfile(data);
     }
-    fetchProducts();
+
+    const fetchAllData = async () => {
+        const loadedProducts = await fetchProducts();
+        if (productId && loadedProducts) {
+            const found = loadedProducts.find(p => p.id.toString() === productId);
+            if (found) setSelectedProduct(found);
+        }
+    };
+    
+    fetchAllData();
   }, []);
+
+  const handleShare = async (e: React.MouseEvent, product: Product) => {
+    e.stopPropagation();
+    const url = `${window.location.origin}/marketplace?id=${product.id}`;
+    const text = `شاهد دورة ${product.title} من تقديم ${product.instructor_name} على منصة طلاب الأردن - أكاديمية المسار المهني.`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: product.title,
+          text: text,
+          url: url,
+        });
+      } catch (err) {
+        console.log("Share failed:", err);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(`${text}\n\n${url}`);
+        alert("تم نسخ رابط الدورة بنجاح!");
+      } catch (err) {
+        console.error("Clipboard failed:", err);
+      }
+    }
+  };
+
+  const handleWhatsAppContact = () => {
+    if (!selectedProduct) return;
+    const phone = selectedProduct.contact_info || "9620000000";
+    const text = `مرحباً أ. ${selectedProduct.instructor_name}، أنا مهتم بالانضمام إلى "${selectedProduct.title}" المعروضة على منصة طلاب الأردن. كيف يمكنني إكمال عملية التسجيل؟`;
+    window.open(`https://wa.me/${phone.replace(/\+/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
+  };
 
   const handleEnroll = async () => {
     if (!user) {
@@ -134,6 +181,7 @@ export default function Marketplace() {
             students_count: item.students_count || 0
           }));
           setProducts(mapped);
+          return mapped;
         }
       }
     } catch (err) {
@@ -282,12 +330,21 @@ export default function Marketplace() {
                            )}
                            <span className="text-xl md:text-2xl font-black text-slate-900">{product.price} <small className="text-[10px] font-bold">JOD</small></span>
                         </div>
-                        <button 
-                          onClick={() => setSelectedProduct(product)}
-                          className="bg-slate-900 text-white p-3 md:p-3.5 rounded-xl md:rounded-2xl hover:bg-red-600 transition-all active:scale-95 shadow-xl shadow-slate-900/10"
-                        >
-                           <ShoppingCart className="w-5 h-5" />
-                        </button>
+                        <div className="flex gap-2">
+                           <button 
+                             onClick={(e) => handleShare(e, product)}
+                             className="bg-white text-slate-400 p-3 md:p-3.5 rounded-xl md:rounded-2xl hover:text-red-600 transition-all active:scale-95 border border-slate-100"
+                             title="مشاركة"
+                           >
+                              <Share2 className="w-5 h-5" />
+                           </button>
+                           <button 
+                             onClick={() => setSelectedProduct(product)}
+                             className="bg-slate-900 text-white p-3 md:p-3.5 rounded-xl md:rounded-2xl hover:bg-red-600 transition-all active:scale-95 shadow-xl shadow-slate-900/10"
+                           >
+                              <ShoppingCart className="w-5 h-5" />
+                           </button>
+                        </div>
                      </div>
                   </div>
                 </motion.div>
@@ -357,9 +414,17 @@ export default function Marketplace() {
                   </div>
 
                   <button 
+                    onClick={handleWhatsAppContact}
+                    className="w-full h-16 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all duration-300 shadow-xl shadow-emerald-600/10 flex items-center justify-center gap-3 mb-4"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                    تواصل مع المدرب عبر واتس اب
+                  </button>
+
+                  <button 
                     onClick={handleEnroll}
                     disabled={isSubmitting}
-                    className="w-full h-16 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-600 transition-all duration-300 shadow-xl shadow-slate-900/10 flex items-center justify-center gap-3 disabled:opacity-50"
+                    className="w-full h-14 bg-slate-900/5 text-slate-500 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-red-50 hover:text-red-600 transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-50 border border-slate-100"
                   >
                     {isSubmitting ? (
                       <>
@@ -368,7 +433,7 @@ export default function Marketplace() {
                       </>
                     ) : (
                       <>
-                        تأكيد الانضمام الآن
+                        إرسال طلب التحاق يدوي
                         <ArrowLeft className="w-4 h-4" />
                       </>
                     )}

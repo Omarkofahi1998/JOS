@@ -463,6 +463,8 @@ export default function AdminDashboard() {
   const [prodType, setProdType] = useState<'course' | 'session' | 'file'>('course');
   const [prodThumbnail, setProdThumbnail] = useState("");
   const [prodStatus, setProdStatus] = useState("active");
+  const [prodContactMethod, setProdContactMethod] = useState("whatsapp");
+  const [prodContactInfo, setProdContactInfo] = useState("");
 
   const [jobTitle, setJobTitle] = useState("");
   const [jobCompany, setJobCompany] = useState("");
@@ -771,6 +773,8 @@ export default function AdminDashboard() {
     setProdThumbnail("");
 
     setProdThumbnail("");
+    setProdContactMethod("whatsapp");
+    setProdContactInfo("");
     setJobTitle("");
     setJobCompany("");
     setJobLocation("");
@@ -1127,7 +1131,9 @@ export default function AdminDashboard() {
         category: prodCategory,
         type: prodType,
         thumbnail_url: prodThumbnail,
-        status: prodStatus
+        status: prodStatus,
+        contact_method: prodContactMethod,
+        contact_info: prodContactInfo
       };
       
       let error;
@@ -2194,6 +2200,8 @@ export default function AdminDashboard() {
                                       setProdType(item.type || "course"); 
                                       setProdThumbnail(item.thumbnail_url || ""); 
                                       setProdStatus(item.status || "active");
+                                      setProdContactMethod(item.contact_method || "whatsapp");
+                                      setProdContactInfo(item.contact_info || "");
                                       setSubTab('add'); 
                                     }
                                     else if(activeTab === 'announcements') { 
@@ -3237,6 +3245,18 @@ export default function AdminDashboard() {
                           </label>
                        </div>
                        {prodThumbnail && <img src={prodThumbnail} alt="Preview" className="w-20 h-20 object-cover rounded-xl border border-slate-200 mt-2" />}
+                    </div>
+                    <div className="space-y-2 text-right">
+                       <label className="text-xs font-black text-slate-400 uppercase">وسيلة التواصل</label>
+                       <select className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-bold" value={prodContactMethod} onChange={e => setProdContactMethod(e.target.value)}>
+                         <option value="whatsapp">واتساب</option>
+                         <option value="phone">اتصال هاتف</option>
+                         <option value="email">بريد إلكتروني</option>
+                       </select>
+                    </div>
+                    <div className="space-y-2 text-right">
+                       <label className="text-xs font-black text-slate-400 uppercase">رقم التواصل / الإيميل</label>
+                       <input type="text" className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600" value={prodContactInfo} onChange={e => setProdContactInfo(e.target.value)} placeholder="مثلاً: 9627XXXXXXXX" />
                     </div>
                     <div className="space-y-2 text-right col-span-2">
                        <label className="text-xs font-black text-slate-400 uppercase">الحالة</label>

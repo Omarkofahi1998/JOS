@@ -79,6 +79,31 @@ export default function ServiceDetails() {
     if (url) window.open(url, '_blank');
   };
 
+  const handleShare = async () => {
+    if (!service) return;
+    const url = window.location.href;
+    const text = `اكتشف خدمة ${service.title} على منصة طلاب الأردن - بوابتك للتميز المهني.`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: service.title,
+          text: text,
+          url: url,
+        });
+      } catch (err) {
+        console.log("Share failed:", err);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(`${text}\n\n${url}`);
+        alert("تم نسخ رابط الخدمة بنجاح!");
+      } catch (err) {
+        console.error("Clipboard failed:", err);
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -234,11 +259,22 @@ export default function ServiceDetails() {
                   <span className="text-xs font-black text-slate-900 uppercase tracking-widest">شارك الخدمة</span>
                 </div>
                 <div className="flex gap-2">
-                  <button className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center hover:bg-red-50 hover:text-red-600 transition-all">
-                    <MessageCircle className="w-4 h-4" />
+                  <button 
+                    onClick={handleShare}
+                    className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center hover:bg-red-50 hover:text-red-600 transition-all"
+                    title="مشاركة"
+                  >
+                    <Share2 className="w-4 h-4" />
                   </button>
-                  <button className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center hover:bg-red-50 hover:text-red-600 transition-all">
-                    <ArrowRight className="w-4 h-4 rotate-45" />
+                  <button 
+                    onClick={() => {
+                        const phone = service?.contact_info || "";
+                        const text = encodeURIComponent(`شاهد هذه الخدمة: ${service?.title}\n${window.location.href}`);
+                        window.open(`https://wa.me/${phone.replace(/\+/g, '')}?text=${text}`, '_blank');
+                    }}
+                    className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center hover:bg-emerald-50 hover:text-emerald-600 transition-all"
+                  >
+                    <MessageCircle className="w-4 h-4" />
                   </button>
                 </div>
               </div>

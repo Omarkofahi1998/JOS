@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { FileUser, Settings, Briefcase, UserCheck, MessageSquare, Sparkles, ArrowLeft, Users, Send, Loader2, FileText, Search, X, CheckCircle } from "lucide-react";
+import { FileUser, Settings, Briefcase, UserCheck, MessageSquare, Sparkles, ArrowLeft, Users, Send, Loader2, FileText, Search, X, CheckCircle, Share2 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 export default function Services() {
@@ -10,6 +10,31 @@ export default function Services() {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
+
+  const handleShare = async (e: React.MouseEvent, service: any) => {
+    e.stopPropagation();
+    const url = `${window.location.origin}/service/${service.id}`;
+    const text = `اكتشف خدمة ${service.title} على منصة طلاب الأردن - بوابتك للتميز المهني.`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: service.title,
+          text: text,
+          url: url,
+        });
+      } catch (err) {
+        console.log("Share failed:", err);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(`${text}\n\n${url}`);
+        alert("تم نسخ رابط الخدمة بنجاح!");
+      } catch (err) {
+        console.error("Clipboard failed:", err);
+      }
+    }
+  };
 
   useEffect(() => {
     supabase?.auth.getSession().then(({ data: { session } }) => {
@@ -32,7 +57,7 @@ export default function Services() {
       try {
         const { data, error } = await supabase
           .from('services')
-          .select('id, title, description, icon_name, bg_color, provider_id, price, category, thumbnail_url')
+          .select('id, title, description, icon_name, bg_color, provider_id, price, category, thumbnail_url, contact_info, contact_method')
           .eq('status', 'active');
         
         if (data && !error) {
@@ -180,6 +205,13 @@ export default function Services() {
                   >
                     <span>احجز الآن</span>
                     <ArrowLeft className="w-3.5 h-3.5 group-hover/btn:-translate-x-1 transition-transform" />
+                  </button>
+                  <button 
+                    onClick={(e) => handleShare(e, s)}
+                    className="p-2.5 bg-slate-50 text-slate-400 hover:text-red-600 rounded-xl transition-all hover:bg-red-50"
+                    title="مشاركة الخدمة"
+                  >
+                    <Share2 className="w-4 h-4" />
                   </button>
                   <div className="flex -space-x-1.5 rtl:space-x-reverse opacity-40">
                      {[1,2,3].map(j => <div key={j} className="w-4 h-4 rounded-full bg-slate-200 border-2 border-white" />)}
