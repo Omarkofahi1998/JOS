@@ -646,8 +646,18 @@ export default function AdminDashboard() {
         if (insertError) console.error("Error inserting into target table:", insertError);
       }
 
-      // We explicitly update profile role since trigger might set it to 'user'
-      await supabaseAdmin.from('profiles').update({ role: role }).eq('id', newUserId);
+      // Insert or update profile
+      const { error: profileError } = await supabaseAdmin.from('profiles').upsert([{ 
+        id: newUserId, 
+        email: req.email,
+        full_name: req.full_name || req.fullName || "User",
+        role: role 
+      }]);
+      
+      if (profileError) {
+        console.error("Error creating profile:", profileError);
+        throw new Error("حدث خطأ أثناء إنشاء الملف الشخصي");
+      }
 
       // Update submission status to approved
       const { error: updateError } = await supabase!.from('system_submissions').update({ status: 'approved' }).eq('id', req.id);
