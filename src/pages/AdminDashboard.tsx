@@ -494,6 +494,7 @@ export default function AdminDashboard() {
   const [viewingRequest, setViewingRequest] = useState<any | null>(null);
   const [isApproving, setIsApproving] = useState(false);
   const [approvalPassword, setApprovalPassword] = useState("");
+  const [approvalRole, setApprovalRole] = useState("user");
   const [approvingLoading, setApprovingLoading] = useState(false);
   const [viewingMessage, setViewingMessage] = useState<any | null>(null);
 
@@ -604,10 +605,7 @@ export default function AdminDashboard() {
     setApprovingLoading(true);
     setStatus(null);
 
-    let role = 'user';
-    if (req.type === 'instructor') role = 'instructor';
-    else if (req.type === 'business') role = 'company';
-    else if (req.type === 'service_provider') role = 'service_provider';
+    const role = approvalRole;
 
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -3486,28 +3484,43 @@ export default function AdminDashboard() {
                     <div className="flex flex-col gap-4 pt-2 mt-2">
                       {isApproving ? (
                         <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 animate-in fade-in slide-in-from-bottom-2">
-                          <p className="text-xs font-black text-emerald-800 mb-3 text-right">سيتم إنشاء حساب لهذا المستخدم تلقائياً بنفس بريده الإلكتروني. يرجى إدخال كلمة مرور للحساب الجديد:</p>
-                          <div className="flex gap-2">
-                            <button
-                               onClick={() => handleApproveAndCreateUser(viewingRequest)}
-                               disabled={approvingLoading || !approvalPassword}
-                               className="px-6 py-2 bg-emerald-600 text-white rounded-xl font-black text-[10px] hover:bg-emerald-700 transition-all disabled:opacity-50 flex items-center justify-center min-w-[100px]"
-                            >
-                               {approvingLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "إنشاء حساب وموافقة"}
-                            </button>
-                            <input
-                               type="text"
-                               placeholder="كلمة المرور للحساب..."
-                               value={approvalPassword}
-                               onChange={e => setApprovalPassword(e.target.value)}
-                               className="flex-1 bg-white border border-emerald-200 rounded-xl px-3 text-sm focus:border-emerald-500 outline-none"
-                            />
-                            <button
-                               onClick={() => { setIsApproving(false); setApprovalPassword(""); }}
-                               className="px-4 py-2 bg-white text-slate-500 rounded-xl font-black text-[10px] border border-slate-200 hover:bg-slate-50 transition-all"
-                            >
-                               إلغاء
-                            </button>
+                          <p className="text-xs font-black text-emerald-800 mb-3 text-right">سيتم إنشاء حساب لهذا المستخدم تلقائياً بنفس بريده الإلكتروني. يرجى اختيار نوع الحساب وإدخال كلمة المرور:</p>
+                          <div className="flex flex-col gap-3">
+                            <div className="flex gap-2">
+                              <select 
+                                value={approvalRole}
+                                onChange={e => setApprovalRole(e.target.value)}
+                                className="flex-1 bg-white border border-emerald-200 rounded-xl px-3 py-2 text-sm focus:border-emerald-500 outline-none"
+                              >
+                                <option value="user">طالب / مستخدم عادي</option>
+                                <option value="instructor">مدرب مكثفات</option>
+                                <option value="company">شركة / عمل</option>
+                                <option value="service_provider">مقدم خدمة</option>
+                                <option value="admin">مدير نظام</option>
+                              </select>
+                              <input
+                                 type="text"
+                                 placeholder="كلمة المرور للحساب..."
+                                 value={approvalPassword}
+                                 onChange={e => setApprovalPassword(e.target.value)}
+                                 className="flex-1 bg-white border border-emerald-200 rounded-xl px-3 py-2 text-sm focus:border-emerald-500 outline-none"
+                              />
+                            </div>
+                            <div className="flex gap-2 justify-end">
+                              <button
+                                 onClick={() => { setIsApproving(false); setApprovalPassword(""); }}
+                                 className="px-6 py-2 bg-white text-slate-500 rounded-xl font-black text-[10px] border border-slate-200 hover:bg-slate-50 transition-all"
+                              >
+                                 إلغاء
+                              </button>
+                              <button
+                                 onClick={() => handleApproveAndCreateUser(viewingRequest)}
+                                 disabled={approvingLoading || !approvalPassword}
+                                 className="px-6 py-2 bg-emerald-600 text-white rounded-xl font-black text-[10px] hover:bg-emerald-700 transition-all disabled:opacity-50 flex items-center justify-center min-w-[100px]"
+                              >
+                                 {approvingLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "إنشاء حساب وموافقة"}
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ) : (
@@ -3519,7 +3532,14 @@ export default function AdminDashboard() {
                           <div className="flex gap-2">
                             {viewingRequest.status !== 'approved' && (
                               <button 
-                                onClick={() => setIsApproving(true)}
+                                onClick={() => {
+                                  setIsApproving(true);
+                                  let defaultRole = 'user';
+                                  if (viewingRequest.type === 'instructor') defaultRole = 'instructor';
+                                  else if (viewingRequest.type === 'business') defaultRole = 'company';
+                                  else if (viewingRequest.type === 'service_provider') defaultRole = 'service_provider';
+                                  setApprovalRole(defaultRole);
+                                }}
                                 className="px-5 py-2.5 bg-emerald-50 text-emerald-600 rounded-xl font-black text-[10px] hover:bg-emerald-600 hover:text-white transition-all shadow-sm flex items-center gap-1"
                               >
                                 <CheckCircle2 className="w-3 h-3" /> موافقة وإنشاء حساب
