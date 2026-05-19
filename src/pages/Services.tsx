@@ -23,7 +23,7 @@ export default function Services() {
       const { data } = await supabase!.from('profiles').select('*').eq('id', uid).single();
       if (data) setProfile(data);
     }
-    async function fetchServices() {
+      async function fetchServices() {
       if (!supabase) {
         setIsLoading(false);
         return;
@@ -32,7 +32,7 @@ export default function Services() {
       try {
         const { data, error } = await supabase
           .from('services')
-          .select('id, title, description, icon_name, bg_color, provider_id, price, category')
+          .select('id, title, description, icon_name, bg_color, provider_id, price, category, thumbnail_url')
           .eq('status', 'active');
         
         if (data && !error) {
@@ -59,6 +59,7 @@ export default function Services() {
               title: s.title,
               desc: s.description,
               icon: <IconComponent className={`w-10 h-10 ${textColor}`} />,
+              thumbnail: s.thumbnail_url,
               color: bgColor,
               provider_id: s.provider_id,
               price: s.price,
@@ -159,8 +160,12 @@ export default function Services() {
                 className="group bg-white p-5 md:p-6 rounded-[1.75rem] border border-slate-100 hover:border-red-100 hover:shadow-2xl hover:shadow-red-600/5 transition-all text-right relative overflow-hidden scroll-mt-28 flex flex-col justify-between"
               >
                 <div>
-                  <div className={`w-10 h-10 md:w-12 md:h-12 ${s.color} rounded-xl md:rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500`}>
-                    {s.icon}
+                  <div className={`w-10 h-10 md:w-12 md:h-12 ${s.color} rounded-xl md:rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 overflow-hidden`}>
+                    {s.thumbnail ? (
+                      <img src={s.thumbnail} alt={s.title} className="w-full h-full object-cover" />
+                    ) : (
+                      s.icon
+                    )}
                   </div>
                   <h3 className="text-sm md:text-base font-black text-slate-900 mb-2 group-hover:text-red-600 transition-colors leading-tight">{s.title}</h3>
                   <p className="text-slate-500 leading-relaxed text-[11px] md:text-xs mb-4 font-bold line-clamp-3">

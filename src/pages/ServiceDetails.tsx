@@ -28,6 +28,7 @@ interface Service {
   bg_color: string;
   status: string;
   provider_id: string;
+  thumbnail_url?: string;
 }
 
 export default function ServiceDetails() {
@@ -124,6 +125,11 @@ export default function ServiceDetails() {
                animate={{ opacity: 1, y: 0 }}
                className="mb-10"
              >
+               {service.thumbnail_url && (
+                 <div className="mb-8 rounded-[2.5rem] overflow-hidden border border-slate-100 shadow-xl shadow-slate-200/50">
+                   <img src={service.thumbnail_url} alt={service.title} className="w-full h-auto aspect-video object-cover" />
+                 </div>
+               )}
                <span className="px-4 py-1.5 bg-red-50 text-red-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 inline-block">
                  {service.category}
                </span>

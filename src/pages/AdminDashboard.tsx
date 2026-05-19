@@ -2250,8 +2250,19 @@ export default function AdminDashboard() {
                                <span className="text-[10px] font-black text-slate-300 uppercase"># {item.id}</span>
                              </div>
                           </div>
-                          <h4 className="font-black text-slate-900 mb-2 truncate">{item.title || item.major || item.category || 'سجل جديد'}</h4>
-                          <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 mb-6 flex-grow">{item.content || item.text || item.description || item.url}</p>
+                          <div className="flex gap-4">
+                             {(item.thumbnail_url || item.image_url) && (
+                               <img 
+                                 src={item.thumbnail_url || item.image_url} 
+                                 alt="" 
+                                 className="w-16 h-16 rounded-2xl object-cover shrink-0 border border-slate-100" 
+                               />
+                             )}
+                             <div className="min-w-0 flex-grow">
+                                <h4 className="font-black text-slate-900 mb-2 truncate">{item.title || item.major || item.category || 'سجل جديد'}</h4>
+                                <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 mb-6 flex-grow">{item.content || item.text || item.description || item.url}</p>
+                             </div>
+                          </div>
                           {(activeTab === 'services' || activeTab === 'academy_products') && item.status === 'pending' && (
                             <button 
                               onClick={async () => {
