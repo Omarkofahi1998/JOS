@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Plus, LogOut, FileText, HelpCircle, Loader2, BookOpen, 
   CheckCircle2, AlertCircle, Sparkles, Trash2, Edit3, Layers, 
   Search, X, MessageSquare, Shield, Settings, Menu, Bell, User, Clock, ChevronRight, Megaphone,
-  Download, Image as ImageIcon, Eye, UserCheck, Mail, UploadCloud, Share2, Briefcase, MapPin,
+  Download, Image as ImageIcon, Eye, EyeOff, UserCheck, Mail, UploadCloud, Share2, Briefcase, MapPin,
   Building2
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -461,6 +461,7 @@ export default function AdminDashboard() {
   const [prodCategory, setProdCategory] = useState("دورات تدريبية");
   const [prodType, setProdType] = useState<'course' | 'session' | 'file'>('course');
   const [prodThumbnail, setProdThumbnail] = useState("");
+  const [prodStatus, setProdStatus] = useState("active");
 
   const [jobTitle, setJobTitle] = useState("");
   const [jobCompany, setJobCompany] = useState("");
@@ -1093,7 +1094,8 @@ export default function AdminDashboard() {
         old_price: parseFloat(prodOldPrice) || null,
         category: prodCategory,
         type: prodType,
-        thumbnail_url: prodThumbnail
+        thumbnail_url: prodThumbnail,
+        status: prodStatus
       };
       
       let error;
@@ -1781,7 +1783,7 @@ export default function AdminDashboard() {
             <div className="flex flex-wrap gap-2">
               {activeTab !== 'settings' && activeTab !== 'contacts' && (
                 <div className="flex flex-wrap gap-2">
-                  {(activeTab === 'instructor_requests' || activeTab === 'registrations' || activeTab === 'service_providers') ? (
+                      {(activeTab === 'instructor_requests' || activeTab === 'registrations' || activeTab === 'service_providers' || activeTab === 'services' || activeTab === 'academy_products' || activeTab === 'jobs') ? (
                     <>
                       <button 
                         onClick={() => setSubTab('list')}
@@ -1789,20 +1791,33 @@ export default function AdminDashboard() {
                           subTab === 'list' ? 'bg-slate-900 text-white border-slate-900 shadow-xl' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'
                         }`}
                       >
-                        كل الطلبات
+                        {activeTab === 'jobs' ? 'كافة الوظائف' : activeTab === 'services' ? 'كافة الخدمات' : activeTab === 'academy_products' ? 'كافة المنتجات' : 'كل الطلبات'}
                       </button>
                       <button 
-                        onClick={() => setSubTab('pending_approval')}
+                        onClick={() => setSubTab('approvals')}
                         className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all border-2 ${
-                          subTab === 'pending_approval' ? 'bg-amber-500 text-white border-amber-500 shadow-xl' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'
+                          subTab === 'approvals' ? 'bg-amber-500 text-white border-amber-500 shadow-xl' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'
                         }`}
                       >
                         بانتظار الموافقة ({
                           activeTab === 'instructor_requests' ? instructorRequests.filter(r => r.status === 'pending' || !r.status).length :
                           activeTab === 'registrations' ? registrations.filter(r => r.status === 'pending' || !r.status).length :
-                          serviceProviders.filter(r => r.status === 'pending' || !r.status).length
+                          activeTab === 'service_providers' ? serviceProviders.filter(r => r.status === 'pending' || !r.status).length :
+                          activeTab === 'services' ? services.filter(s => s.status === 'pending').length :
+                          activeTab === 'academy_products' ? academyProducts.filter(p => p.status === 'pending').length :
+                          adminJobs.filter(j => !j.is_active).length
                         })
                       </button>
+                      {(activeTab === 'services' || activeTab === 'academy_products' || activeTab === 'jobs') && (
+                        <button 
+                          onClick={() => { setSubTab('add'); resetForms(); }}
+                          className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all border-2 ${
+                            subTab === 'add' ? 'bg-slate-900 text-white border-slate-900 shadow-xl' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'
+                          }`}
+                        >
+                          {editingId ? 'تعديل' : 'إضافة جديد'}
+                        </button>
+                      )}
                     </>
                   ) : (
                     <>
@@ -1956,7 +1971,7 @@ export default function AdminDashboard() {
 
             <div className="p-8">
               {/* LIST VIEW */}
-              {(subTab === 'list' || subTab === 'pending_approval') && activeTab !== 'settings' && activeTab !== 'contacts' && activeTab !== 'instructor_requests' && activeTab !== 'registrations' && activeTab !== 'service_providers' && (
+              {(subTab === 'list' || subTab === 'approvals') && activeTab !== 'settings' && activeTab !== 'contacts' && activeTab !== 'instructor_requests' && activeTab !== 'registrations' && activeTab !== 'service_providers' && (
                 <div className={activeTab === 'questions' ? "overflow-x-auto" : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"}>
                   {activeTab === 'questions' ? (
                     <table className="w-full text-right border-collapse">
@@ -2013,30 +2028,10 @@ export default function AdminDashboard() {
                     </table>
                   ) : activeTab === 'jobs' ? (
                     <div className="space-y-6">
-                      <div className="flex gap-4 mb-6">
-                        <button 
-                          onClick={() => setSubTab('list')} 
-                          className={`px-4 py-2 rounded-xl text-xs font-black ${subTab === 'list' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'}`}
-                        >
-                          كافة الوظائف
-                        </button>
-                        <button 
-                          onClick={() => setSubTab('approvals')} 
-                          className={`px-4 py-2 rounded-xl text-xs font-black relative ${subTab === 'approvals' ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-500'}`}
-                        >
-                          بانتظار الموافقة
-                          {adminJobs.filter(j => !j.is_active).length > 0 && (
-                            <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center border-2 border-white">
-                              {adminJobs.filter(j => !j.is_active).length}
-                            </span>
-                          )}
-                        </button>
-                      </div>
-
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {adminJobs
-                          .filter(j => subTab === 'approvals' ? !j.is_active : true)
-                          .filter(j => j.title.includes(searchTerm) || j.company_name.includes(searchTerm))
+                          .filter(j => subTab === 'approvals' ? !j.is_active : j.is_active)
+                          .filter(j => j.title.toLowerCase().includes(searchTerm.toLowerCase()) || j.company_name.toLowerCase().includes(searchTerm.toLowerCase()))
                           .map(job => (
                             <div key={job.id} className="bg-white border border-slate-200 rounded-3xl p-6 hover:shadow-lg transition-all">
                               <div className="flex justify-between items-start mb-4">
@@ -2110,28 +2105,6 @@ export default function AdminDashboard() {
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      {(activeTab === 'services' || activeTab === 'academy_products') && (
-                        <div className="flex gap-4 mb-6">
-                          <button 
-                            onClick={() => setSubTab('list')} 
-                            className={`px-4 py-2 rounded-xl text-xs font-black ${subTab === 'list' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'}`}
-                          >
-                            {activeTab === 'services' ? 'كافة الخدمات' : 'كافة المنتجات'}
-                          </button>
-                          <button 
-                            onClick={() => setSubTab('approvals')} 
-                            className={`px-4 py-2 rounded-xl text-xs font-black relative ${subTab === 'approvals' ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-500'}`}
-                          >
-                            بانتظار الموافقة
-                            { (activeTab === 'services' ? services : academyProducts).filter(s => s.status === 'pending').length > 0 && (
-                              <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center border-2 border-white">
-                                {(activeTab === 'services' ? services : academyProducts).filter(s => s.status === 'pending').length}
-                              </span>
-                            )}
-                          </button>
-                        </div>
-                      )}
-
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {(activeTab === 'files' ? files : activeTab === 'services' ? services : activeTab === 'features' ? features : activeTab === 'announcements' ? announcements : activeTab === 'academy_products' ? academyProducts : reviews)
                       .filter(item => {
@@ -2187,6 +2160,7 @@ export default function AdminDashboard() {
                                       setProdCategory(item.category || "دورات تدريبية"); 
                                       setProdType(item.type || "course"); 
                                       setProdThumbnail(item.thumbnail_url || ""); 
+                                      setProdStatus(item.status || "active");
                                       setSubTab('add'); 
                                     }
                                     else if(activeTab === 'announcements') { 
@@ -2206,6 +2180,23 @@ export default function AdminDashboard() {
                                   }}
                                   className="p-2 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-xl"
                                 ><Edit3 className="w-4 h-4" /></button>
+                                {(activeTab === 'services' || activeTab === 'academy_products') && item.status !== 'pending' && (
+                                  <button 
+                                    onClick={async () => {
+                                      const table = activeTab === 'services' ? 'services' : 'products';
+                                      const newStatus = item.status === 'active' ? 'inactive' : 'active';
+                                      const { error } = await supabase!.from(table).update({ status: newStatus }).eq('id', item.id);
+                                      if (!error) {
+                                        setStatus({ type: 'success', msg: `تم تحديث الحالة بنجاح إلى ${newStatus === 'active' ? 'نشط' : 'معطل'}` });
+                                        fetchData();
+                                      }
+                                    }}
+                                    className={`p-2 rounded-xl transition-all ${item.status === 'active' ? 'bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'}`}
+                                    title={item.status === 'active' ? 'إيقاف النشاط' : 'تفعيل'}
+                                  >
+                                    {item.status === 'active' ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                  </button>
+                                )}
                                 <button onClick={() => deleteItem(activeTab === 'files' ? 'question_files' : activeTab === 'academy_products' ? 'products' : activeTab, item.id)} className="p-2 bg-red-50 text-red-300 hover:text-red-600 rounded-xl"><Trash2 className="w-4 h-4" /></button>
                              </div>
                              <div className="flex items-center gap-2">
@@ -2215,8 +2206,12 @@ export default function AdminDashboard() {
                                  </span>
                                )}
                                {(activeTab === 'services' || activeTab === 'academy_products') && (
-                                 <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${item.status === 'active' ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-500'}`}>
-                                   {item.status === 'active' ? 'نشط' : 'بانتظار الموافقة'}
+                                 <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${
+                                   item.status === 'active' ? 'bg-emerald-100 text-emerald-600' : 
+                                   item.status === 'pending' ? 'bg-orange-100 text-orange-500' : 
+                                   'bg-slate-100 text-slate-500'
+                                 }`}>
+                                   {item.status === 'active' ? 'نشط' : item.status === 'pending' ? 'بانتظار الموافقة' : 'معطل'}
                                  </span>
                                )}
                                <span className="text-[10px] font-black text-slate-300 uppercase"># {item.id}</span>
@@ -2224,7 +2219,6 @@ export default function AdminDashboard() {
                           </div>
                           <h4 className="font-black text-slate-900 mb-2 truncate">{item.title || item.major || item.category || 'سجل جديد'}</h4>
                           <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 mb-6 flex-grow">{item.content || item.text || item.description || item.url}</p>
-                          
                           {(activeTab === 'services' || activeTab === 'academy_products') && item.status === 'pending' && (
                             <button 
                               onClick={async () => {
@@ -2271,14 +2265,14 @@ export default function AdminDashboard() {
                              <ChevronRight className="w-3 h-3" />
                           </div>
                         </motion.div>
-                        )
-                      )}
+                        ))}
                     </div>
                   </div>
                 )}
               </div>
             )}
-              {(subTab === 'list' || subTab === 'pending_approval') && activeTab === 'instructor_requests' && (
+
+               {(subTab === 'list' || subTab === 'approvals') && activeTab === 'instructor_requests' && (
                 <div className="space-y-6">
                     <div className="flex items-center justify-between px-4 py-2 bg-slate-50 rounded-2xl border border-slate-200">
                         <div className="text-right">
@@ -2304,7 +2298,7 @@ export default function AdminDashboard() {
                             </thead>
                             <tbody>
                                 {instructorRequests
-                                  .filter(req => subTab === 'pending_approval' ? (req.status === 'pending' || !req.status) : true)
+                                  .filter(req => subTab === 'approvals' ? (req.status === 'pending' || !req.status) : true)
                                   .map(req => (
                                     <tr key={req.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-all group text-right">
                                         <td className="px-6 py-4 text-sm font-bold text-slate-900">{req.full_name || req.fullName}</td>
@@ -2351,17 +2345,17 @@ export default function AdminDashboard() {
                                             </div>
                                         </td>
                                     </tr>
-                                ))}
+                                  ))}
                             </tbody>
                         </table>
-                        {instructorRequests.filter(req => subTab === 'pending_approval' ? (req.status === 'pending' || !req.status) : true).length === 0 && (
+                        {instructorRequests.filter(req => subTab === 'approvals' ? (req.status === 'pending' || !req.status) : true).length === 0 && (
                             <div className="text-center py-20 text-slate-300 font-bold">لا توجد طلبات في هذه الفئة</div>
                         )}
                     </div>
                 </div>
               )}
 
-              {subTab === 'list' && activeTab === 'user_bookings' && (
+              {(subTab === 'list' || subTab === 'approvals') && activeTab === 'user_bookings' && (
                 <div className="overflow-x-auto">
                     <table className="w-full text-right border-collapse">
                         <thead>
@@ -2376,7 +2370,9 @@ export default function AdminDashboard() {
                             </tr>
                         </thead>
                         <tbody>
-                            {userBookings.map(booking => (
+                            {userBookings
+                              .filter(booking => subTab === 'approvals' ? booking.status === 'pending' : true)
+                              .map(booking => (
                                 <tr key={booking.id} className="border-b border-slate-100 hover:bg-slate-50 transition-all">
                                     <td className="px-6 py-4 font-bold text-slate-900">{booking.user_name}</td>
                                     <td className="px-6 py-4 text-sm text-slate-500">{booking.user_email}</td>
@@ -2419,7 +2415,7 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {(subTab === 'list' || subTab === 'pending_approval') && activeTab === 'service_providers' && (
+              {(subTab === 'list' || subTab === 'approvals') && activeTab === 'service_providers' && (
                 <div className="space-y-6">
                     <div className="flex items-center justify-between px-4 py-2 bg-slate-50 rounded-2xl border border-slate-200">
                         <div className="text-right">
@@ -2444,7 +2440,7 @@ export default function AdminDashboard() {
                             </thead>
                             <tbody>
                                 {serviceProviders
-                                  .filter(reg => subTab === 'pending_approval' ? (reg.status === 'pending' || !reg.status) : true)
+                                  .filter(reg => subTab === 'approvals' ? (reg.status === 'pending' || !reg.status) : true)
                                   .map(reg => (
                                     <tr key={reg.id} className="border-b border-slate-100 hover:bg-slate-50 transition-all">
                                         <td className="px-6 py-4 font-bold text-slate-900">{reg.full_name || reg.name}</td>
@@ -2490,14 +2486,14 @@ export default function AdminDashboard() {
                                 ))}
                             </tbody>
                         </table>
-                        {serviceProviders.filter(reg => subTab === 'pending_approval' ? (reg.status === 'pending' || !reg.status) : true).length === 0 && (
+                        {serviceProviders.filter(reg => subTab === 'approvals' ? (reg.status === 'pending' || !reg.status) : true).length === 0 && (
                             <div className="text-center py-20 text-slate-300 font-bold">لا توجد طلبات في هذه الفئة</div>
                         )}
                     </div>
                 </div>
               )}
 
-              {(subTab === 'list' || subTab === 'pending_approval') && activeTab === 'registrations' && (
+              {(subTab === 'list' || subTab === 'approvals') && activeTab === 'registrations' && (
                 <div className="space-y-6">
                     <div className="flex items-center justify-between px-4 py-2 bg-slate-50 rounded-2xl border border-slate-200">
                         <div className="text-right">
@@ -2522,7 +2518,7 @@ export default function AdminDashboard() {
                             </thead>
                             <tbody>
                                 {registrations
-                                  .filter(reg => subTab === 'pending_approval' ? (reg.status === 'pending' || !reg.status) : true)
+                                  .filter(reg => subTab === 'approvals' ? (reg.status === 'pending' || !reg.status) : true)
                                   .map(reg => (
                                     <tr key={reg.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-all group text-right">
                                         <td className="px-6 py-4 text-sm font-black text-slate-900">{reg.metadata?.company_name || reg.entity_name}</td>
@@ -2568,7 +2564,7 @@ export default function AdminDashboard() {
                                 ))}
                             </tbody>
                         </table>
-                        {registrations.filter(reg => subTab === 'pending_approval' ? (reg.status === 'pending' || !reg.status) : true).length === 0 && (
+                        {registrations.filter(reg => subTab === 'approvals' ? (reg.status === 'pending' || !reg.status) : true).length === 0 && (
                             <div className="text-center py-20 text-slate-300 font-bold">لا توجد طلبات في هذه الفئة</div>
                         )}
                     </div>
@@ -3164,6 +3160,14 @@ export default function AdminDashboard() {
                     <div className="space-y-2 text-right col-span-2">
                        <label className="text-xs font-black text-slate-400 uppercase">رابط الصورة (Thumbnail)</label>
                        <input type="url" className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-mono text-sm" value={prodThumbnail} onChange={e => setProdThumbnail(e.target.value)} />
+                    </div>
+                    <div className="space-y-2 text-right col-span-2">
+                       <label className="text-xs font-black text-slate-400 uppercase">الحالة</label>
+                       <select className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-bold" value={prodStatus} onChange={e => setProdStatus(e.target.value)}>
+                         <option value="active">نشط (يظهر في المتجر)</option>
+                         <option value="pending">بانتظار الموافقة</option>
+                         <option value="inactive">معطل / مسودة</option>
+                       </select>
                     </div>
                   </div>
                   <button type="submit" className="w-full h-16 bg-slate-900 text-white rounded-[2rem] font-black hover:bg-emerald-600 transition-all shadow-2xl">حفظ المنتج الآن</button>
