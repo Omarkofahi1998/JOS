@@ -9,3 +9,6 @@ coverage/
 recreate_schema.sql
 recreate_db_clean.sql
 recreate_db_complete.sql
+migrations/
+.env.example
+

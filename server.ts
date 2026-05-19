@@ -68,6 +68,141 @@ async function startServer() {
     }
   });
 
+  app.post("/api/add-product", async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthorized: Missing or invalid token" });
+    }
+    const token = authHeader.split(" ")[1];
+
+    const payload = req.body;
+
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return res.status(500).json({ error: "Missing Supabase URL or Service Role Key in server environment." });
+    }
+
+    try {
+      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+      // Verify token
+      const { data: { user }, error: authUserError } = await supabaseAdmin.auth.getUser(token);
+      if (authUserError || !user) throw new Error("Invalid token.");
+
+      // Check if user is instructor (or admin)
+      const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
+      
+      if (!profile || (profile.role !== 'instructor' && profile.role !== 'admin' && profile.role !== 'company')) {
+        return res.status(403).json({ error: "Forbidden: Instructor access required." });
+      }
+
+      // Add product via admin
+      const { data, error: insertError } = await supabaseAdmin
+        .from('products')
+        .insert([{
+          ...payload,
+          instructor_id: user.id // enforce user's ID
+        }]);
+
+      if (insertError) throw insertError;
+
+      res.status(200).json({ message: "Product added successfully", data });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/add-service", async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthorized: Missing or invalid token" });
+    }
+    const token = authHeader.split(" ")[1];
+
+    const payload = req.body;
+
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return res.status(500).json({ error: "Missing Supabase URL or Service Role Key in server environment." });
+    }
+
+    try {
+      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+      // Verify token
+      const { data: { user }, error: authUserError } = await supabaseAdmin.auth.getUser(token);
+      if (authUserError || !user) throw new Error("Invalid token.");
+
+      // Check if user is service_provider (or admin/company)
+      const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
+      
+      if (!profile || (profile.role !== 'service_provider' && profile.role !== 'admin' && profile.role !== 'company')) {
+        return res.status(403).json({ error: "Forbidden: Service Provider access required." });
+      }
+
+      // Add service via admin
+      const { data, error: insertError } = await supabaseAdmin
+        .from('services')
+        .insert([{
+          ...payload,
+          provider_id: user.id // enforce user's ID
+        }]);
+
+      if (insertError) throw insertError;
+
+      res.status(200).json({ message: "Service added successfully", data });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/add-job", async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthorized: Missing or invalid token" });
+    }
+    const token = authHeader.split(" ")[1];
+
+    const payload = req.body;
+
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return res.status(500).json({ error: "Missing Supabase URL or Service Role Key in server environment." });
+    }
+
+    try {
+      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+      // Verify token
+      const { data: { user }, error: authUserError } = await supabaseAdmin.auth.getUser(token);
+      if (authUserError || !user) throw new Error("Invalid token.");
+
+      // Check if user is employer (or admin/company)
+      const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single();
+      
+      if (!profile || (profile.role !== 'employer' && profile.role !== 'company' && profile.role !== 'admin')) {
+        return res.status(403).json({ error: "Forbidden: Employer access required." });
+      }
+
+      // Add job via admin
+      const { data, error: insertError } = await supabaseAdmin
+        .from('jobs')
+        .insert([payload]);
+
+      if (insertError) throw insertError;
+
+      res.status(200).json({ message: "Job added successfully", data });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   app.get("/api/proxy-image", async (req, res) => {
     const imageUrl = req.query.url as string;
     if (!imageUrl) {

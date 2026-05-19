@@ -90,10 +90,16 @@ export default function ProfessionalDashboard() {
     
     setIsSubmittingService(true);
     try {
-      const { error } = await supabase!
-        .from('services')
-        .insert([{
-          provider_id: user.id,
+      const { data: sessionData } = await supabase!.auth.getSession();
+      const token = sessionData.session?.access_token;
+
+      const response = await fetch('/api/add-service', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
           title: newService.title,
           description: newService.description,
           price: parseFloat(newService.price),
@@ -103,9 +109,11 @@ export default function ProfessionalDashboard() {
           icon_name: 'Sparkles',
           bg_color: 'bg-blue-50',
           status: 'pending' // Force pending status for admin approval
-        }]);
+        })
+      });
 
-      if (error) throw error;
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "خطأ أثناء إضافة الخدمة");
       
       setShowAddServiceModal(false);
       setNewService({ 

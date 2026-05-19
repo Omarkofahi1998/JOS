@@ -1,6 +1,11 @@
 {
   "name": "JO Students",
   "description": "المنصة الشاملة JO Students لمساعدة المتقدمين للامتحانات التنافسية في هيئة الإدارة والخدمة العامة بالأردن",
-  "requestFramePermissions": [],
-  "majorCapabilities": []
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

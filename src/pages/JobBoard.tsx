@@ -145,8 +145,16 @@ export default function JobBoard() {
   const handlePostJob = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const { error } = await supabase.from('jobs').insert([
-        {
+      const { data: sessionData } = await supabase!.auth.getSession();
+      const token = sessionData.session?.access_token;
+      
+      const response = await fetch('/api/add-job', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
           title: newJob.title,
           company_name: newJob.company,
           location: newJob.location,
@@ -156,10 +164,11 @@ export default function JobBoard() {
           experience: newJob.experience,
           contact: newJob.contact,
           is_active: false // Admin must approve
-        }
-      ]);
+        })
+      });
 
-      if (error) throw error;
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "حدث خطأ أثناء الإضافة");
       
       setShowPostModal(false);
       setShowSuccessMessage(true);

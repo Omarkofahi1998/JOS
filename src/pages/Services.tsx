@@ -67,48 +67,9 @@ export default function Services() {
             };
           });
 
-          // Add user's specific services if they are not in the list
-          const soonServices = [
-            {
-              id: 'soon-1',
-              title: "إنشاء أو تعديل CV إحترافي مطابق لنظام ATS العالمي - Soon",
-              desc: "خدمة متكاملة لبناء سيرة ذاتية ذكية تجتاز أنظمة الفرز اآلي وتلفت نظر أصحاب العمل.",
-              icon: <FileUser className="w-10 h-10 text-red-600" />,
-              color: "bg-red-50",
-              isReal: false
-            },
-            {
-              id: 'soon-2',
-              title: "تحليل المسار المهني - Soon",
-              desc: "جلسات استشارية لتحليل مهاراتك الحالية وتحديد أفضل مسار مهني يناسب شغفك وسوق العمل.",
-              icon: <Search className="w-10 h-10 text-blue-600" />,
-              color: "bg-blue-50",
-              isReal: false
-            }
-          ];
-
-          // Filter out if they already exist (by title substring)
-          const filteredMapped = mapped.filter(m => 
-            !soonServices.some(soon => soon.title.includes(m.title) || m.title.includes(soon.title))
-          );
-
-          setServicesList([...soonServices, ...filteredMapped]);
-        } else if (!data || data.length === 0) {
-          // Fallback if no data
-          setServicesList([
-            {
-              title: "إنشاء أو تعديل CV إحترافي مطابق لنظام ATS العالمي - Soon",
-              desc: "خدمة متكاملة لبناء سيرة ذاتية ذكية تجتاز أنظمة الفرز اآلي وتلفت نظر أصحاب العمل.",
-              icon: <FileUser className="w-10 h-10 text-red-600" />,
-              color: "bg-red-50"
-            },
-            {
-              title: "تحليل المسار المهني - Soon",
-              desc: "جلسات استشارية لتحليل مهاراتك الحالية وتحديد أفضل مسار مهني يناسب شغفك وسوق العمل.",
-              icon: <Search className="w-10 h-10 text-blue-600" />,
-              color: "bg-blue-50"
-            }
-          ]);
+          setServicesList(mapped);
+        } else {
+          setServicesList([]);
         }
       } catch (err) {
         console.error("Supabase Error:", err);

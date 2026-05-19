@@ -44,15 +44,16 @@ function VisitorTracker() {
     async function trackVisitor() {
       if (!supabase) return;
 
-      // Check for session cookie
       const sessionVisited = sessionStorage.getItem('jo_student_visited');
       
       if (!sessionVisited) {
         try {
-          // Increment visitor count in DB
           const { data: current } = await supabase.from('visitor_stats').select('count').eq('id', 1).single();
           if (current) {
             await supabase.from('visitor_stats').update({ count: (current.count || 0) + 1 }).eq('id', 1);
+          } else {
+            // New: Handle case where record id=1 doesn't exist yet
+            await supabase.from('visitor_stats').upsert({ id: 1, count: 1 });
           }
           sessionStorage.setItem('jo_student_visited', 'true');
         } catch (err) {

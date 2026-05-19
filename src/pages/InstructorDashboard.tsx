@@ -80,20 +80,28 @@ export default function InstructorDashboard() {
 
     setIsSubmitting(true);
     try {
-      const { error } = await supabase!
-        .from('products')
-        .insert([{
+      const { data: sessionData } = await supabase!.auth.getSession();
+      const token = sessionData.session?.access_token;
+      
+      const response = await fetch('/api/add-product', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
           title: newService.title,
           description: newService.description,
           price: parseFloat(newService.price),
           category: newService.category,
           type: newService.type,
-          instructor_id: user.id,
           instructor_name: profile?.full_name || user.email?.split('@')[0],
           status: 'pending'
-        }]);
+        })
+      });
 
-      if (error) throw error;
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "خطأ أثناء إضافة المنتج");
 
       addToast("تم تقديم طلب النشر بنجاح، سيتم مراجعته", "success");
       setShowAddModal(false);

@@ -565,11 +565,12 @@ export default function AdminDashboard() {
       if (rev.data) setReviews(rev.data);
       
       if (submissions.data) {
-        setContacts(submissions.data.filter((item: any) => item.type === 'contact'));
-        setInstructorRequests(submissions.data.filter((item: any) => item.type === 'instructor'));
-        setRegistrations(submissions.data.filter((item: any) => item.type === 'business'));
-        setServiceProviders(submissions.data.filter((item: any) => item.type === 'service_provider'));
-        setNotifications(submissions.data.filter((item: any) => item.status === 'pending' || item.status === 'new' || !item.status));
+        const sortedSubmissions = submissions.data;
+        setContacts(sortedSubmissions.filter((item: any) => item.type === 'contact'));
+        setInstructorRequests(sortedSubmissions.filter((item: any) => item.type === 'instructor'));
+        setRegistrations(sortedSubmissions.filter((item: any) => item.type === 'business'));
+        setServiceProviders(sortedSubmissions.filter((item: any) => item.type === 'service_provider'));
+        setNotifications(sortedSubmissions.filter((item: any) => item.status === 'pending' || !item.status));
       }
 
       if (ann.data) setAnnouncements(ann.data);
@@ -633,25 +634,17 @@ export default function AdminDashboard() {
 
       const newUserId = authData.user.id;
 
-      let targetTable = '';
-      if (role === 'instructor') targetTable = 'instructors_data';
-      else if (role === 'company') targetTable = 'companies_data';
-      else if (role === 'service_provider') targetTable = 'service_providers_data';
-
-      if (targetTable) {
-        const { error: insertError } = await supabaseAdmin.from(targetTable).insert([{
-          id: newUserId,
-          details: req.metadata || {}
-        }]);
-        if (insertError) console.error("Error inserting into target table:", insertError);
-      }
-
-      // Insert or update profile
+      // Update Profile and Role
       const { error: profileError } = await supabaseAdmin.from('profiles').upsert([{ 
         id: newUserId, 
         email: req.email,
         full_name: req.full_name || req.fullName || "User",
-        role: role 
+        role: role,
+        metadata: {
+            ...req.metadata,
+            source_submission_id: req.id,
+            approved_at: new Date().toISOString()
+        }
       }]);
       
       if (profileError) {
@@ -1786,45 +1779,88 @@ export default function AdminDashboard() {
           {/* Action Tabs */}
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
             <div className="flex flex-wrap gap-2">
-              {activeTab !== 'settings' && activeTab !== 'contacts' && activeTab !== 'instructor_requests' && activeTab !== 'registrations' && activeTab !== 'service_providers' && activeTab !== 'user_bookings' && (
-                <>
-                  <button 
-                    onClick={() => setSubTab('list')}
-                    className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all border-2 ${
-                      subTab === 'list' ? 'bg-slate-900 text-white border-slate-900 shadow-xl' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'
-                    }`}
-                  >
-                    عرض السجلات
-                  </button>
-                  <button 
-                    onClick={() => { setSubTab('add'); resetForms(); }}
-                    className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all border-2 ${
-                      subTab === 'add' ? 'bg-slate-900 text-white border-slate-900 shadow-xl' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'
-                    }`}
-                  >
-                    {editingId ? 'تعديل السجل' : 'إضافة سجل جديد'}
-                  </button>
-                  {activeTab === 'questions' && (
-                    <button 
-                      onClick={() => setSubTab('bulk')}
-                      className={`px-4 py-2 rounded-xl font-bold text-sm transition-all border ${
-                        subTab === 'bulk' ? 'bg-red-600 text-white border-red-600 shadow-lg' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
-                      }`}
-                    >
-                      إضافة بالجملة (JSON)
-                    </button>
+              {activeTab !== 'settings' && activeTab !== 'contacts' && (
+                <div className="flex flex-wrap gap-2">
+                  {(activeTab === 'instructor_requests' || activeTab === 'registrations' || activeTab === 'service_providers') ? (
+                    <>
+                      <button 
+                        onClick={() => setSubTab('list')}
+                        className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all border-2 ${
+                          subTab === 'list' ? 'bg-slate-900 text-white border-slate-900 shadow-xl' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'
+                        }`}
+                      >
+                        كل الطلبات
+                      </button>
+                      <button 
+                        onClick={() => setSubTab('pending_approval')}
+                        className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all border-2 ${
+                          subTab === 'pending_approval' ? 'bg-amber-500 text-white border-amber-500 shadow-xl' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'
+                        }`}
+                      >
+                        بانتظار الموافقة ({
+                          activeTab === 'instructor_requests' ? instructorRequests.filter(r => r.status === 'pending' || !r.status).length :
+                          activeTab === 'registrations' ? registrations.filter(r => r.status === 'pending' || !r.status).length :
+                          serviceProviders.filter(r => r.status === 'pending' || !r.status).length
+                        })
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {activeTab !== 'user_bookings' && (
+                        <>
+                          <button 
+                            onClick={() => setSubTab('list')}
+                            className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all border-2 ${
+                              subTab === 'list' ? 'bg-slate-900 text-white border-slate-900 shadow-xl' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'
+                            }`}
+                          >
+                            عرض السجلات
+                          </button>
+                          <button 
+                            onClick={() => { setSubTab('add'); resetForms(); }}
+                            className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all border-2 ${
+                              subTab === 'add' ? 'bg-slate-900 text-white border-slate-900 shadow-xl' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'
+                            }`}
+                          >
+                            {editingId ? 'تعديل السجل' : 'إضافة سجل جديد'}
+                          </button>
+                        </>
+                      )}
+                      
+                      {activeTab === 'user_bookings' && (
+                        <button 
+                          onClick={() => setSubTab('list')}
+                          className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all border-2 ${
+                            subTab === 'list' ? 'bg-slate-900 text-white border-slate-900 shadow-xl' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'
+                          }`}
+                        >
+                          عرض المبيعات
+                        </button>
+                      )}
+
+                      {activeTab === 'questions' && (
+                        <button 
+                          onClick={() => setSubTab('bulk')}
+                          className={`px-4 py-2 rounded-xl font-bold text-sm transition-all border ${
+                            subTab === 'bulk' ? 'bg-red-600 text-white border-red-600 shadow-lg' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+                          }`}
+                        >
+                          إضافة بالجملة (JSON)
+                        </button>
+                      )}
+                      {activeTab === 'files' && (
+                        <button 
+                          onClick={() => setSubTab('bulk_gen')}
+                          className={`px-4 py-2 rounded-xl font-bold text-sm transition-all border ${
+                            subTab === 'bulk_gen' ? 'bg-blue-600 text-white border-blue-600 shadow-lg' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+                          }`}
+                        >
+                          توليد ملف من أسئلة
+                        </button>
+                      )}
+                    </>
                   )}
-                  {activeTab === 'files' && (
-                    <button 
-                      onClick={() => setSubTab('bulk_gen')}
-                      className={`px-4 py-2 rounded-xl font-bold text-sm transition-all border ${
-                        subTab === 'bulk_gen' ? 'bg-blue-600 text-white border-blue-600 shadow-lg' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
-                      }`}
-                    >
-                      توليد ملف من أسئلة
-                    </button>
-                  )}
-                </>
+                </div>
               )}
             </div>
             
@@ -1920,7 +1956,7 @@ export default function AdminDashboard() {
 
             <div className="p-8">
               {/* LIST VIEW */}
-              {subTab === 'list' && activeTab !== 'settings' && activeTab !== 'contacts' && activeTab !== 'instructor_requests' && (
+              {(subTab === 'list' || subTab === 'pending_approval') && activeTab !== 'settings' && activeTab !== 'contacts' && activeTab !== 'instructor_requests' && activeTab !== 'registrations' && activeTab !== 'service_providers' && (
                 <div className={activeTab === 'questions' ? "overflow-x-auto" : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"}>
                   {activeTab === 'questions' ? (
                     <table className="w-full text-right border-collapse">
@@ -2242,71 +2278,86 @@ export default function AdminDashboard() {
                 )}
               </div>
             )}
-              {subTab === 'list' && activeTab === 'instructor_requests' && (
-                <div className="overflow-x-auto">
-                    <table className="w-full text-right border-collapse">
-                        <thead>
-                            <tr className="bg-slate-50 border-b border-slate-200">
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">الاسم الكامل</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">البريد الإلكتروني</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">رقم الهاتف</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">التخصص</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">نبذة عن الخبرة</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">التاريخ</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase text-center border-l border-slate-100">الإجراءات</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase text-center">التفاصيل</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {instructorRequests.map(req => (
-                                <tr key={req.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-all group text-right">
-                                    <td className="px-6 py-4 text-sm font-bold text-slate-900">{req.full_name || req.fullName}</td>
-                                    <td className="px-6 py-4 text-sm text-red-600 font-bold">{req.email}</td>
-                                    <td className="px-6 py-4 text-sm text-slate-600">{req.phone}</td>
-                                    <td className="px-6 py-4 text-sm text-slate-600 font-black">{req.metadata?.major || req.major}</td>
-                                    <td className="px-6 py-4 text-sm text-slate-400 max-w-[150px] truncate">{req.content || req.experience || "لا توجد خبرة"}</td>
-                                    <td className="px-6 py-4 text-sm text-slate-400">{new Date(req.created_at).toLocaleDateString()}</td>
-                                    <td className="px-6 py-4 border-l border-slate-100">
-                                        <div className="flex items-center justify-center gap-2">
-                                            {req.status !== 'approved' && (
-                                              <button 
-                                                  onClick={async () => {
-                                                    const { error } = await supabase.from('system_submissions').update({ status: 'approved' }).eq('id', req.id);
-                                                    if (!error) {
-                                                      setStatus({ type: 'success', msg: 'تمت الموافقة على الطلب بنجاح' });
-                                                      fetchData();
-                                                    }
-                                                  }}
-                                                  className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg transition-all"
-                                                  title="موافقة"
-                                              >
-                                                  <CheckCircle2 className="w-4 h-4" />
-                                              </button>
-                                            )}
-                                            <button 
-                                                onClick={() => deleteItem('system_submissions', req.id)} 
-                                                className="p-2 bg-red-50 text-red-400 hover:bg-red-600 hover:text-white rounded-lg transition-all"
-                                                title="حذف الطلب"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center justify-center">
-                                            <button 
-                                                onClick={() => setViewingRequest(req)} 
-                                                className="p-2 bg-slate-100 text-slate-500 hover:text-slate-900 rounded-lg transition-all"
-                                                title="عرض التفاصيل الكاملة"
-                                            >
-                                                <Eye className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    </td>
+              {(subTab === 'list' || subTab === 'pending_approval') && activeTab === 'instructor_requests' && (
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between px-4 py-2 bg-slate-50 rounded-2xl border border-slate-200">
+                        <div className="text-right">
+                            <h3 className="text-lg font-black text-slate-900">طلبات انضمام المدربين</h3>
+                            <p className="text-xs text-slate-500 font-bold">مراجعة بيانات وخبرات الأكاديميين الراغبين بالانضمام</p>
+                        </div>
+                        <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 text-center">
+                            <span className="block text-[10px] font-black text-slate-400 uppercase">بانتظار المراجعة</span>
+                            <span className="text-xl font-black text-red-600">{instructorRequests.filter(r => r.status === 'pending' || !r.status).length}</span>
+                        </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-right border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50 border-b border-slate-200">
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">الاسم الكامل</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">البريد الإلكتروني</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">التخصص</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">الحالة</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase text-center border-l border-slate-100">الإجراءات</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase text-center">التفاصيل</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {instructorRequests
+                                  .filter(req => subTab === 'pending_approval' ? (req.status === 'pending' || !req.status) : true)
+                                  .map(req => (
+                                    <tr key={req.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-all group text-right">
+                                        <td className="px-6 py-4 text-sm font-bold text-slate-900">{req.full_name || req.fullName}</td>
+                                        <td className="px-6 py-4 text-sm text-red-600 font-bold">{req.email}</td>
+                                        <td className="px-6 py-4 text-sm text-slate-600 font-black">{req.metadata?.major || req.major}</td>
+                                        <td className="px-6 py-4 text-sm">
+                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${req.status === 'approved' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+                                                {req.status === 'approved' ? 'مقبول' : 'قيد الانتظار'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 border-l border-slate-100">
+                                            <div className="flex items-center justify-center gap-2">
+                                                {req.status !== 'approved' && (
+                                                  <button 
+                                                      onClick={() => {
+                                                        setViewingRequest(req);
+                                                        setIsApproving(true);
+                                                        setApprovalRole('instructor');
+                                                      }}
+                                                      className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg transition-all"
+                                                      title="موافقة وإنشاء حساب"
+                                                  >
+                                                      <CheckCircle2 className="w-4 h-4" />
+                                                  </button>
+                                                )}
+                                                <button 
+                                                    onClick={() => deleteItem('system_submissions', req.id)} 
+                                                    className="p-2 bg-red-50 text-red-400 hover:bg-red-600 hover:text-white rounded-lg transition-all"
+                                                    title="حذف الطلب"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center justify-center">
+                                                <button 
+                                                    onClick={() => setViewingRequest(req)} 
+                                                    className="p-2 bg-slate-100 text-slate-500 hover:text-slate-900 rounded-lg transition-all"
+                                                    title="عرض التفاصيل الكاملة"
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        {instructorRequests.filter(req => subTab === 'pending_approval' ? (req.status === 'pending' || !req.status) : true).length === 0 && (
+                            <div className="text-center py-20 text-slate-300 font-bold">لا توجد طلبات في هذه الفئة</div>
+                        )}
+                    </div>
                 </div>
               )}
 
@@ -2368,132 +2419,159 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {subTab === 'list' && activeTab === 'service_providers' && (
-                <div className="overflow-x-auto">
-                    <table className="w-full text-right border-collapse">
-                        <thead>
-                            <tr className="bg-slate-50 border-b border-slate-200">
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">اسم المقدم</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">البريد الإلكتروني</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">رقم الهاتف</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">حالة الطلب</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">إجراءات</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {serviceProviders.map(reg => (
-                                <tr key={reg.id} className="border-b border-slate-100 hover:bg-slate-50 transition-all">
-                                    <td className="px-6 py-4 font-bold text-slate-900">{reg.full_name || reg.name}</td>
-                                    <td className="px-6 py-4 text-sm text-slate-500">{reg.email}</td>
-                                    <td className="px-6 py-4 text-sm text-slate-500">{reg.phone}</td>
-                                    <td className="px-6 py-4">
-                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${reg.status === 'read' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
-                                            {reg.status === 'read' ? 'مقروء' : 'جديد'}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-2">
-                                            {reg.status !== 'approved' && (
-                                              <button 
-                                                  onClick={async () => {
-                                                    const { error } = await supabase.from('system_submissions').update({ status: 'approved' }).eq('id', reg.id);
-                                                    if (!error) {
-                                                      setStatus({ type: 'success', msg: 'تمت الموافقة على الطلب بنجاح' });
-                                                      fetchData();
-                                                    }
-                                                  }}
-                                                  className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg transition-all"
-                                                  title="موافقة"
-                                              >
-                                                  <CheckCircle2 className="w-4 h-4" />
-                                              </button>
-                                            )}
-                                            <button 
-                                                onClick={() => setViewingRequest({
-                                                    ...reg,
-                                                    name: reg.full_name || reg.name,
-                                                    organization: 'مقدم خدمات محترف',
-                                                    notes: reg.content || reg.message
-                                                })}
-                                                className="p-2 bg-slate-100 text-slate-600 hover:bg-slate-900 hover:text-white rounded-lg transition-all"
-                                                title="عرض التفاصيل"
-                                            >
-                                                <Eye className="w-4 h-4" />
-                                            </button>
-                                            <button 
-                                                onClick={() => deleteItem('system_submissions', reg.id)} 
-                                                className="p-2 bg-red-50 text-red-400 hover:bg-red-600 hover:text-white rounded-lg transition-all"
-                                                title="حذف الطلب"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    </td>
+              {(subTab === 'list' || subTab === 'pending_approval') && activeTab === 'service_providers' && (
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between px-4 py-2 bg-slate-50 rounded-2xl border border-slate-200">
+                        <div className="text-right">
+                            <h3 className="text-lg font-black text-slate-900">طلبات مقدمي الخدمات</h3>
+                            <p className="text-xs text-slate-500 font-bold">خبراء كتابة السير الذاتية، الاستشارات، والمقابلات</p>
+                        </div>
+                        <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 text-center">
+                            <span className="block text-[10px] font-black text-slate-400 uppercase">بانتظار المراجعة</span>
+                            <span className="text-xl font-black text-blue-600">{serviceProviders.filter(r => r.status === 'pending' || !r.status).length}</span>
+                        </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-right border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50 border-b border-slate-200">
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">اسم المقدم</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">البريد الإلكتروني</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">رقم الهاتف</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">الحالة</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase text-center">إجراءات</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {serviceProviders
+                                  .filter(reg => subTab === 'pending_approval' ? (reg.status === 'pending' || !reg.status) : true)
+                                  .map(reg => (
+                                    <tr key={reg.id} className="border-b border-slate-100 hover:bg-slate-50 transition-all">
+                                        <td className="px-6 py-4 font-bold text-slate-900">{reg.full_name || reg.name}</td>
+                                        <td className="px-6 py-4 text-sm text-slate-500">{reg.email}</td>
+                                        <td className="px-6 py-4 text-sm text-slate-500">{reg.phone}</td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${reg.status === 'approved' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+                                                {reg.status === 'approved' ? 'مقبول' : 'جديد'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center justify-center gap-2">
+                                                {reg.status !== 'approved' && (
+                                                  <button 
+                                                      onClick={() => {
+                                                        setViewingRequest(reg);
+                                                        setIsApproving(true);
+                                                        setApprovalRole('service_provider');
+                                                      }}
+                                                      className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg transition-all"
+                                                      title="موافقة وإنشاء حساب"
+                                                  >
+                                                      <CheckCircle2 className="w-4 h-4" />
+                                                  </button>
+                                                )}
+                                                <button 
+                                                    onClick={() => setViewingRequest(reg)}
+                                                    className="p-2 bg-slate-100 text-slate-600 hover:bg-slate-900 hover:text-white rounded-lg transition-all"
+                                                    title="عرض التفاصيل"
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                </button>
+                                                <button 
+                                                    onClick={() => deleteItem('system_submissions', reg.id)} 
+                                                    className="p-2 bg-red-50 text-red-400 hover:bg-red-600 hover:text-white rounded-lg transition-all"
+                                                    title="حذف الطلب"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        {serviceProviders.filter(reg => subTab === 'pending_approval' ? (reg.status === 'pending' || !reg.status) : true).length === 0 && (
+                            <div className="text-center py-20 text-slate-300 font-bold">لا توجد طلبات في هذه الفئة</div>
+                        )}
+                    </div>
                 </div>
               )}
 
-              {subTab === 'list' && activeTab === 'registrations' && (
-                <div className="overflow-x-auto">
-                    <table className="w-full text-right border-collapse">
-                        <thead>
-                            <tr className="bg-slate-50 border-b border-slate-200">
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">اسم المنشأة</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">المسؤول</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">التخصص</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">الهاتف</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">التاريخ</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase text-center border-l border-slate-100">الإجراءات</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {registrations.map(reg => (
-                                <tr key={reg.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-all group text-right">
-                                    <td className="px-6 py-4 text-sm font-black text-slate-900">{reg.metadata?.company_name || reg.entity_name}</td>
-                                    <td className="px-6 py-4 text-sm font-bold text-slate-600">{reg.full_name}</td>
-                                    <td className="px-6 py-4 text-sm text-red-600 font-bold">{reg.metadata?.industry || reg.specialization}</td>
-                                    <td className="px-6 py-4 text-sm text-slate-600">{reg.phone}</td>
-                                    <td className="px-6 py-4 text-sm text-slate-400">{new Date(reg.created_at).toLocaleDateString()}</td>
-                                    <td className="px-6 py-4 border-l border-slate-100">
-                                        <div className="flex items-center justify-center gap-2">
-                                            {reg.status !== 'approved' && (
-                                              <button 
-                                                  onClick={async () => {
-                                                    const { error } = await supabase.from('system_submissions').update({ status: 'approved' }).eq('id', reg.id);
-                                                    if (!error) {
-                                                      setStatus({ type: 'success', msg: 'تمت الموافقة على الطلب بنجاح' });
-                                                      fetchData();
-                                                    }
-                                                  }}
-                                                  className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg transition-all"
-                                                  title="موافقة"
-                                              >
-                                                  <CheckCircle2 className="w-4 h-4" />
-                                              </button>
-                                            )}
-                                            <button 
-                                                onClick={() => setViewingRequest(reg)} 
-                                                className="p-2 bg-slate-100 text-slate-500 hover:text-slate-900 rounded-lg transition-all"
-                                                title="عرض التفاصيل"
-                                            >
-                                                <Eye className="w-4 h-4" />
-                                            </button>
-                                            <button 
-                                                onClick={() => deleteItem('system_submissions', reg.id)} 
-                                                className="p-2 bg-red-50 text-red-400 hover:bg-red-600 hover:text-white rounded-lg transition-all"
-                                                title="حذف الطلب"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    </td>
+              {(subTab === 'list' || subTab === 'pending_approval') && activeTab === 'registrations' && (
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between px-4 py-2 bg-slate-50 rounded-2xl border border-slate-200">
+                        <div className="text-right">
+                            <h3 className="text-lg font-black text-slate-900">طلبات تسجيل الشركات</h3>
+                            <p className="text-xs text-slate-500 font-bold">مؤسسات تبحث عن استقطاب الكفاءات</p>
+                        </div>
+                        <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 text-center">
+                            <span className="block text-[10px] font-black text-slate-400 uppercase">بانتظار المراجعة</span>
+                            <span className="text-xl font-black text-emerald-600">{registrations.filter(r => r.status === 'pending' || !r.status).length}</span>
+                        </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-right border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50 border-b border-slate-200">
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">اسم المنشأة</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">المسؤول</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">الحالة</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">التاريخ</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase text-center border-l border-slate-100">الإجراءات</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {registrations
+                                  .filter(reg => subTab === 'pending_approval' ? (reg.status === 'pending' || !reg.status) : true)
+                                  .map(reg => (
+                                    <tr key={reg.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-all group text-right">
+                                        <td className="px-6 py-4 text-sm font-black text-slate-900">{reg.metadata?.company_name || reg.entity_name}</td>
+                                        <td className="px-6 py-4 text-sm font-bold text-slate-600">{reg.full_name}</td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${reg.status === 'approved' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+                                                {reg.status === 'approved' ? 'مقبول' : 'قيد الانتظار'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-slate-400">{new Date(reg.created_at).toLocaleDateString()}</td>
+                                        <td className="px-6 py-4 border-l border-slate-100">
+                                            <div className="flex items-center justify-center gap-2">
+                                                {reg.status !== 'approved' && (
+                                                  <button 
+                                                      onClick={() => {
+                                                        setViewingRequest(reg);
+                                                        setIsApproving(true);
+                                                        setApprovalRole('company');
+                                                      }}
+                                                      className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg transition-all"
+                                                      title="موافقة وإنشاء حساب"
+                                                  >
+                                                      <CheckCircle2 className="w-4 h-4" />
+                                                  </button>
+                                                )}
+                                                <button 
+                                                    onClick={() => setViewingRequest(reg)} 
+                                                    className="p-2 bg-slate-100 text-slate-500 hover:text-slate-900 rounded-lg transition-all"
+                                                    title="عرض التفاصيل"
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                </button>
+                                                <button 
+                                                    onClick={() => deleteItem('system_submissions', reg.id)} 
+                                                    className="p-2 bg-red-50 text-red-400 hover:bg-red-600 hover:text-white rounded-lg transition-all"
+                                                    title="حذف الطلب"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        {registrations.filter(reg => subTab === 'pending_approval' ? (reg.status === 'pending' || !reg.status) : true).length === 0 && (
+                            <div className="text-center py-20 text-slate-300 font-bold">لا توجد طلبات في هذه الفئة</div>
+                        )}
+                    </div>
                 </div>
               )}
 
