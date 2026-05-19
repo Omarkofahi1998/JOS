@@ -17,6 +17,33 @@ export default function ServiceProviderRegistration() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [fileUrl, setFileUrl] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileUpload = async (file: File) => {
+    if (!supabase) return;
+    try {
+      setIsUploading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `uploads/service_providers/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('academy')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('academy')
+        .getPublicUrl(fileName);
+
+      setFileUrl(publicUrl);
+    } catch (error: any) {
+      alert("فشل رفع الملف: " + error.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +56,7 @@ export default function ServiceProviderRegistration() {
                 email: formData.email,
                 phone: formData.phone,
                 // using JSON payload in content/message field for extras
-                content: `Service Category: ${formData.serviceCategory}\nExperience: ${formData.experience}\nYears in field: ${formData.yearsInField}\nPrevious clients: ${formData.previousClients}`,
+                content: `Service Category: ${formData.serviceCategory}\nExperience: ${formData.experience}\nYears in field: ${formData.yearsInField}\nPrevious clients: ${formData.previousClients}${fileUrl ? `\nFile URL: ${fileUrl}` : ''}`,
                 status: 'pending'
             }
         ]);
@@ -180,10 +207,33 @@ export default function ServiceProviderRegistration() {
                     <h3 className="text-sm font-black text-slate-700 flex items-center gap-2">إثباتات الخبرة ونماذج الأعمال</h3>
                     <div className="space-y-1">
                         <span className="text-[10px] font-black text-slate-400 uppercase mr-1">شهادات خبرة أو نماذج أعمال (PDF/صور) *</span>
-                        <div className="flex flex-col items-center justify-center w-full h-32 border border-slate-200 rounded-2xl bg-white hover:bg-slate-50 cursor-pointer transition-all">
-                            <Award className="w-6 h-6 text-slate-300 mb-2" />
-                            <span className="text-xs font-bold text-slate-400">تحميل ملف</span>
-                        </div>
+                        <label className="flex flex-col items-center justify-center w-full h-32 border border-slate-200 rounded-2xl bg-white hover:bg-slate-50 cursor-pointer transition-all relative overflow-hidden">
+                            {isUploading ? (
+                              <div className="flex flex-col items-center gap-2">
+                                <div className="w-6 h-6 border-2 border-slate-300 border-t-blue-600 rounded-full animate-spin" />
+                                <span className="text-xs font-bold text-slate-400">جاري الرفع...</span>
+                              </div>
+                            ) : fileUrl ? (
+                              <div className="flex flex-col items-center gap-1">
+                                <div className="text-green-600 text-xs font-bold">✓ تم رفع المستندات</div>
+                                <span className="text-[10px] text-slate-400">انقر لتغيير الملف</span>
+                              </div>
+                            ) : (
+                              <>
+                                <Award className="w-6 h-6 text-slate-300 mb-2" />
+                                <span className="text-xs font-bold text-slate-400">انقر لتحميل ملف (PDF/JPG)</span>
+                              </>
+                            )}
+                            <input 
+                              type="file" 
+                              className="hidden" 
+                              accept=".pdf,image/*" 
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) await handleFileUpload(file);
+                              }}
+                            />
+                        </label>
                     </div>
                 </div>
 
@@ -217,7 +267,7 @@ export default function ServiceProviderRegistration() {
                 <button 
                     type="submit" 
                     className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-lg hover:bg-blue-600 transition-all shadow-xl shadow-slate-900/10 active:scale-[0.98] disabled:opacity-50" 
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isUploading}
                 >
                     {isSubmitting ? "جاري المعالجة..." : "إرسال طلب الانضمام كخبير"}
                 </button>

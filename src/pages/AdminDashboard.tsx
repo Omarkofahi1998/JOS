@@ -434,6 +434,7 @@ export default function AdminDashboard() {
   const [sProviderId, setSProviderId] = useState("");
   const [sContactMethod, setSContactMethod] = useState("whatsapp");
   const [sContactInfo, setSContactInfo] = useState("");
+  const [sThumbnail, setSThumbnail] = useState("");
   const [sIsActive, setSIsActive] = useState(true);
   const [sStatus, setSStatus] = useState("active");
 
@@ -498,6 +499,7 @@ export default function AdminDashboard() {
   const [approvalRole, setApprovalRole] = useState("user");
   const [approvingLoading, setApprovingLoading] = useState(false);
   const [viewingMessage, setViewingMessage] = useState<any | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const [generatedBlob, setGeneratedBlob] = useState<{ blob: Blob, name: string, type: string } | null>(null);
 
@@ -595,6 +597,33 @@ export default function AdminDashboard() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFileUpload = async (file: File, folder: string) => {
+    if (!supabase) return null;
+    try {
+      setIsUploading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('academy')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('academy')
+        .getPublicUrl(fileName);
+
+      return publicUrl;
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      setStatus({ type: 'error', msg: "فشل رفع الملف: " + error.message });
+      return null;
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -720,6 +749,7 @@ export default function AdminDashboard() {
     setSProviderId("");
     setSContactMethod("whatsapp");
     setSContactInfo("");
+    setSThumbnail("");
     setSIsActive(true);
     setSStatus("active");
     setFeatTitle("");
@@ -740,6 +770,7 @@ export default function AdminDashboard() {
     setProdType("course");
     setProdThumbnail("");
 
+    setProdThumbnail("");
     setJobTitle("");
     setJobCompany("");
     setJobLocation("");
@@ -879,7 +910,8 @@ export default function AdminDashboard() {
         contact_info: sContactInfo,
         is_active: sIsActive,
         is_active_status: sIsActive,
-        status: sStatus
+        status: sStatus,
+        thumbnail_url: sThumbnail
       };
       let error;
       if (editingId) ({ error } = await supabase.from('services').update(payload).eq('id', editingId));
@@ -2144,6 +2176,7 @@ export default function AdminDashboard() {
                                       setSProviderId(item.provider_id || "");
                                       setSContactMethod(item.contact_method || "whatsapp");
                                       setSContactInfo(item.contact_info || "");
+                                      setSThumbnail(item.thumbnail_url || "");
                                       setSIsActive(item.is_active ?? true);
                                       setSStatus(item.status || "active");
                                       setSubTab('add'); 
@@ -2864,6 +2897,25 @@ export default function AdminDashboard() {
                          </div>
                       </div>
 
+                      <div className="space-y-2 text-right">
+                         <label className="text-xs font-black text-slate-400 uppercase">صورة الخدمة / الغلاف</label>
+                         <div className="flex gap-4 items-center">
+                            <input type="url" placeholder="رابط الصورة المباشر أو ارفع صورة..." className="flex-1 h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-mono text-sm" value={sThumbnail} onChange={e => setSThumbnail(e.target.value)} />
+                            <label className="cursor-pointer bg-slate-900 text-white px-6 h-14 rounded-2xl flex items-center gap-2 hover:bg-emerald-600 transition-all font-bold text-sm whitespace-nowrap">
+                              {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+                              رفع صورة
+                              <input type="file" className="hidden" accept="image/*" onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const url = await handleFileUpload(file, 'services');
+                                  if (url) setSThumbnail(url);
+                                }
+                              }} />
+                            </label>
+                         </div>
+                         {sThumbnail && <img src={sThumbnail} alt="Preview" className="w-20 h-20 object-cover rounded-xl border border-slate-200 mt-2" />}
+                      </div>
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                          <div className="space-y-2 text-right">
                             <label className="text-xs font-black text-slate-400 uppercase">الحالة</label>
@@ -2885,8 +2937,8 @@ export default function AdminDashboard() {
                          </div>
                       </div>
                    </div>
-                   <button type="submit" className="w-full h-16 bg-slate-900 text-white rounded-[2rem] font-black hover:bg-red-600 transition-all shadow-2xl">
-                     {editingId ? 'تحديث الخدمة' : 'إضافة خدمة جديدة'}
+                   <button type="submit" disabled={isUploading} className="w-full h-16 bg-slate-900 text-white rounded-[2rem] font-black hover:bg-emerald-600 transition-all shadow-2xl disabled:opacity-50">
+                     {isUploading ? 'جاري الرفع...' : (editingId ? 'تحديث الخدمة' : 'إضافة خدمة جديدة')}
                    </button>
                 </form>
               )}
@@ -3158,8 +3210,22 @@ export default function AdminDashboard() {
                       </select>
                     </div>
                     <div className="space-y-2 text-right col-span-2">
-                       <label className="text-xs font-black text-slate-400 uppercase">رابط الصورة (Thumbnail)</label>
-                       <input type="url" className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-mono text-sm" value={prodThumbnail} onChange={e => setProdThumbnail(e.target.value)} />
+                       <label className="text-xs font-black text-slate-400 uppercase">صورة المنتج / الغلاف</label>
+                       <div className="flex gap-4 items-center">
+                          <input type="url" placeholder="رابط الصورة أو ارفع واحدة..." className="flex-1 h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-mono text-sm" value={prodThumbnail} onChange={e => setProdThumbnail(e.target.value)} />
+                          <label className="cursor-pointer bg-slate-900 text-white px-6 h-14 rounded-2xl flex items-center gap-2 hover:bg-emerald-600 transition-all font-bold text-sm whitespace-nowrap">
+                            {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+                            رفع صورة
+                            <input type="file" className="hidden" accept="image/*" onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const url = await handleFileUpload(file, 'products');
+                                if (url) setProdThumbnail(url);
+                              }
+                            }} />
+                          </label>
+                       </div>
+                       {prodThumbnail && <img src={prodThumbnail} alt="Preview" className="w-20 h-20 object-cover rounded-xl border border-slate-200 mt-2" />}
                     </div>
                     <div className="space-y-2 text-right col-span-2">
                        <label className="text-xs font-black text-slate-400 uppercase">الحالة</label>

@@ -16,6 +16,33 @@ export default function InstructorRegistration() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [cvUrl, setCvUrl] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileUpload = async (file: File) => {
+    if (!supabase) return;
+    try {
+      setIsUploading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `uploads/instructors/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('academy')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('academy')
+        .getPublicUrl(fileName);
+
+      setCvUrl(publicUrl);
+    } catch (error: any) {
+      alert("فشل رفع الملف: " + error.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +59,8 @@ export default function InstructorRegistration() {
           major: formData.major,
           degree: formData.degree,
           years_of_experience: formData.yearsOfExperience,
-          linkedin_url: formData.linkedin
+          linkedin_url: formData.linkedin,
+          file_url: cvUrl
         },
         status: 'pending'
       });
@@ -139,9 +167,30 @@ export default function InstructorRegistration() {
                     <h3 className="text-sm font-black mb-4 text-slate-700 flex items-center gap-2">الشهادات والخبرات (PDF/صور)</h3>
                     <div className="space-y-1">
                         <span className="text-[10px] font-black text-slate-400 uppercase mr-1">الشهادة الجامعية أو شهادات الخبرة *</span>
-                        <div className="flex items-center justify-center w-full h-24 border border-slate-200 rounded-2xl bg-white hover:bg-slate-50 cursor-pointer transition-all">
-                            <span className="text-xs font-bold text-slate-400">تحميل ملف</span>
-                        </div>
+                        <label className="flex flex-col items-center justify-center w-full h-24 border border-slate-200 rounded-2xl bg-white hover:bg-slate-50 cursor-pointer transition-all relative overflow-hidden">
+                            {isUploading ? (
+                              <div className="flex flex-col items-center gap-2">
+                                <div className="w-5 h-5 border-2 border-slate-300 border-t-red-600 rounded-full animate-spin" />
+                                <span className="text-[10px] font-bold text-slate-400">جاري الرفع...</span>
+                              </div>
+                            ) : cvUrl ? (
+                              <div className="flex flex-col items-center gap-1">
+                                <div className="text-green-600 text-xs font-bold">✓ تم الرفع بنجاح</div>
+                                <span className="text-[10px] text-slate-400 truncate max-w-[200px]">تم اختيار الملف</span>
+                              </div>
+                            ) : (
+                              <span className="text-xs font-bold text-slate-400">انقر لتحميل ملف (PDF/JPG)</span>
+                            )}
+                            <input 
+                              type="file" 
+                              className="hidden" 
+                              accept=".pdf,image/*" 
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) await handleFileUpload(file);
+                              }}
+                            />
+                        </label>
                     </div>
                 </div>
 

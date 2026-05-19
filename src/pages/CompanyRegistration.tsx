@@ -17,6 +17,33 @@ export default function CompanyRegistration() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [logoUrl, setLogoUrl] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileUpload = async (file: File) => {
+    if (!supabase) return;
+    try {
+      setIsUploading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `uploads/companies/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('academy')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('academy')
+        .getPublicUrl(fileName);
+
+      setLogoUrl(publicUrl);
+    } catch (error: any) {
+      alert("فشل رفع الملف: " + error.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +60,8 @@ export default function CompanyRegistration() {
                   company_name: formData.companyName,
                   industry: formData.industry,
                   website: formData.website,
-                  location: formData.location
+                  location: formData.location,
+                  logo_url: logoUrl
                 },
                 status: 'pending'
             }
@@ -167,10 +195,33 @@ export default function CompanyRegistration() {
                         <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200">
                             <h3 className="text-[11px] font-black text-slate-700 mb-3 flex items-center gap-2 uppercase tracking-wide">الملفات (اختياري)</h3>
                             <div className="space-y-1">
-                                <div className="p-3 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 cursor-pointer transition-all border-dashed text-center">
-                                    <Sparkles className="w-5 h-5 text-slate-300 mx-auto mb-1" />
-                                    <span className="text-[10px] font-bold text-slate-400 block">شعار الشركة (PNG/JPG)</span>
-                                </div>
+                                <label className="p-3 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 cursor-pointer transition-all border-dashed text-center block relative">
+                                    {isUploading ? (
+                                      <div className="flex items-center justify-center gap-2">
+                                        <div className="w-4 h-4 border-2 border-slate-300 border-t-blue-600 rounded-full animate-spin" />
+                                        <span className="text-[10px] font-bold text-slate-400">جاري الرفع...</span>
+                                      </div>
+                                    ) : logoUrl ? (
+                                      <div className="flex items-center justify-center gap-2">
+                                        <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                        <span className="text-[10px] font-bold text-slate-900 truncate max-w-[150px]">تم الرفع</span>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <Sparkles className="w-5 h-5 text-slate-300 mx-auto mb-1" />
+                                        <span className="text-[10px] font-bold text-slate-400 block">شعار الشركة (PNG/JPG)</span>
+                                      </>
+                                    )}
+                                    <input 
+                                      type="file" 
+                                      className="hidden" 
+                                      accept="image/*" 
+                                      onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) await handleFileUpload(file);
+                                      }}
+                                    />
+                                </label>
                             </div>
                         </div>
 
@@ -200,8 +251,8 @@ export default function CompanyRegistration() {
 
                         <button 
                             type="submit" 
-                            disabled={isSubmitting}
-                            className="w-full bg-[#0A66C2] text-white py-4 rounded-2xl font-black text-lg hover:bg-[#004182] transition-all shadow-xl shadow-blue-600/20 active:scale-[0.98] mt-4 flex items-center justify-center gap-3"
+                            disabled={isSubmitting || isUploading}
+                            className="w-full bg-[#0A66C2] text-white py-4 rounded-2xl font-black text-lg hover:bg-[#004182] transition-all shadow-xl shadow-blue-600/20 active:scale-[0.98] mt-4 flex items-center justify-center gap-3 disabled:opacity-50"
                         >
                             {isSubmitting ? "جاري إرسال البيانات..." : (
                                 <>
