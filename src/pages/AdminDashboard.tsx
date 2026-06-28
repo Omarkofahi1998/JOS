@@ -19,7 +19,7 @@ const CATEGORIES = ["مختبرات", "تمريض", "قانون", "معلم صف
 
 export default function AdminDashboard() {
   const [session, setSession] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'questions' | 'files' | 'services' | 'settings' | 'features' | 'reviews' | 'contacts' | 'instructor_requests' | 'registrations' | 'service_providers' | 'announcements' | 'academy_products' | 'jobs' | 'user_bookings' | 'users'>('questions');
+  const [activeTab, setActiveTab] = useState<'questions' | 'files' | 'services' | 'settings' | 'features' | 'reviews' | 'contacts' | 'instructor_requests' | 'registrations' | 'service_providers' | 'announcements' | 'academy_products' | 'jobs' | 'user_bookings' | 'users' | 'instructor_portal'>('questions');
   const [subTab, setSubTab] = useState<'add' | 'list' | 'bulk' | 'approvals'>('list');
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
@@ -64,6 +64,10 @@ export default function AdminDashboard() {
   const [profilesList, setProfilesList] = useState<any[]>([]);
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
+
+  // Instructor & Service Provider portal states
+  const [portalTab, setPortalTab] = useState<'products' | 'services'>('products');
+  const [portalSubTab, setPortalSubTab] = useState<'list' | 'add'>('list');
 
   useEffect(() => {
     if (!supabase) return;
@@ -541,7 +545,7 @@ export default function AdminDashboard() {
           } else {
             const role = (data?.role as 'admin' | 'manager') || 'admin';
             setUserRole(role);
-            if (role === 'manager' && !['questions', 'files', 'reviews'].includes(activeTab)) {
+            if (role === 'manager' && !['questions', 'files', 'reviews', 'instructor_portal'].includes(activeTab)) {
               setActiveTab('questions');
             }
           }
@@ -761,7 +765,7 @@ export default function AdminDashboard() {
 
   const deleteItem = async (table: string, id: any) => {
     if (!supabase || !window.confirm("هل أنت متأكد من حذف هذا السجل بشكل نهائي؟")) return;
-    if (userRole === 'manager' && !['questions', 'question_files', 'reviews'].includes(table)) {
+    if (userRole === 'manager' && !['questions', 'question_files', 'reviews', 'products', 'services'].includes(table)) {
       setStatus({ type: 'error', msg: 'عذراً، لا تملك الصلاحية لحذف هذا النوع من البيانات.' });
       return;
     }
@@ -987,6 +991,7 @@ export default function AdminDashboard() {
       setStatus({ type: 'success', msg: editingId ? 'تم التعديل بنجاح' : 'تمت إضافة الخدمة بنجاح' });
       resetForms();
       setSubTab('list');
+      if (activeTab === 'instructor_portal') setPortalSubTab('list');
       fetchData();
     } catch (err: any) { setStatus({ type: 'error', msg: err.message }); } finally { setLoading(false); }
   };
@@ -1210,6 +1215,7 @@ export default function AdminDashboard() {
       setStatus({ type: 'success', msg: editingId ? 'تم التعديل بنجاح' : 'تمت الإضافة بنجاح' });
       resetForms();
       setSubTab('list');
+      if (activeTab === 'instructor_portal') setPortalSubTab('list');
       fetchData();
     } catch (err: any) {
       setStatus({ type: 'error', msg: "فشل الحفظ: " + err.message });
@@ -1627,6 +1633,7 @@ export default function AdminDashboard() {
   const sidebarItems = [
     { id: 'questions', name: 'بنك الأسئلة', icon: <HelpCircle className="w-5 h-5" /> },
     { id: 'files', name: 'بنك الملفات', icon: <FileText className="w-5 h-5" /> },
+    { id: 'instructor_portal', name: 'بوابة المدرب والخدمات', icon: <Sparkles className="w-5 h-5" /> },
     ...(userRole === 'admin' ? [
       { id: 'academy_products', name: 'منتجات الأكاديمية', icon: <BookOpen className="w-5 h-5" /> },
       { id: 'jobs', name: 'الوظائف', icon: <Sparkles className="w-5 h-5" /> },
@@ -2915,6 +2922,362 @@ export default function AdminDashboard() {
                       </table>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* INSTRUCTOR & PROVIDER PORTAL VIEW */}
+              {activeTab === 'instructor_portal' && (
+                <div className="space-y-10 max-w-6xl mx-auto py-6">
+                  {/* Portal Header Card */}
+                  <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-8 rounded-3xl text-right shadow-xl flex flex-col md:flex-row-reverse md:items-center justify-between gap-6">
+                    <div className="space-y-2 max-w-xl">
+                      <h3 className="text-white font-black text-xl flex items-center justify-end gap-2">
+                        بوابة التحكم بالدورات والخدمات
+                        <Sparkles className="w-6 h-6 text-yellow-400" />
+                      </h3>
+                      <p className="text-slate-300 text-sm leading-relaxed font-bold">
+                        بصفتك مديراً للمحتوى، يمكنك من خلال هذه المنصة الموحدة التحكم بمنتجات الأكاديمية (الدورات والملفات واللقاءات) بالإضافة إلى الخدمات المهنية والاستشارات المتاحة على المنصة.
+                      </p>
+                    </div>
+                    <div className="bg-slate-800 text-slate-200 p-4 rounded-2xl text-xs font-black max-w-xs self-start md:self-auto text-center border border-slate-700">
+                      تسمح لك هذه البوابة الموحدة بإدارة العرض المباشر، وتعديل الأسعار والمعلومات الخاصة بالدورات والخدمات بشكل فوري وسهل دون المساس بقاعدة البيانات.
+                    </div>
+                  </div>
+
+                  {/* Portal Sub-tab Switch */}
+                  {portalSubTab === 'list' && (
+                    <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
+                      {/* Section Tabs */}
+                      <div className="flex bg-white p-1.5 rounded-2xl border border-slate-100 shadow-sm max-w-md w-full">
+                        <button
+                          type="button"
+                          onClick={() => { setPortalTab('products'); setSearchTerm(''); }}
+                          className={`flex-1 py-3 px-4 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-2 ${
+                            portalTab === 'products' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'
+                          }`}
+                        >
+                          <BookOpen className="w-4 h-4" />
+                          الدورات والمنتجات ({academyProducts.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setPortalTab('services'); setSearchTerm(''); }}
+                          className={`flex-1 py-3 px-4 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-2 ${
+                            portalTab === 'services' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'
+                          }`}
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          الخدمات المهنية ({services.length})
+                        </button>
+                      </div>
+
+                      {/* Controls and Search */}
+                      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center w-full sm:w-auto">
+                        {/* Search Bar */}
+                        <div className="relative w-full sm:w-64">
+                          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                          <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder="بحث..."
+                            className="w-full h-11 pr-10 pl-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 text-sm font-medium"
+                          />
+                        </div>
+
+                        {/* Add Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            resetForms();
+                            setEditingId(null);
+                            setPortalSubTab('add');
+                          }}
+                          className="h-11 px-6 bg-red-600 text-white rounded-xl font-black hover:bg-slate-900 transition-all flex items-center justify-center gap-2 text-xs whitespace-nowrap"
+                        >
+                          <Plus className="w-4 h-4" />
+                          {portalTab === 'products' ? 'إضافة دورة/منتج' : 'إضافة خدمة جديدة'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* List View Container */}
+                  {portalSubTab === 'list' ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                      {(portalTab === 'products' ? academyProducts : services)
+                        .filter(item => {
+                          const matchesSearch = (item.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                               (item.description || item.content || "").toLowerCase().includes(searchTerm.toLowerCase());
+                          return matchesSearch;
+                        })
+                        .map((item, idx) => (
+                          <motion.div
+                            key={item.id}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: idx * 0.05 }}
+                            className={`p-6 bg-white border rounded-3xl transition-all group flex flex-col h-full border-slate-100 hover:border-red-100 hover:shadow-xl hover:shadow-red-500/5 text-right`}
+                          >
+                            {/* Card Image Thumbnail */}
+                            <div className="relative aspect-video rounded-2xl overflow-hidden bg-slate-50 border border-slate-100 mb-4 shrink-0">
+                              {item.thumbnail_url ? (
+                                <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-slate-50 text-slate-300">
+                                  {portalTab === 'products' ? <BookOpen className="w-8 h-8" /> : <Sparkles className="w-8 h-8" />}
+                                </div>
+                              )}
+                              <span className={`absolute top-3 right-3 px-2.5 py-1 rounded-full text-[10px] font-black ${
+                                item.status === 'active' || item.is_active || item.is_active_status ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'
+                              }`}>
+                                {item.status === 'active' || item.is_active || item.is_active_status ? 'نشط' : 'معطل'}
+                              </span>
+                            </div>
+
+                            {/* Card Details */}
+                            <div className="flex-1 flex flex-col justify-between">
+                              <div>
+                                <span className="text-[10px] font-black text-red-600 mb-1 block">{item.category}</span>
+                                <h4 className="font-black text-slate-900 text-base leading-snug mb-2 line-clamp-1">{item.title}</h4>
+                                <p className="text-slate-400 text-xs font-medium leading-relaxed line-clamp-2 mb-4">{item.description}</p>
+                              </div>
+                              
+                              <div className="pt-4 border-t border-slate-50 flex items-center justify-between">
+                                <div className="text-right">
+                                  <div className="text-[9px] text-slate-400 font-bold">السعر</div>
+                                  <div className="text-sm font-black text-slate-900">{item.price} {portalTab === 'products' ? 'دولار' : 'JOD'}</div>
+                                </div>
+                                <div className="text-left">
+                                  <div className="text-[9px] text-slate-400 font-bold">
+                                    {portalTab === 'products' ? 'المدرب' : 'وسيلة التواصل'}
+                                  </div>
+                                  <div className="text-xs font-bold text-slate-600">
+                                    {portalTab === 'products' ? item.instructor_name || 'غير محدد' : item.contact_method === 'whatsapp' ? 'واتساب' : 'اتصال هاتف'}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (portalTab === 'products') {
+                                    setEditingId(item.id);
+                                    setProdTitle(item.title);
+                                    setProdDesc(item.description || "");
+                                    setProdInstructor(item.instructor_name || "");
+                                    setProdPrice(item.price?.toString() || "");
+                                    setProdOldPrice(item.old_price?.toString() || "");
+                                    setProdCategory(item.category || "دورات تدريبية");
+                                    setProdType(item.type || 'course');
+                                    setProdThumbnail(item.thumbnail_url || "");
+                                    setProdStatus(item.status || "active");
+                                    setProdContactMethod(item.contact_method || "whatsapp");
+                                    setProdContactInfo(item.contact_info || "");
+                                    setPortalSubTab('add');
+                                  } else {
+                                    setEditingId(item.id);
+                                    setSTitle(item.title);
+                                    setSDesc(item.description);
+                                    setSIcon(item.icon_name || "Settings");
+                                    setSColor(item.bg_color || "bg-slate-50");
+                                    setSPrice(item.price?.toString() || "");
+                                    setSPriceJod(item.price_jod?.toString() || "");
+                                    setSCategory(item.category || "خدمات طلابية");
+                                    setSProviderId(item.provider_id || "");
+                                    setSContactMethod(item.contact_method || "whatsapp");
+                                    setSContactInfo(item.contact_info || "");
+                                    setSThumbnail(item.thumbnail_url || "");
+                                    setSIsActive(item.is_active ?? true);
+                                    setSStatus(item.status || "active");
+                                    setPortalSubTab('add');
+                                  }
+                                }}
+                                className="px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                تعديل
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => deleteItem(portalTab === 'products' ? 'products' : 'services', item.id)}
+                                className="p-2 bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-600 rounded-xl transition-all"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </motion.div>
+                        ))
+                      }
+                    </div>
+                  ) : (
+                    /* Embedded Form Block inside Portal */
+                    <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+                      <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-50">
+                        <button
+                          type="button"
+                          onClick={() => { setPortalSubTab('list'); resetForms(); }}
+                          className="px-4 py-2 text-slate-500 hover:text-slate-900 font-bold text-xs flex items-center gap-1"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                          إلغاء والعودة للقائمة
+                        </button>
+                        <h4 className="font-black text-slate-900 text-lg">
+                          {editingId ? 'تعديل البيانات' : portalTab === 'products' ? 'إضافة منتج/دورة جديدة' : 'إضافة خدمة جديدة'}
+                        </h4>
+                      </div>
+
+                      {/* We dynamically render either the products form or the services form */}
+                      {portalTab === 'products' ? (
+                        <form onSubmit={addProduct} className="space-y-8 max-w-4xl mx-auto">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/50 p-6 md:p-8 rounded-[2rem] border border-slate-100">
+                            <div className="space-y-2 col-span-2 text-right">
+                              <label className="text-xs font-black text-slate-500">اسم المنتج / الدورة</label>
+                              <input type="text" required className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 font-bold" value={prodTitle} onChange={e => setProdTitle(e.target.value)} />
+                            </div>
+                            <div className="space-y-2 col-span-2 text-right">
+                              <label className="text-xs font-black text-slate-500">الوصف التفصيلي</label>
+                              <textarea rows={4} required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-medium" value={prodDesc} onChange={e => setProdDesc(e.target.value)} />
+                            </div>
+                            <div className="space-y-2 text-right">
+                              <label className="text-xs font-black text-slate-500">المدرب / المقدم</label>
+                              <input type="text" className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 font-bold" value={prodInstructor} onChange={e => setProdInstructor(e.target.value)} />
+                            </div>
+                            <div className="space-y-2 text-right">
+                              <label className="text-xs font-black text-slate-500">التصنيف</label>
+                              <input type="text" className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 font-bold" value={prodCategory} onChange={e => setProdCategory(e.target.value)} placeholder="دورات تدريبية, الخ..." />
+                            </div>
+                            <div className="space-y-2 text-right">
+                              <label className="text-xs font-black text-slate-500">السعر بالدولار ($)</label>
+                              <input type="number" required step="0.01" className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 font-bold" value={prodPrice} onChange={e => setProdPrice(e.target.value)} />
+                            </div>
+                            <div className="space-y-2 text-right">
+                              <label className="text-xs font-black text-slate-500">السعر القديم (قبل الخصم - اختياري)</label>
+                              <input type="number" step="0.01" className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 font-bold" value={prodOldPrice} onChange={e => setProdOldPrice(e.target.value)} />
+                            </div>
+                            <div className="space-y-2 text-right">
+                              <label className="text-xs font-black text-slate-500">النوع</label>
+                              <select className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 font-bold" value={prodType} onChange={e => setProdType(e.target.value as any)}>
+                                <option value="course">دورة مسجلة</option>
+                                <option value="session">جلسة مباشرة</option>
+                                <option value="file">ملف / ملزمة</option>
+                              </select>
+                            </div>
+                            <div className="space-y-2 text-right">
+                              <label className="text-xs font-black text-slate-500">حالة العرض</label>
+                              <select className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 font-bold" value={prodStatus} onChange={e => setProdStatus(e.target.value)}>
+                                <option value="active">نشط (متاح للشراء والمشاهدة)</option>
+                                <option value="inactive">معطل (مخفي)</option>
+                              </select>
+                            </div>
+                            <div className="space-y-2 text-right col-span-2">
+                              <label className="text-xs font-black text-slate-500">صورة المنتج / الغلاف</label>
+                              <div className="flex gap-4 items-center">
+                                <input type="url" placeholder="رابط الصورة أو ارفع واحدة..." className="flex-1 h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 font-mono text-sm" value={prodThumbnail} onChange={e => setProdThumbnail(e.target.value)} />
+                                <label className="cursor-pointer bg-slate-900 hover:bg-slate-800 text-white px-6 h-12 rounded-xl flex items-center gap-2 transition-all font-bold text-xs whitespace-nowrap">
+                                  {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+                                  رفع صورة
+                                  <input type="file" className="hidden" accept="image/*" onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      const url = await handleFileUpload(file, 'products');
+                                      if (url) setProdThumbnail(url);
+                                    }
+                                  }} />
+                                </label>
+                              </div>
+                              {prodThumbnail && <img src={prodThumbnail} alt="Preview" className="w-20 h-20 object-cover rounded-xl border border-slate-200 mt-2" />}
+                            </div>
+                            <div className="space-y-2 text-right">
+                              <label className="text-xs font-black text-slate-500">وسيلة التواصل لشراء المنتج</label>
+                              <select className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 font-bold" value={prodContactMethod} onChange={e => setProdContactMethod(e.target.value)}>
+                                <option value="whatsapp">واتساب</option>
+                                <option value="phone">اتصال هاتف</option>
+                                <option value="email">بريد إلكتروني</option>
+                              </select>
+                            </div>
+                            <div className="space-y-2 text-right">
+                              <label className="text-xs font-black text-slate-500">رابط / رقم وسيلة التواصل</label>
+                              <input type="text" className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 font-bold" value={prodContactInfo} onChange={e => setProdContactInfo(e.target.value)} placeholder="00962xxxxxxx" />
+                            </div>
+                          </div>
+                          <button type="submit" disabled={loading} className="w-full h-14 bg-red-600 text-white rounded-2xl font-black hover:bg-slate-900 transition-all shadow-lg flex items-center justify-center gap-2">
+                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+                            {editingId ? 'حفظ التعديلات' : 'إضافة المنتج الجديد للأكاديمية'}
+                          </button>
+                        </form>
+                      ) : (
+                        <form onSubmit={addService} className="space-y-8 max-w-4xl mx-auto">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/50 p-6 md:p-8 rounded-[2rem] border border-slate-100">
+                            <div className="space-y-2 col-span-2 text-right">
+                              <label className="text-xs font-black text-slate-500">اسم الخدمة</label>
+                              <input type="text" required className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 font-bold" value={sTitle} onChange={e => setSTitle(e.target.value)} />
+                            </div>
+                            <div className="space-y-2 col-span-2 text-right">
+                              <label className="text-xs font-black text-slate-500">وصف الخدمة ومميزاتها</label>
+                              <textarea rows={4} required className="w-full p-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-medium" value={sDesc} onChange={e => setSDesc(e.target.value)} />
+                            </div>
+                            <div className="space-y-2 text-right">
+                              <label className="text-xs font-black text-slate-500">التصنيف</label>
+                              <input type="text" className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 font-bold" value={sCategory} onChange={e => setSCategory(e.target.value)} />
+                            </div>
+                            <div className="space-y-2 text-right">
+                              <label className="text-xs font-black text-slate-500">السعر بالدينار الأردني (JOD - اختياري)</label>
+                              <input type="number" step="0.01" className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 font-bold" value={sPriceJod} onChange={e => setSPriceJod(e.target.value)} />
+                            </div>
+                            <div className="space-y-2 text-right">
+                              <label className="text-xs font-black text-slate-500">السعر بالدولار ($ - اختياري)</label>
+                              <input type="number" step="0.01" className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 font-bold" value={sPrice} onChange={e => setSPrice(e.target.value)} />
+                            </div>
+                            <div className="space-y-2 text-right col-span-2">
+                              <label className="text-xs font-black text-slate-500">صورة الغلاف / الأيقونة التوضيحية</label>
+                              <div className="flex gap-4 items-center">
+                                <input type="url" placeholder="رابط الصورة أو ارفع صورة..." className="flex-1 h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 font-mono text-sm" value={sThumbnail} onChange={e => setSThumbnail(e.target.value)} />
+                                <label className="cursor-pointer bg-slate-900 hover:bg-slate-800 text-white px-6 h-12 rounded-xl flex items-center gap-2 transition-all font-bold text-xs whitespace-nowrap">
+                                  {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+                                  رفع صورة
+                                  <input type="file" className="hidden" accept="image/*" onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      const url = await handleFileUpload(file, 'services');
+                                      if (url) setSThumbnail(url);
+                                    }
+                                  }} />
+                                </label>
+                              </div>
+                              {sThumbnail && <img src={sThumbnail} alt="Preview" className="w-20 h-20 object-cover rounded-xl border border-slate-200 mt-2" />}
+                            </div>
+                            <div className="space-y-2 text-right">
+                              <label className="text-xs font-black text-slate-500">وسيلة التواصل</label>
+                              <select className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 font-bold" value={sContactMethod} onChange={e => setSContactMethod(e.target.value)}>
+                                <option value="whatsapp">واتساب</option>
+                                <option value="phone">اتصال هاتف</option>
+                                <option value="email">بريد إلكتروني</option>
+                              </select>
+                            </div>
+                            <div className="space-y-2 text-right">
+                              <label className="text-xs font-black text-slate-500">رابط / رقم وسيلة التواصل</label>
+                              <input type="text" className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 font-mono" placeholder="رقم الهاتف أو الرابط" value={sContactInfo} onChange={e => setSContactInfo(e.target.value)} />
+                            </div>
+                            <div className="space-y-2 text-right">
+                              <label className="text-xs font-black text-slate-500">الحالة</label>
+                              <select className="w-full h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600" value={sStatus} onChange={e => setSStatus(e.target.value)}>
+                                <option value="active">نشط (متاح على المنصة)</option>
+                                <option value="inactive">معطل (مخفي)</option>
+                              </select>
+                            </div>
+                          </div>
+                          <button type="submit" disabled={loading} className="w-full h-14 bg-red-600 text-white rounded-2xl font-black hover:bg-slate-900 transition-all shadow-lg flex items-center justify-center gap-2">
+                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+                            {editingId ? 'حفظ التعديلات' : 'إضافة الخدمة المهنية الجديدة'}
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
