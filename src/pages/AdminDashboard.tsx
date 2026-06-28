@@ -19,7 +19,7 @@ const CATEGORIES = ["مختبرات", "تمريض", "قانون", "معلم صف
 
 export default function AdminDashboard() {
   const [session, setSession] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'questions' | 'files' | 'services' | 'settings' | 'features' | 'reviews' | 'contacts' | 'instructor_requests' | 'registrations' | 'service_providers' | 'announcements' | 'academy_products' | 'jobs' | 'user_bookings'>('questions');
+  const [activeTab, setActiveTab] = useState<'questions' | 'files' | 'services' | 'settings' | 'features' | 'reviews' | 'contacts' | 'instructor_requests' | 'registrations' | 'service_providers' | 'announcements' | 'academy_products' | 'jobs' | 'user_bookings' | 'users'>('questions');
   const [subTab, setSubTab] = useState<'add' | 'list' | 'bulk' | 'approvals'>('list');
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
@@ -58,6 +58,12 @@ export default function AdminDashboard() {
   const [lastBatchIds, setLastBatchIds] = useState<(string | number)[]>([]);
   const [showUndo, setShowUndo] = useState(false);
   const [previewQuestions, setPreviewQuestions] = useState<any[] | null>(null);
+
+  // User role management states
+  const [userRole, setUserRole] = useState<'admin' | 'manager'>('admin');
+  const [profilesList, setProfilesList] = useState<any[]>([]);
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
 
   useEffect(() => {
     if (!supabase) return;
@@ -529,9 +535,15 @@ export default function AdminDashboard() {
       // Check role
       supabase!.from('profiles').select('role').eq('id', session.user.id).single()
         .then(({ data }) => {
-          if (data?.role !== 'admin') {
+          if (data?.role !== 'admin' && data?.role !== 'manager') {
             if (data?.role === 'user') navigate("/student/dashboard");
             else navigate("/");
+          } else {
+            const role = (data?.role as 'admin' | 'manager') || 'admin';
+            setUserRole(role);
+            if (role === 'manager' && !['questions', 'files', 'reviews'].includes(activeTab)) {
+              setActiveTab('questions');
+            }
           }
         });
     });
@@ -601,6 +613,53 @@ export default function AdminDashboard() {
       setLoading(false);
     }
   };
+
+  const fetchProfiles = async () => {
+    if (!supabase) return;
+    setSearchLoading(true);
+    try {
+      let query = supabase.from('profiles').select('*').order('created_at', { ascending: false });
+      if (userSearchQuery.trim()) {
+        query = query.or(`email.ilike.%${userSearchQuery}%,full_name.ilike.%${userSearchQuery}%,phone.ilike.%${userSearchQuery}%`);
+      }
+      const { data, error } = await query;
+      if (!error && data) {
+        setProfilesList(data);
+      } else if (error) {
+        console.error("Error fetching profiles:", error);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const updateUserRole = async (userId: string, newRole: string) => {
+    if (!supabase) return;
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', userId);
+      
+      if (!error) {
+        setStatus({ type: 'success', msg: 'تم تحديث دور المستخدم بنجاح' });
+        // Refresh local list
+        setProfilesList(prev => prev.map(p => p.id === userId ? { ...p, role: newRole } : p));
+      } else {
+        setStatus({ type: 'error', msg: 'فشل في تحديث الدور: ' + error.message });
+      }
+    } catch (e: any) {
+      setStatus({ type: 'error', msg: 'حدث خطأ غير متوقع: ' + e.message });
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'users') {
+      fetchProfiles();
+    }
+  }, [activeTab]);
 
   const handleFileUpload = async (file: File, folder: string) => {
     if (!supabase) return null;
@@ -702,6 +761,10 @@ export default function AdminDashboard() {
 
   const deleteItem = async (table: string, id: any) => {
     if (!supabase || !window.confirm("هل أنت متأكد من حذف هذا السجل بشكل نهائي؟")) return;
+    if (userRole === 'manager' && !['questions', 'question_files', 'reviews'].includes(table)) {
+      setStatus({ type: 'error', msg: 'عذراً، لا تملك الصلاحية لحذف هذا النوع من البيانات.' });
+      return;
+    }
     setLoading(true);
     try {
       const { error } = await supabase.from(table).delete().eq('id', id);
@@ -1564,18 +1627,23 @@ export default function AdminDashboard() {
   const sidebarItems = [
     { id: 'questions', name: 'بنك الأسئلة', icon: <HelpCircle className="w-5 h-5" /> },
     { id: 'files', name: 'بنك الملفات', icon: <FileText className="w-5 h-5" /> },
-    { id: 'academy_products', name: 'منتجات الأكاديمية', icon: <BookOpen className="w-5 h-5" /> },
-    { id: 'jobs', name: 'الوظائف', icon: <Sparkles className="w-5 h-5" /> },
-    { id: 'user_bookings', name: 'المبيعات والحجوزات', icon: <BookOpen className="w-5 h-5" /> },
-    { id: 'services', name: 'الخدمات المهنية', icon: <Sparkles className="w-5 h-5" /> },
-    { id: 'features', name: 'أدوات التفوق', icon: <Layers className="w-5 h-5" /> },
+    ...(userRole === 'admin' ? [
+      { id: 'academy_products', name: 'منتجات الأكاديمية', icon: <BookOpen className="w-5 h-5" /> },
+      { id: 'jobs', name: 'الوظائف', icon: <Sparkles className="w-5 h-5" /> },
+      { id: 'user_bookings', name: 'المبيعات والحجوزات', icon: <BookOpen className="w-5 h-5" /> },
+      { id: 'services', name: 'الخدمات المهنية', icon: <Sparkles className="w-5 h-5" /> },
+      { id: 'features', name: 'أدوات التفوق', icon: <Layers className="w-5 h-5" /> },
+    ] : []),
     { id: 'reviews', name: 'المراجعات', icon: <MessageSquare className="w-5 h-5" /> },
-    { id: 'contacts', name: 'الرسائل الواردة', icon: <Bell className="w-5 h-5" /> },
-    { id: 'settings', name: 'بناء الهوية', icon: <Settings className="w-5 h-5" /> },
-    { id: 'announcements', name: 'نظام الإعلانات', icon: <Megaphone className="w-5 h-5" /> },
-    { id: 'instructor_requests', name: 'طلبات الانضمام', icon: <UserCheck className="w-5 h-5" /> },
-    { id: 'registrations', name: 'طلبات الشركات', icon: <Building2 className="w-5 h-5" /> },
-    { id: 'service_providers', name: 'مقدمي الخدمات', icon: <User className="w-5 h-5" /> },
+    ...(userRole === 'admin' ? [
+      { id: 'contacts', name: 'الرسائل الواردة', icon: <Bell className="w-5 h-5" /> },
+      { id: 'settings', name: 'بناء الهوية', icon: <Settings className="w-5 h-5" /> },
+      { id: 'announcements', name: 'نظام الإعلانات', icon: <Megaphone className="w-5 h-5" /> },
+      { id: 'instructor_requests', name: 'طلبات الانضمام', icon: <UserCheck className="w-5 h-5" /> },
+      { id: 'registrations', name: 'طلبات الشركات', icon: <Building2 className="w-5 h-5" /> },
+      { id: 'service_providers', name: 'مقدمي الخدمات', icon: <User className="w-5 h-5" /> },
+      { id: 'users', name: 'إدارة الأدوار والمدراء', icon: <Shield className="w-5 h-5" /> },
+    ] : [])
   ];
 
   if (!session) return null;
@@ -2722,6 +2790,132 @@ export default function AdminDashboard() {
                       تحديث بيانات الهوية البصرية
                    </button>
                 </form>
+              )}
+
+              {/* USERS & ROLE MANAGEMENT VIEW */}
+              {activeTab === 'users' && (
+                <div className="space-y-10 max-w-6xl mx-auto py-6">
+                  <div className="bg-white border border-slate-100 p-8 rounded-3xl text-right shadow-sm flex flex-col md:flex-row-reverse md:items-center justify-between gap-6">
+                    <div className="space-y-2 max-w-xl">
+                      <h3 className="text-slate-900 font-black text-xl flex items-center justify-end gap-2">
+                        إدارة الصلاحيات والمدراء والمشرفين
+                        <Shield className="w-6 h-6 text-red-600" />
+                      </h3>
+                      <p className="text-slate-500 text-sm leading-relaxed font-bold">
+                        من هذه الشاشة يمكنك البحث عن أي مستخدم مسجل في المنصة وترقيته إلى رتبة <span className="text-red-600">مدير محتوى (Manager)</span> ليتمكن من إدارة بنك الأسئلة وبنك الملفات والمراجعات فقط، دون صلاحية تعديل الهوية أو الإعلانات أو الوظائف والخدمات والماليات.
+                      </p>
+                    </div>
+                    <div className="bg-red-50 text-red-600 p-4 rounded-2xl text-xs font-black max-w-xs self-start md:self-auto text-center border border-red-100">
+                      إضافة مدراء محتوى تضمن تنظيم العمل وتوزيع المهام بأمان ودون القلق من العبث بقاعدة البيانات أو الإعدادات الحساسة للموقع.
+                    </div>
+                  </div>
+
+                  {/* Search Bar */}
+                  <div className="flex gap-3 justify-end items-center max-w-md mr-auto bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
+                    <button
+                      onClick={fetchProfiles}
+                      disabled={searchLoading}
+                      className="h-12 px-6 bg-slate-900 text-white rounded-xl font-bold hover:bg-red-600 transition-all flex items-center gap-2 text-sm shrink-0"
+                    >
+                      {searchLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                      بحث
+                    </button>
+                    <input
+                      type="text"
+                      className="w-full h-12 px-4 bg-transparent outline-none text-right text-sm font-bold"
+                      placeholder="ابحث بالبريد، الاسم أو الهاتف..."
+                      value={userSearchQuery}
+                      onChange={e => setUserSearchQuery(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') fetchProfiles(); }}
+                    />
+                  </div>
+
+                  {/* User List */}
+                  <div className="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
+                    <div className="overflow-x-auto" dir="rtl">
+                      <table className="w-full text-right border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-100 bg-slate-50/50">
+                            <th className="p-5 text-xs font-black text-slate-400 uppercase">المستخدم</th>
+                            <th className="p-5 text-xs font-black text-slate-400 uppercase">البريد الإلكتروني / الهاتف</th>
+                            <th className="p-5 text-xs font-black text-slate-400 uppercase">تاريخ الانضمام</th>
+                            <th className="p-5 text-xs font-black text-slate-400 uppercase text-center">الدور الحالي</th>
+                            <th className="p-5 text-xs font-black text-slate-400 uppercase text-center">تعديل الصلاحية</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {searchLoading ? (
+                            <tr>
+                              <td colSpan={5} className="p-10 text-center text-slate-400 font-bold">
+                                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-red-600" />
+                                جاري تحميل حسابات المستخدمين...
+                              </td>
+                            </tr>
+                          ) : profilesList.length === 0 ? (
+                            <tr>
+                              <td colSpan={5} className="p-10 text-center text-slate-400 font-bold">
+                                {userSearchQuery ? "لم يتم العثور على أي مستخدم يطابق البحث" : "اكتب في مربع البحث أعلاه لعرض حسابات المستخدمين وإدارتها"}
+                              </td>
+                            </tr>
+                          ) : (
+                            profilesList.map((userProfile) => (
+                              <tr key={userProfile.id} className="border-b border-slate-50 hover:bg-slate-50/30 transition-colors">
+                                <td className="p-5">
+                                  <div className="flex items-center gap-3 justify-start">
+                                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 overflow-hidden shrink-0">
+                                      {userProfile.avatar_url ? (
+                                        <img src={userProfile.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                                      ) : (
+                                        <User className="w-5 h-5" />
+                                      )}
+                                    </div>
+                                    <div className="text-right">
+                                      <div className="text-sm font-black text-slate-900">{userProfile.full_name || 'بدون اسم'}</div>
+                                      <div className="text-[10px] text-slate-400 font-bold">المعرف: {userProfile.id.substring(0, 8)}...</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="p-5 text-sm font-bold text-slate-600">
+                                  <div>{userProfile.email || 'لا يوجد بريد'}</div>
+                                  <div className="text-xs text-slate-400 font-medium">{userProfile.phone || 'لا يوجد هاتف'}</div>
+                                </td>
+                                <td className="p-5 text-xs text-slate-400 font-bold">
+                                  {new Date(userProfile.created_at).toLocaleDateString('ar-JO')}
+                                </td>
+                                <td className="p-5 text-center">
+                                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black ${
+                                    userProfile.role === 'admin' ? 'bg-red-50 text-red-600 border border-red-100' :
+                                    userProfile.role === 'manager' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' :
+                                    userProfile.role === 'instructor' ? 'bg-green-50 text-green-600 border border-green-100' :
+                                    'bg-slate-50 text-slate-600 border border-slate-100'
+                                  }`}>
+                                    {userProfile.role === 'admin' ? 'مدير نظام (Admin)' :
+                                     userProfile.role === 'manager' ? 'مدير محتوى (Manager)' :
+                                     userProfile.role === 'instructor' ? 'مدرب (Instructor)' : 'مستخدم عادي (User)'}
+                                  </span>
+                                </td>
+                                <td className="p-5">
+                                  <div className="flex items-center justify-center gap-2">
+                                    <select
+                                      value={userProfile.role || 'user'}
+                                      onChange={(e) => updateUserRole(userProfile.id, e.target.value)}
+                                      className="text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-right outline-none focus:border-red-600 transition-all"
+                                    >
+                                      <option value="user">مستخدم عادي (User)</option>
+                                      <option value="manager">مدير محتوى (Manager)</option>
+                                      <option value="instructor">مدرب (Instructor)</option>
+                                      <option value="admin">مدير نظام (Admin)</option>
+                                    </select>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
               )}
 
               {/* ADD/EDIT FORM FOR QUESTIONS */}
