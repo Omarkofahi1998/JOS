@@ -189,7 +189,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   };
 
   const getDashboardLink = () => {
-    if (profile?.role === 'admin') return '/admin/dashboard';
+    if (profile?.role === 'admin' || profile?.role === 'manager') return '/admin/dashboard';
     if (profile?.role === 'instructor') return '/instructor/dashboard';
     return '/student/dashboard';
   };
@@ -336,7 +336,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                           {profile?.full_name || user.email?.split('@')[0]}
                         </div>
                         <div className="text-[9px] font-bold text-slate-400 leading-none">
-                          {profile?.role === 'admin' ? 'مدير النظام' : profile?.role === 'instructor' ? 'مدرب معتمد' : profile?.role === 'service_provider' ? 'مزود خدمة مهنية' : 'صاحب عمل'}
+                          {profile?.role === 'admin' ? 'مدير النظام' : profile?.role === 'manager' ? 'مدير محتوى' : profile?.role === 'instructor' ? 'مدرب معتمد' : profile?.role === 'service_provider' ? 'مزود خدمة مهنية' : 'صاحب عمل'}
                         </div>
                       </div>
                       <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${activeDropdown === 'user' ? 'rotate-180' : ''}`} />
