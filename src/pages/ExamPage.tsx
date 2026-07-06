@@ -261,9 +261,14 @@ export default function ExamPage() {
           </div>
           <div>
             <h1 className="text-base font-black text-slate-900 leading-none">بوابة الامتحان الآمنة</h1>
-            <div className="flex items-center gap-1 mt-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tight">مؤمن ومراقب برمجياً</span>
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <div className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tight">مؤمن ومراقب برمجياً</span>
+              </div>
+              <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider bg-slate-100/70 px-1.5 py-0.5 rounded">
+                In collaboration with <span className="text-red-600 font-black">Serial Number</span>
+              </span>
             </div>
           </div>
         </div>
@@ -400,9 +405,10 @@ export default function ExamPage() {
                       <span className="text-[10px] font-black text-slate-800 leading-none">{q.major}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 opacity-30">
-                    <BookOpen className="w-3 h-3 text-slate-300" />
-                    <span className="text-[9px] font-bold text-slate-300 tracking-wider">Official Exam Log</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider bg-slate-100/70 px-2 py-0.5 rounded">
+                      In collaboration with <span className="text-red-600 font-black">Serial Number</span>
+                    </span>
                   </div>
                 </div>
 

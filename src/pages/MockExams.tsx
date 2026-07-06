@@ -164,7 +164,10 @@ export default function MockExams() {
         <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-900 mx-auto mb-6">
           <Clock className="w-8 h-8" />
         </div>
-        <h1 className="text-3xl font-black text-slate-900 mb-4">الامتحانات التجريبية التخصصية</h1>
+        <h1 className="text-3xl font-black text-slate-900 mb-2">الامتحانات التجريبية التخصصية</h1>
+        <p className="text-xs font-bold text-slate-500 tracking-wider mb-4 uppercase">
+          In collaboration with <span className="text-red-600 font-black px-1.5 bg-red-50 rounded">Serial Number</span>
+        </p>
         <p className="text-slate-500 max-w-xl mx-auto leading-relaxed">
           اختر التخصص الذي ترغب في التدرب عليه لبدء امتحان محاكاة يطابق نمط أسئلة هيئة الخدمة والإدارة العامة.
         </p>
