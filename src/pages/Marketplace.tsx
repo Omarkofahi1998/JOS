@@ -32,6 +32,7 @@ const categories = ["الكل", "دورات تدريبية", "التطوير ا�
 export default function Marketplace() {
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState("الكل");
+  const [instructors, setInstructors] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,6 +61,7 @@ export default function Marketplace() {
 
     const fetchAllData = async () => {
         const loadedProducts = await fetchProducts();
+    fetchInstructors();
         if (productId && loadedProducts) {
             const found = loadedProducts.find(p => p.id.toString() === productId);
             if (found) setSelectedProduct(found);
@@ -94,8 +96,22 @@ export default function Marketplace() {
     }
   };
 
-  const handleWhatsAppContact = () => {
+    const handleContact = () => {
     if (!selectedProduct) return;
+    
+    if (selectedProduct.contact_method === 'link') {
+      let url = selectedProduct.contact_info;
+      if (url && !url.startsWith('http')) url = 'https://' + url;
+      window.open(url, '_blank');
+      return;
+    }
+    
+    if (selectedProduct.contact_method === 'phone') {
+      window.open('tel:' + selectedProduct.contact_info, '_self');
+      return;
+    }
+
+    // Default: whatsapp
     const phone = selectedProduct.contact_info || "9620000000";
     const text = `مرحباً أ. ${selectedProduct.instructor_name}، أنا مهتم بالانضمام إلى "${selectedProduct.title}" المعروضة على منصة طلاب الأردن. كيف يمكنني إكمال عملية التسجيل؟`;
     window.open(`https://wa.me/${phone.replace(/\+/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
@@ -188,6 +204,15 @@ export default function Marketplace() {
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  const fetchInstructors = async () => {
+    try {
+      const { data, error } = await supabase.from('profiles').select('*').eq('role', 'instructor');
+      if (data && !error) {
+        setInstructors(data.filter(i => i.metadata?.is_published));
+      }
+    } catch(err) {}
+  };
 
   const fetchProducts = async () => {
     try {
@@ -288,6 +313,44 @@ export default function Marketplace() {
       </div>
 
       {/* Products Grid */}
+      
+      {/* Featured Instructors */}
+      {instructors.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 pb-12">
+          <div className="flex items-center gap-3 mb-8 justify-end">
+             <h2 className="text-2xl font-black text-slate-900">نخبة المدربين</h2>
+             <div className="w-12 h-1 bg-red-600 rounded-full" />
+          </div>
+          <div className="flex overflow-x-auto gap-6 pb-4 scrollbar-hide flex-row-reverse" style={{ scrollSnapType: 'x mandatory' }}>
+            {instructors.map((inst, i) => (
+              <motion.div 
+                key={inst.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className="min-w-[280px] bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40 text-center flex flex-col items-center flex-shrink-0"
+                style={{ scrollSnapAlign: 'start' }}
+              >
+                 <div className="w-24 h-24 rounded-full bg-slate-50 mb-4 overflow-hidden border-4 border-white shadow-lg flex-shrink-0">
+                    {inst.metadata?.photoUrl ? (
+                      <img src={inst.metadata.photoUrl} alt={inst.full_name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-400 font-black text-3xl">
+                        {inst.full_name?.charAt(0) || 'M'}
+                      </div>
+                    )}
+                 </div>
+                 <h3 className="text-xl font-black text-slate-900 mb-1">{inst.full_name}</h3>
+                 <p className="text-sm font-bold text-red-600 mb-4">{inst.metadata?.specialty}</p>
+                 {inst.metadata?.bio && (
+                   <p className="text-xs font-bold text-slate-500 line-clamp-3 leading-relaxed mb-4">{inst.metadata.bio}</p>
+                 )}
+              </motion.div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <main className="max-w-7xl mx-auto px-4 pb-12">
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -441,11 +504,11 @@ export default function Marketplace() {
                   </div>
 
                   <button 
-                    onClick={handleWhatsAppContact}
+                    onClick={handleContact}
                     className="w-full h-16 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all duration-300 shadow-xl shadow-emerald-600/10 flex items-center justify-center gap-3 mb-4"
                   >
-                    <MessageCircle className="w-5 h-5" />
-                    تواصل مع المدرب عبر واتس اب
+                    {selectedProduct?.contact_method === "link" ? <ArrowRight className="w-5 h-5 rotate-180" /> : <MessageCircle className="w-5 h-5" />}
+                    {selectedProduct?.contact_method === "link" ? "الانتقال للتسجيل / النموذج الخارجي" : selectedProduct?.contact_method === "phone" ? "اتصال هاتفي مع المدرب" : "تواصل مع المدرب عبر واتس اب"}
                   </button>
 
                   <button 

@@ -68,7 +68,11 @@ export default function ServiceDetails() {
     let url = '';
     const message = encodeURIComponent(`مرحباً، أود الاستفسار عن خدمة: ${service.title}`);
 
-    if (service.contact_method === 'whatsapp') {
+    if (service.contact_method === 'link') {
+      let urlStr = service.contact_info;
+      if (urlStr && !urlStr.startsWith('http')) urlStr = 'https://' + urlStr;
+      url = urlStr;
+    } else if (service.contact_method === 'whatsapp') {
       url = `https://wa.me/${service.contact_info.replace(/\+/g, '')}?text=${message}`;
     } else if (service.contact_method === 'email') {
       url = `mailto:${service.contact_info}?subject=${encodeURIComponent(service.title)}&body=${message}`;

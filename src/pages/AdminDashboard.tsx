@@ -664,9 +664,66 @@ export default function AdminDashboard() {
     }
   };
 
+    const fetchInstructors = async () => {
+    if (!supabase) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.from('profiles').select('*').eq('role', 'instructor').order('created_at', { ascending: false });
+      if (!error && data) {
+        setInstructors(data);
+      }
+    } catch(err) {} finally { setLoading(false); }
+  };
+
+  const handleUpdateInstructor = async (e) => {
+    e.preventDefault();
+    if (!supabase || !editingId) return;
+    setLoading(true);
+    try {
+      let finalPhotoUrl = instPhotoUrl;
+      if (instPhoto) {
+        const fileExt = instPhoto.name.split('.').pop();
+        const fileName = `instructors/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const { error: uploadErr } = await supabase.storage.from('bank_files').upload(fileName, instPhoto);
+        if (!uploadErr) {
+          const { data: { publicUrl } } = supabase.storage.from('bank_files').getPublicUrl(fileName);
+          finalPhotoUrl = publicUrl;
+        }
+      }
+
+      // update profile metadata
+      const profileToUpdate = instructors.find(i => i.id === editingId);
+      const newMetadata = {
+        ...(profileToUpdate?.metadata || {}),
+        bio: instBio,
+        specialty: instSpecialty,
+        photoUrl: finalPhotoUrl,
+        is_published: instIsPublished
+      };
+
+      const { error } = await supabase.from('profiles').update({
+        full_name: instName,
+        phone: instPhone,
+        metadata: newMetadata
+      }).eq('id', editingId);
+
+      if (error) throw error;
+      setStatus({ type: 'success', msg: 'تم تحديث بيانات المدرب بنجاح' });
+      setSubTab('list');
+      fetchInstructors();
+    } catch(err) {
+      setStatus({ type: 'error', msg: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'users') {
       fetchProfiles();
+    }
+    if (activeTab === 'instructors_db') {
+      fetchInstructors();
     }
   }, [activeTab]);
 
@@ -1662,6 +1719,7 @@ export default function AdminDashboard() {
       { id: 'registrations', name: 'طلبات الشركات', icon: <Building2 className="w-5 h-5" /> },
       { id: 'service_providers', name: 'مقدمي الخدمات', icon: <User className="w-5 h-5" /> },
       { id: 'users', name: 'إدارة الأدوار والمدراء', icon: <Shield className="w-5 h-5" /> },
+      { id: 'instructors_db', name: 'قاعدة بيانات المدربين', icon: <UserCheck className="w-5 h-5" /> },
     ] : [])
   ];
 
@@ -2811,6 +2869,96 @@ export default function AdminDashboard() {
                 </form>
               )}
 
+              
+              {activeTab === 'instructors_db' && (
+                <div className="space-y-8 max-w-6xl mx-auto py-6">
+                   <div className="flex justify-between items-center bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                      <button onClick={() => setSubTab(subTab === 'list' ? 'add' : 'list')} className="px-6 py-3 bg-red-600 text-white rounded-xl font-bold text-sm hover:bg-slate-900 transition-all flex items-center gap-2">
+                        {subTab === 'list' ? 'تعديل مدرب' : 'العودة للقائمة'}
+                      </button>
+                      <div className="text-right">
+                         <h2 className="text-xl font-black text-slate-900">قاعدة بيانات المدربين</h2>
+                         <p className="text-slate-500 text-sm font-bold mt-1">تعديل معلومات المدربين وبثهم على المنصة</p>
+                      </div>
+                   </div>
+
+                   {subTab === 'list' ? (
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                       {instructors.map(inst => (
+                         <div key={inst.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm text-right flex flex-col items-end">
+                           <div className="w-16 h-16 rounded-full bg-slate-100 mb-4 overflow-hidden border-2 border-white shadow-sm flex-shrink-0">
+                             {inst.metadata?.photoUrl ? (
+                               <img src={inst.metadata.photoUrl} alt={inst.full_name} className="w-full h-full object-cover" />
+                             ) : (
+                               <div className="w-full h-full flex items-center justify-center text-slate-400 font-black text-xl">
+                                 {inst.full_name?.charAt(0) || 'M'}
+                               </div>
+                             )}
+                           </div>
+                           <h3 className="text-lg font-black text-slate-900">{inst.full_name || 'بدون اسم'}</h3>
+                           <p className="text-sm font-bold text-slate-500 mb-2">{inst.metadata?.specialty || 'لا يوجد تخصص'}</p>
+                           <div className="flex items-center gap-2 mb-4">
+                             <span className={`px-3 py-1 text-[10px] font-black rounded-lg ${inst.metadata?.is_published ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
+                               {inst.metadata?.is_published ? 'منشور (يبث للمستخدمين)' : 'مسودة (مخفي)'}
+                             </span>
+                           </div>
+                           <button onClick={() => {
+                             setEditingId(inst.id);
+                             setInstName(inst.full_name || "");
+                             setInstPhone(inst.phone || "");
+                             setInstBio(inst.metadata?.bio || "");
+                             setInstSpecialty(inst.metadata?.specialty || "");
+                             setInstIsPublished(inst.metadata?.is_published || false);
+                             setInstPhotoUrl(inst.metadata?.photoUrl || "");
+                             setInstPhoto(null);
+                             setSubTab('add');
+                           }} className="w-full h-10 bg-slate-50 hover:bg-slate-100 text-slate-900 rounded-xl font-bold text-xs transition-all">تعديل البيانات</button>
+                         </div>
+                       ))}
+                       {instructors.length === 0 && (
+                         <div className="col-span-full text-center py-12 text-slate-500 font-bold bg-slate-50 rounded-3xl">لا يوجد مدربين حالياً</div>
+                       )}
+                     </div>
+                   ) : (
+                     <form onSubmit={handleUpdateInstructor} className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-xl space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <div className="space-y-2 text-right">
+                              <label className="text-xs font-black text-slate-400 uppercase">الاسم الكامل</label>
+                              <input type="text" required value={instName} onChange={e => setInstName(e.target.value)} className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-bold" />
+                           </div>
+                           <div className="space-y-2 text-right">
+                              <label className="text-xs font-black text-slate-400 uppercase">رقم الهاتف</label>
+                              <input type="text" value={instPhone} onChange={e => setInstPhone(e.target.value)} className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-mono" />
+                           </div>
+                           <div className="space-y-2 text-right">
+                              <label className="text-xs font-black text-slate-400 uppercase">التخصص / اللقب</label>
+                              <input type="text" value={instSpecialty} onChange={e => setInstSpecialty(e.target.value)} className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600" />
+                           </div>
+                           <div className="space-y-2 text-right">
+                              <label className="text-xs font-black text-slate-400 uppercase">الصورة الشخصية (اختياري)</label>
+                              <input type="file" accept="image/*" onChange={e => setInstPhoto(e.target.files?.[0] || null)} className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-slate-50 file:text-slate-700 hover:file:bg-slate-100" />
+                           </div>
+                           <div className="space-y-2 text-right col-span-2">
+                              <label className="text-xs font-black text-slate-400 uppercase">نبذة تعريفية (Bio)</label>
+                              <textarea rows={4} value={instBio} onChange={e => setInstBio(e.target.value)} className="w-full p-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-medium" />
+                           </div>
+                           <div className="space-y-2 text-right col-span-2 flex items-center justify-end gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                              <div className="text-right">
+                                <h4 className="font-black text-slate-900">بث المدرب</h4>
+                                <p className="text-xs font-bold text-slate-500">تفعيل هذا الخيار سيجعل بيانات المدرب متاحة ومرئية للطلاب في صفحة الأكاديمية.</p>
+                              </div>
+                              <input type="checkbox" checked={instIsPublished} onChange={e => setInstIsPublished(e.target.checked)} className="w-6 h-6 accent-red-600" />
+                           </div>
+                        </div>
+                        <button type="submit" disabled={loading} className="w-full h-16 bg-slate-900 text-white rounded-[2rem] font-black hover:bg-red-600 transition-all shadow-2xl flex items-center justify-center gap-3 disabled:opacity-50">
+                           {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <CheckCircle2 className="w-6 h-6" />}
+                           حفظ بيانات المدرب
+                        </button>
+                     </form>
+                   )}
+                </div>
+              )}
+
               {/* USERS & ROLE MANAGEMENT VIEW */}
               {activeTab === 'users' && (
                 <div className="space-y-10 max-w-6xl mx-auto py-6">
@@ -3209,6 +3357,7 @@ export default function AdminDashboard() {
                                 <option value="whatsapp">واتساب</option>
                                 <option value="phone">اتصال هاتف</option>
                                 <option value="email">بريد إلكتروني</option>
+                                <option value="link">رابط خارجي</option>
                               </select>
                             </div>
                             <div className="space-y-2 text-right">
@@ -3268,6 +3417,7 @@ export default function AdminDashboard() {
                                 <option value="whatsapp">واتساب</option>
                                 <option value="phone">اتصال هاتف</option>
                                 <option value="email">بريد إلكتروني</option>
+                                <option value="link">رابط خارجي</option>
                               </select>
                             </div>
                             <div className="space-y-2 text-right">
@@ -3821,6 +3971,7 @@ export default function AdminDashboard() {
                          <option value="whatsapp">واتساب</option>
                          <option value="phone">اتصال هاتف</option>
                          <option value="email">بريد إلكتروني</option>
+                                <option value="link">رابط خارجي</option>
                        </select>
                     </div>
                     <div className="space-y-2 text-right">
