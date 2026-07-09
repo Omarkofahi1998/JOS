@@ -10,6 +10,7 @@ export default function Services() {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [instructors, setInstructors] = useState([]);
 
   const handleShare = async (e: React.MouseEvent, service: any) => {
     e.stopPropagation();
@@ -43,6 +44,14 @@ export default function Services() {
         fetchProfile(session.user.id);
       }
     });
+
+    const fetchInstructors = async () => {
+      const { data, error } = await supabase.from('profiles').select('*').eq('role', 'instructor');
+      if (data && !error) {
+        setInstructors(data.filter(i => i.metadata?.is_published));
+      }
+    };
+    fetchInstructors();
 
     async function fetchProfile(uid: string) {
       const { data } = await supabase!.from('profiles').select('*').eq('id', uid).single();
@@ -104,6 +113,7 @@ export default function Services() {
       }
     }
     fetchServices();
+    fetchInstructors();
   }, []);
 
   return (
@@ -227,6 +237,41 @@ export default function Services() {
           </div>
         )}
       </section>
+
+      {/* Featured Instructors */}
+      {instructors.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 pb-12 pt-8">
+          <div className="flex items-center gap-3 mb-8 justify-end">
+             <h2 className="text-2xl font-black text-slate-900">نخبة الخبراء ومقدمي الخدمات</h2>
+             <div className="w-12 h-1 bg-red-600 rounded-full" />
+          </div>
+          <div className="flex overflow-x-auto gap-6 pb-4 scrollbar-hide flex-row-reverse" style={{ scrollSnapType: 'x mandatory' }}>
+            {instructors.map((inst, i) => (
+              <div 
+                key={inst.id}
+                className="min-w-[280px] bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40 text-center flex flex-col items-center flex-shrink-0 animate-fade-in-up"
+                style={{ scrollSnapAlign: 'start', animationDelay: `${i * 0.1}s` }}
+              >
+                 <div className="w-24 h-24 rounded-full bg-slate-50 mb-4 overflow-hidden border-4 border-white shadow-lg flex-shrink-0">
+                    {inst.metadata?.photoUrl ? (
+                      <img src={inst.metadata.photoUrl} alt={inst.full_name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-400 font-black text-3xl">
+                        {inst.full_name?.charAt(0) || 'M'}
+                      </div>
+                    )}
+                 </div>
+                 <h3 className="text-xl font-black text-slate-900 mb-1">{inst.full_name}</h3>
+                 <p className="text-sm font-bold text-red-600 mb-4">{inst.metadata?.specialty}</p>
+                 {inst.metadata?.bio && (
+                   <p className="text-xs font-bold text-slate-500 line-clamp-3 leading-relaxed mb-4">{inst.metadata.bio}</p>
+                 )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
     </div>
   );
 }

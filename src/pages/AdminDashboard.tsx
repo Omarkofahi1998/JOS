@@ -62,6 +62,16 @@ export default function AdminDashboard() {
   // User role management states
   const [userRole, setUserRole] = useState<'admin' | 'manager'>('admin');
   const [profilesList, setProfilesList] = useState<any[]>([]);
+  const [instructors, setInstructors] = useState<any[]>([]);
+  const [instName, setInstName] = useState("");
+  const [instPhone, setInstPhone] = useState("");
+  const [instBio, setInstBio] = useState("");
+  const [instSpecialty, setInstSpecialty] = useState("");
+  const [instIsPublished, setInstIsPublished] = useState(false);
+  const [instPhoto, setInstPhoto] = useState<File | null>(null);
+  const [instPhotoUrl, setInstPhotoUrl] = useState("");
+  const [instEmail, setInstEmail] = useState("");
+  const [instRole, setInstRole] = useState("instructor");
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
 
@@ -664,11 +674,15 @@ export default function AdminDashboard() {
     }
   };
 
-    const fetchInstructors = async () => {
+  const fetchInstructors = async () => {
     if (!supabase) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase.from('profiles').select('*').eq('role', 'instructor').order('created_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('role', ['instructor', 'service_provider', 'manager'])
+        .order('created_at', { ascending: false });
       if (!error && data) {
         setInstructors(data);
       }
@@ -704,14 +718,15 @@ export default function AdminDashboard() {
       const { error } = await supabase.from('profiles').update({
         full_name: instName,
         phone: instPhone,
+        role: instRole,
         metadata: newMetadata
       }).eq('id', editingId);
 
       if (error) throw error;
-      setStatus({ type: 'success', msg: 'تم تحديث بيانات المدرب بنجاح' });
+      setStatus({ type: 'success', msg: 'تم تحديث بيانات العضو بنجاح' });
       setSubTab('list');
       fetchInstructors();
-    } catch(err) {
+    } catch(err: any) {
       setStatus({ type: 'error', msg: err.message });
     } finally {
       setLoading(false);
@@ -1719,7 +1734,7 @@ export default function AdminDashboard() {
       { id: 'registrations', name: 'طلبات الشركات', icon: <Building2 className="w-5 h-5" /> },
       { id: 'service_providers', name: 'مقدمي الخدمات', icon: <User className="w-5 h-5" /> },
       { id: 'users', name: 'إدارة الأدوار والمدراء', icon: <Shield className="w-5 h-5" /> },
-      { id: 'instructors_db', name: 'قاعدة بيانات المدربين', icon: <UserCheck className="w-5 h-5" /> },
+      { id: 'instructors_db', name: 'إدارة الكوادر والمدربين والخبراء', icon: <UserCheck className="w-5 h-5" /> },
     ] : [])
   ];
 
@@ -2869,16 +2884,15 @@ export default function AdminDashboard() {
                 </form>
               )}
 
-              
               {activeTab === 'instructors_db' && (
                 <div className="space-y-8 max-w-6xl mx-auto py-6">
                    <div className="flex justify-between items-center bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
                       <button onClick={() => setSubTab(subTab === 'list' ? 'add' : 'list')} className="px-6 py-3 bg-red-600 text-white rounded-xl font-bold text-sm hover:bg-slate-900 transition-all flex items-center gap-2">
-                        {subTab === 'list' ? 'تعديل مدرب' : 'العودة للقائمة'}
+                        {subTab === 'list' ? 'تعديل بيانات الكوادر' : 'العودة للقائمة'}
                       </button>
                       <div className="text-right">
-                         <h2 className="text-xl font-black text-slate-900">قاعدة بيانات المدربين</h2>
-                         <p className="text-slate-500 text-sm font-bold mt-1">تعديل معلومات المدربين وبثهم على المنصة</p>
+                         <h2 className="text-xl font-black text-slate-900">إدارة الكوادر والمدربين والخبراء</h2>
+                         <p className="text-slate-500 text-sm font-bold mt-1">تعديل معلومات وتصنيفات المدربين، مقدمي الخدمات، ومدراء المحتوى</p>
                       </div>
                    </div>
 
@@ -2896,12 +2910,25 @@ export default function AdminDashboard() {
                              )}
                            </div>
                            <h3 className="text-lg font-black text-slate-900">{inst.full_name || 'بدون اسم'}</h3>
-                           <p className="text-sm font-bold text-slate-500 mb-2">{inst.metadata?.specialty || 'لا يوجد تخصص'}</p>
+                           <p className="text-sm font-bold text-slate-500 mb-1">{inst.metadata?.specialty || 'لا يوجد تخصص'}</p>
+                           
+                           {/* Role Badge */}
+                           <span className={`px-2.5 py-1 text-[10px] font-black rounded-lg mb-2 ${
+                             inst.role === 'instructor' ? 'bg-red-50 text-red-600 border border-red-100' :
+                             inst.role === 'service_provider' ? 'bg-blue-50 text-blue-600 border border-blue-100' :
+                             'bg-purple-50 text-purple-600 border border-purple-100'
+                           }`}>
+                             {inst.role === 'instructor' ? 'مدرب (Instructor)' :
+                              inst.role === 'service_provider' ? 'مقدم خدمات (Service Provider)' :
+                              'مدير محتوى (Manager)'}
+                           </span>
+
                            <div className="flex items-center gap-2 mb-4">
                              <span className={`px-3 py-1 text-[10px] font-black rounded-lg ${inst.metadata?.is_published ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
                                {inst.metadata?.is_published ? 'منشور (يبث للمستخدمين)' : 'مسودة (مخفي)'}
                              </span>
                            </div>
+                           
                            <button onClick={() => {
                              setEditingId(inst.id);
                              setInstName(inst.full_name || "");
@@ -2910,13 +2937,14 @@ export default function AdminDashboard() {
                              setInstSpecialty(inst.metadata?.specialty || "");
                              setInstIsPublished(inst.metadata?.is_published || false);
                              setInstPhotoUrl(inst.metadata?.photoUrl || "");
+                             setInstRole(inst.role || "instructor");
                              setInstPhoto(null);
                              setSubTab('add');
                            }} className="w-full h-10 bg-slate-50 hover:bg-slate-100 text-slate-900 rounded-xl font-bold text-xs transition-all">تعديل البيانات</button>
                          </div>
                        ))}
                        {instructors.length === 0 && (
-                         <div className="col-span-full text-center py-12 text-slate-500 font-bold bg-slate-50 rounded-3xl">لا يوجد مدربين حالياً</div>
+                         <div className="col-span-full text-center py-12 text-slate-500 font-bold bg-slate-50 rounded-3xl">لا يوجد كوادر حالياً</div>
                        )}
                      </div>
                    ) : (
@@ -2931,10 +2959,18 @@ export default function AdminDashboard() {
                               <input type="text" value={instPhone} onChange={e => setInstPhone(e.target.value)} className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-mono" />
                            </div>
                            <div className="space-y-2 text-right">
+                              <label className="text-xs font-black text-slate-400 uppercase">الدور / الصلاحية</label>
+                              <select value={instRole} onChange={e => setInstRole(e.target.value)} className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-bold">
+                                 <option value="instructor">مدرب (Instructor)</option>
+                                 <option value="service_provider">مقدم خدمات (Service Provider)</option>
+                                 <option value="manager">مدير محتوى (Manager)</option>
+                              </select>
+                           </div>
+                           <div className="space-y-2 text-right">
                               <label className="text-xs font-black text-slate-400 uppercase">التخصص / اللقب</label>
                               <input type="text" value={instSpecialty} onChange={e => setInstSpecialty(e.target.value)} className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600" />
                            </div>
-                           <div className="space-y-2 text-right">
+                           <div className="space-y-2 text-right col-span-2">
                               <label className="text-xs font-black text-slate-400 uppercase">الصورة الشخصية (اختياري)</label>
                               <input type="file" accept="image/*" onChange={e => setInstPhoto(e.target.files?.[0] || null)} className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-slate-50 file:text-slate-700 hover:file:bg-slate-100" />
                            </div>
@@ -2944,15 +2980,15 @@ export default function AdminDashboard() {
                            </div>
                            <div className="space-y-2 text-right col-span-2 flex items-center justify-end gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
                               <div className="text-right">
-                                <h4 className="font-black text-slate-900">بث المدرب</h4>
-                                <p className="text-xs font-bold text-slate-500">تفعيل هذا الخيار سيجعل بيانات المدرب متاحة ومرئية للطلاب في صفحة الأكاديمية.</p>
+                                <h4 className="font-black text-slate-900">بث في صفحة الأكاديمية والخدمات</h4>
+                                <p className="text-xs font-bold text-slate-500">تفعيل هذا الخيار سيجعل بيانات العضو متاحة ومرئية للطلاب في الموقع.</p>
                               </div>
                               <input type="checkbox" checked={instIsPublished} onChange={e => setInstIsPublished(e.target.checked)} className="w-6 h-6 accent-red-600" />
                            </div>
                         </div>
                         <button type="submit" disabled={loading} className="w-full h-16 bg-slate-900 text-white rounded-[2rem] font-black hover:bg-red-600 transition-all shadow-2xl flex items-center justify-center gap-3 disabled:opacity-50">
                            {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <CheckCircle2 className="w-6 h-6" />}
-                           حفظ بيانات المدرب
+                           حفظ بيانات العضو
                         </button>
                      </form>
                    )}
