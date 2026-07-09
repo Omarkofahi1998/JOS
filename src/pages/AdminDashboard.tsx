@@ -1023,12 +1023,22 @@ export default function AdminDashboard() {
           body: formDataUpload,
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Upload failed');
+        const text = await response.text();
+        if (text.trim().startsWith("<") || text.trim().startsWith("The page")) {
+          throw new Error("خطأ في الاتصال بالخادم عند رفع ملف الخدمة. يرجى فتح التطبيق في علامة تبويب مستقلة.");
         }
 
-        const data = await response.json();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error("حدث خطأ أثناء قراءة استجابة الخادم لرفع ملف الخدمة.");
+        }
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Upload failed');
+        }
+
         finalSThumbnailUrl = data.publicUrl;
       }
 
@@ -1265,13 +1275,24 @@ export default function AdminDashboard() {
           body: formDataUpload,
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Upload failed');
+        const text = await response.text();
+        if (text.trim().startsWith("<") || text.trim().startsWith("The page")) {
+          throw new Error("خطأ في الاتصال بالخادم عند رفع ملف المنتج. يرجى فتح التطبيق في علامة تبويب مستقلة.");
         }
 
-        const data = await response.json();
-        finalProdThumbnailUrl = data.publicUrl;
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error("حدث خطأ أثناء قراءة استجابة الخادم لرفع ملف المنتج.");
+        }
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Upload failed');
+        }
+
+        const dataJson = data;
+        finalProdThumbnailUrl = dataJson.publicUrl;
       }
 
       const payload = {

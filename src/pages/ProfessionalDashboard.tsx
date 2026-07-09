@@ -90,44 +90,91 @@ export default function ProfessionalDashboard() {
     
     setIsSubmittingService(true);
     try {
-      const { data: sessionData } = await supabase!.auth.getSession();
-      const token = sessionData.session?.access_token;
+      let success = false;
+      let errorMsg = "";
 
-      const response = await fetch('/api/add-service', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          title: newService.title,
-          description: newService.description,
-          price: parseFloat(newService.price),
-          category: newService.category,
-          contact_method: newService.contact_method,
-          contact_info: newService.contact_info,
-          icon_name: 'Sparkles',
-          bg_color: 'bg-blue-50',
-          status: 'pending' // Force pending status for admin approval
-        })
-      });
+      // 1. Try direct client-side insert first
+      try {
+        const { error: clientErr } = await supabase!
+          .from('services')
+          .insert([{
+            title: newService.title,
+            description: newService.description,
+            price: parseFloat(newService.price) || 0,
+            category: newService.category,
+            contact_method: newService.contact_method,
+            contact_info: newService.contact_info,
+            icon_name: 'Sparkles',
+            bg_color: 'bg-blue-50',
+            provider_id: user.id,
+            status: 'pending'
+          }]);
+        
+        if (!clientErr) {
+          success = true;
+        } else {
+          errorMsg = clientErr.message;
+        }
+      } catch (err: any) {
+        errorMsg = err.message || "Direct insertion error";
+      }
 
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "خطأ أثناء إضافة الخدمة");
-      
-      setShowAddServiceModal(false);
-      setNewService({ 
-        title: '', 
-        description: '', 
-        price: '', 
-        category: 'تعديل سيرة ذاتية',
-        contact_method: 'whatsapp',
-        contact_info: ''
-      });
-      fetchServices(user.id);
-    } catch (err) {
+      // 2. Fallback to Server API if client-side insert fails
+      if (!success) {
+        console.warn("Direct client insert failed, falling back to server API. Error:", errorMsg);
+        const { data: sessionData } = await supabase!.auth.getSession();
+        const token = sessionData.session?.access_token;
+
+        const response = await fetch('/api/add-service', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            title: newService.title,
+            description: newService.description,
+            price: parseFloat(newService.price) || 0,
+            category: newService.category,
+            contact_method: newService.contact_method,
+            contact_info: newService.contact_info,
+            icon_name: 'Sparkles',
+            bg_color: 'bg-blue-50',
+            status: 'pending'
+          })
+        });
+
+        if (!response.ok) {
+          const text = await response.text();
+          if (text.trim().startsWith("<") || text.trim().startsWith("The page")) {
+            throw new Error("خطأ في الاتصال بالخادم. يرجى محاولة فتح التطبيق في علامة تبويب جديدة أو التأكد من الصلاحيات.");
+          }
+          try {
+            const result = JSON.parse(text);
+            throw new Error(result.error || "خطأ أثناء إضافة الخدمة عبر الخادم");
+          } catch {
+            throw new Error("خطأ أثناء الاتصال بالخادم: " + text.substring(0, 50));
+          }
+        } else {
+          success = true;
+        }
+      }
+
+      if (success) {
+        setShowAddServiceModal(false);
+        setNewService({ 
+          title: '', 
+          description: '', 
+          price: '', 
+          category: 'تعديل سيرة ذاتية',
+          contact_method: 'whatsapp',
+          contact_info: ''
+        });
+        fetchServices(user.id);
+      }
+    } catch (err: any) {
       console.error("Error adding service:", err);
-      alert("حدث خطأ أثناء إضافة الخدمة");
+      alert(err.message || "حدث خطأ أثناء إضافة الخدمة");
     } finally {
       setIsSubmittingService(false);
     }

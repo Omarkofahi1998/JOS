@@ -167,9 +167,19 @@ export default function JobBoard() {
         })
       });
 
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "حدث خطأ أثناء الإضافة");
-      
+      if (!response.ok) {
+        const text = await response.text();
+        if (text.trim().startsWith("<") || text.trim().startsWith("The page")) {
+          throw new Error("خطأ في الاتصال بالخادم. يرجى محاولة فتح التطبيق في علامة تبويب جديدة أو التأكد من الصلاحيات.");
+        }
+        try {
+          const result = JSON.parse(text);
+          throw new Error(result.error || "حدث خطأ أثناء الإضافة");
+        } catch {
+          throw new Error("حدث خطأ أثناء الإضافة: " + text.substring(0, 50));
+        }
+      }
+
       setShowPostModal(false);
       setShowSuccessMessage(true);
       setNewJob({ title: '', company: '', location: '', type: 'دوام كامل', description: '', salary: '', experience: '', contact: '' });

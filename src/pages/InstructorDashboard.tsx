@@ -80,33 +80,78 @@ export default function InstructorDashboard() {
 
     setIsSubmitting(true);
     try {
-      const { data: sessionData } = await supabase!.auth.getSession();
-      const token = sessionData.session?.access_token;
-      
-      const response = await fetch('/api/add-product', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          title: newService.title,
-          description: newService.description,
-          price: parseFloat(newService.price),
-          category: newService.category,
-          type: newService.type,
-          instructor_name: profile?.full_name || user.email?.split('@')[0],
-          status: 'pending'
-        })
-      });
+      let success = false;
+      let errorMsg = "";
 
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "خطأ أثناء إضافة المنتج");
+      // 1. Try direct client-side insert first
+      try {
+        const { error: clientErr } = await supabase!
+          .from('products')
+          .insert([{
+            title: newService.title,
+            description: newService.description,
+            price: parseFloat(newService.price) || 0,
+            category: newService.category,
+            type: newService.type,
+            instructor_name: profile?.full_name || user.email?.split('@')[0],
+            instructor_id: user.id,
+            status: 'pending'
+          }]);
+        
+        if (!clientErr) {
+          success = true;
+        } else {
+          errorMsg = clientErr.message;
+        }
+      } catch (err: any) {
+        errorMsg = err.message || "Direct insertion error";
+      }
 
-      addToast("تم تقديم طلب النشر بنجاح، سيتم مراجعته", "success");
-      setShowAddModal(false);
-      setNewService({ title: "", description: "", price: "", category: "دورات تدريبية", type: "course", thumbnail: "" });
-      fetchInstructorData(user);
+      // 2. Fallback to Server API if client-side insert fails
+      if (!success) {
+        console.warn("Direct client insert failed, falling back to server API. Error:", errorMsg);
+        const { data: sessionData } = await supabase!.auth.getSession();
+        const token = sessionData.session?.access_token;
+        
+        const response = await fetch('/api/add-product', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            title: newService.title,
+            description: newService.description,
+            price: parseFloat(newService.price) || 0,
+            category: newService.category,
+            type: newService.type,
+            instructor_name: profile?.full_name || user.email?.split('@')[0],
+            status: 'pending'
+          })
+        });
+
+        if (!response.ok) {
+          const text = await response.text();
+          if (text.trim().startsWith("<") || text.trim().startsWith("The page")) {
+            throw new Error("خطأ في الاتصال بالخادم. يرجى محاولة فتح التطبيق في علامة تبويب جديدة أو التأكد من الصلاحيات.");
+          }
+          try {
+            const result = JSON.parse(text);
+            throw new Error(result.error || "خطأ أثناء إضافة المنتج عبر الخادم");
+          } catch {
+            throw new Error("خطأ أثناء الاتصال بالخادم: " + text.substring(0, 50));
+          }
+        } else {
+          success = true;
+        }
+      }
+
+      if (success) {
+        addToast("تم تقديم طلب النشر بنجاح، سيتم مراجعته", "success");
+        setShowAddModal(false);
+        setNewService({ title: "", description: "", price: "", category: "دورات تدريبية", type: "course", thumbnail: "" });
+        fetchInstructorData(user);
+      }
     } catch (err: any) {
       addToast(err.message || "حدث خطأ أثناء تقديم الطلب", "warning");
     } finally {

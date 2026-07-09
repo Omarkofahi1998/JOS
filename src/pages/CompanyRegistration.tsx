@@ -36,12 +36,22 @@ export default function CompanyRegistration() {
             body: formDataUpload,
           });
 
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Upload failed');
+          const text = await response.text();
+          if (text.trim().startsWith("<") || text.trim().startsWith("The page")) {
+            throw new Error("خطأ في الاتصال بالخادم عند رفع ملف الشعار. يرجى فتح التطبيق في علامة تبويب مستقلة لتجاوز قيود المتصفح الأمنية.");
           }
 
-          const data = await response.json();
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch {
+            throw new Error("حدث خطأ أثناء قراءة استجابة الخادم لرفع ملف الشعار.");
+          }
+
+          if (!response.ok) {
+            throw new Error(data.error || 'Upload failed');
+          }
+
           finalLogoUrl = data.publicUrl;
         }
 
