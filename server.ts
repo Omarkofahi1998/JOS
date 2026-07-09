@@ -3,12 +3,52 @@ import axios from "axios";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
+import multer from "multer";
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
   
   app.use(express.json());
+
+  app.post("/api/upload", upload.single('file'), async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+
+    const folder = req.body.folder || 'academy';
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return res.status(500).json({ error: "Missing Supabase URL or Service Role Key in server environment." });
+    }
+
+    try {
+      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+      
+      const fileExt = req.file.originalname.split('.').pop();
+      const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from('academy')
+        .upload(fileName, req.file.buffer, {
+          contentType: req.file.mimetype,
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabaseAdmin.storage
+        .from('academy')
+        .getPublicUrl(fileName);
+
+      res.status(200).json({ publicUrl });
+    } catch (error: any) {
+      console.error("Server upload error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   app.post("/api/create-user", async (req, res) => {
     const authHeader = req.headers.authorization;

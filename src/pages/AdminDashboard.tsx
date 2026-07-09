@@ -430,6 +430,7 @@ export default function AdminDashboard() {
   const [bulkText, setBulkText] = useState("");
 
   const [fTitle, setFTitle] = useState("");
+  const [fUploadFile, setFUploadFile] = useState<File | null>(null);
   const [fCategory, setFCategory] = useState("مختبرات");
   const [fUrl, setFUrl] = useState("");
   const [fSize, setFSize] = useState("1.0 MB");
@@ -445,6 +446,7 @@ export default function AdminDashboard() {
   const [sContactMethod, setSContactMethod] = useState("whatsapp");
   const [sContactInfo, setSContactInfo] = useState("");
   const [sThumbnail, setSThumbnail] = useState("");
+  const [sImageFile, setSImageFile] = useState<File | null>(null);
   const [sIsActive, setSIsActive] = useState(true);
   const [sStatus, setSStatus] = useState("active");
 
@@ -462,7 +464,9 @@ export default function AdminDashboard() {
   const [rReadTime, setRReadTime] = useState("٥ دقائق");
   const [rDate, setRDate] = useState("");
   const [rFileUrl, setRFileUrl] = useState("");
+  const [rFile, setRFile] = useState<File | null>(null);
   const [rImageUrl, setRImageUrl] = useState("");
+  const [rImageFile, setRImageFile] = useState<File | null>(null);
 
   const [prodTitle, setProdTitle] = useState("");
   const [prodDesc, setProdDesc] = useState("");
@@ -472,6 +476,7 @@ export default function AdminDashboard() {
   const [prodCategory, setProdCategory] = useState("دورات تدريبية");
   const [prodType, setProdType] = useState<'course' | 'session' | 'file'>('course');
   const [prodThumbnail, setProdThumbnail] = useState("");
+  const [prodImageFile, setProdImageFile] = useState<File | null>(null);
   const [prodStatus, setProdStatus] = useState("active");
   const [prodContactMethod, setProdContactMethod] = useState("whatsapp");
   const [prodContactInfo, setProdContactInfo] = useState("");
@@ -665,32 +670,6 @@ export default function AdminDashboard() {
     }
   }, [activeTab]);
 
-  const handleFileUpload = async (file: File, folder: string) => {
-    if (!supabase) return null;
-    try {
-      setIsUploading(true);
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('academy')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('academy')
-        .getPublicUrl(fileName);
-
-      return publicUrl;
-    } catch (error: any) {
-      console.error("Upload error:", error);
-      setStatus({ type: 'error', msg: "فشل رفع الملف: " + error.message });
-      return null;
-    } finally {
-      setIsUploading(false);
-    }
-  };
 
   const handleApproveAndCreateUser = async (req: any) => {
     if (!approvalPassword) {
@@ -911,38 +890,13 @@ export default function AdminDashboard() {
 
   const handleManualFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !supabase) return;
+    if (!file) return;
 
-    setLoading(true);
-    setStatus({ type: 'success', msg: 'جاري رفع الملف...' });
+    setFUploadFile(file);
+    if (!fTitle) setFTitle(file.name.split('.')[0]);
+    setFSize((file.size / 1024 / 1024).toFixed(2) + " MB");
     
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `manual/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-      
-      const { data: uploadData, error: uploadErr } = await supabase.storage
-        .from('bank_files')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-      
-      if (uploadErr) throw uploadErr;
-
-      const { data: { publicUrl } } = supabase.storage.from('bank_files').getPublicUrl(fileName);
-      
-      setFUrl(publicUrl);
-      // Auto-fill title if empty
-      if (!fTitle) setFTitle(file.name.split('.')[0]);
-      setFSize((file.size / 1024 / 1024).toFixed(2) + " MB");
-      
-      setStatus({ type: 'success', msg: 'تم رفع الملف وتوليد الرابط بنجاح!' });
-    } catch (err: any) {
-      console.error("Upload error:", err);
-      setStatus({ type: 'error', msg: 'فشل في رفع الملف: ' + err.message });
-    } finally {
-      setLoading(false);
-    }
+    setStatus({ type: 'success', msg: 'تم اختيار الملف، سيتم رفعه عند الحفظ.' });
   };
 
   const addFile = async (e: React.FormEvent) => {
@@ -950,8 +904,26 @@ export default function AdminDashboard() {
     if (!supabase) return;
     setLoading(true);
     try {
+      let finalFUrl = fUrl;
+      if (fUploadFile) {
+        const fileExt = fUploadFile.name.split('.').pop();
+        const fileName = `manual/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        
+        const { error: uploadErr } = await supabase.storage
+          .from('bank_files')
+          .upload(fileName, fUploadFile, {
+            cacheControl: '3600',
+            upsert: false
+          });
+        
+        if (uploadErr) throw uploadErr;
+
+        const { data: { publicUrl } } = supabase.storage.from('bank_files').getPublicUrl(fileName);
+        finalFUrl = publicUrl;
+      }
+
       const today = new Date().toISOString().split('T')[0].replace(/-/g, '/');
-      const payload = { title: fTitle, category: fCategory, url: fUrl, file_size: fSize, file_date: today };
+      const payload = { title: fTitle, category: fCategory, url: finalFUrl, file_size: fSize, file_date: today };
       let error;
       if (editingId) ({ error } = await supabase.from('question_files').update(payload).eq('id', editingId));
       else ({ error } = await supabase.from('question_files').insert({ ...payload, download_count: 0 }));
@@ -968,6 +940,26 @@ export default function AdminDashboard() {
     if (!supabase) return;
     setLoading(true);
     try {
+      let finalSThumbnailUrl = sThumbnail;
+      if (sImageFile) {
+        const formDataUpload = new FormData();
+        formDataUpload.append('file', sImageFile);
+        formDataUpload.append('folder', 'services');
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formDataUpload,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Upload failed');
+        }
+
+        const data = await response.json();
+        finalSThumbnailUrl = data.publicUrl;
+      }
+
       const payload = { 
         title: sTitle, 
         description: sDesc, 
@@ -982,7 +974,7 @@ export default function AdminDashboard() {
         is_active: sIsActive,
         is_active_status: sIsActive,
         status: sStatus,
-        thumbnail_url: sThumbnail
+        thumbnail_url: finalSThumbnailUrl
       };
       let error;
       if (editingId) ({ error } = await supabase.from('services').update(payload).eq('id', editingId));
@@ -1015,37 +1007,16 @@ export default function AdminDashboard() {
 
   const handleReviewFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'file' | 'image') => {
     const file = e.target.files?.[0];
-    if (!file || !supabase) return;
+    if (!file) return;
 
-    setLoading(true);
-    setStatus({ type: 'success', msg: `جاري رفع ${type === 'file' ? 'الملف' : 'الصورة'}...` });
-    
-    try {
-      const fileExt = file.name.split('.').pop();
-      const folder = type === 'file' ? 'reviews' : 'reviews/previews';
-      const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-      
-      const { data: uploadData, error: uploadErr } = await supabase.storage
-        .from('bank_files')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-      
-      if (uploadErr) throw uploadErr;
-
-      const { data: { publicUrl } } = supabase.storage.from('bank_files').getPublicUrl(fileName);
-      
-      if (type === 'file') setRFileUrl(publicUrl);
-      else setRImageUrl(publicUrl);
-
-      setStatus({ type: 'success', msg: `تم رفع ${type === 'file' ? 'الملف' : 'الصورة'} بنجاح!` });
-    } catch (err: any) {
-      console.error("Upload error:", err);
-      setStatus({ type: 'error', msg: 'فشل في الرفع: ' + err.message });
-    } finally {
-      setLoading(false);
+    if (type === 'file') {
+      setRFile(file);
+      setRFileUrl(file.name);
+    } else {
+      setRImageFile(file);
+      setRImageUrl(URL.createObjectURL(file));
     }
+    setStatus({ type: 'success', msg: `تم اختيار ${type === 'file' ? 'الملف' : 'الصورة'} سيتم رفعه عند الحفظ.` });
   };
 
   const addReview = async (e: React.FormEvent) => {
@@ -1054,6 +1025,27 @@ export default function AdminDashboard() {
 
     setLoading(true);
     try {
+      let finalRFileUrl = rFileUrl;
+      let finalRImageUrl = rImageUrl;
+
+      if (rFile) {
+        const fileExt = rFile.name.split('.').pop();
+        const fileName = `reviews/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const { error: uploadErr } = await supabase.storage.from('bank_files').upload(fileName, rFile);
+        if (uploadErr) throw uploadErr;
+        const { data: { publicUrl } } = supabase.storage.from('bank_files').getPublicUrl(fileName);
+        finalRFileUrl = publicUrl;
+      }
+
+      if (rImageFile) {
+        const fileExt = rImageFile.name.split('.').pop();
+        const fileName = `reviews/previews/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const { error: uploadErr } = await supabase.storage.from('bank_files').upload(fileName, rImageFile);
+        if (uploadErr) throw uploadErr;
+        const { data: { publicUrl } } = supabase.storage.from('bank_files').getPublicUrl(fileName);
+        finalRImageUrl = publicUrl;
+      }
+
       const today = new Date().toLocaleDateString('ar-JO', { year: 'numeric', month: 'long', day: 'numeric' });
       const payload = { 
         title: rTitle, 
@@ -1062,8 +1054,8 @@ export default function AdminDashboard() {
         reference_name: rReference,
         read_time: rReadTime, 
         file_date: rDate || today,
-        file_url: rFileUrl,
-        image_url: rImageUrl
+        file_url: finalRFileUrl,
+        image_url: finalRImageUrl
       };
       let error;
       if (editingId) ({ error } = await supabase.from('reviews').update(payload).eq('id', editingId));
@@ -1190,6 +1182,26 @@ export default function AdminDashboard() {
     if (!supabase) return;
     setLoading(true);
     try {
+      let finalProdThumbnailUrl = prodThumbnail;
+      if (prodImageFile) {
+        const formDataUpload = new FormData();
+        formDataUpload.append('file', prodImageFile);
+        formDataUpload.append('folder', 'products');
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formDataUpload,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Upload failed');
+        }
+
+        const data = await response.json();
+        finalProdThumbnailUrl = data.publicUrl;
+      }
+
       const payload = {
         title: prodTitle,
         description: prodDesc,
@@ -1198,7 +1210,7 @@ export default function AdminDashboard() {
         old_price: parseFloat(prodOldPrice) || null,
         category: prodCategory,
         type: prodType,
-        thumbnail_url: prodThumbnail,
+        thumbnail_url: finalProdThumbnailUrl,
         status: prodStatus,
         contact_method: prodContactMethod,
         contact_info: prodContactInfo
@@ -3180,11 +3192,11 @@ export default function AdminDashboard() {
                                 <label className="cursor-pointer bg-slate-900 hover:bg-slate-800 text-white px-6 h-12 rounded-xl flex items-center gap-2 transition-all font-bold text-xs whitespace-nowrap">
                                   {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
                                   رفع صورة
-                                  <input type="file" className="hidden" accept="image/*" onChange={async (e) => {
+                                  <input type="file" className="hidden" accept="image/*" onChange={(e) => {
                                     const file = e.target.files?.[0];
                                     if (file) {
-                                      const url = await handleFileUpload(file, 'products');
-                                      if (url) setProdThumbnail(url);
+                                      setProdImageFile(file);
+                                      setProdThumbnail(URL.createObjectURL(file));
                                     }
                                   }} />
                                 </label>
@@ -3239,11 +3251,11 @@ export default function AdminDashboard() {
                                 <label className="cursor-pointer bg-slate-900 hover:bg-slate-800 text-white px-6 h-12 rounded-xl flex items-center gap-2 transition-all font-bold text-xs whitespace-nowrap">
                                   {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
                                   رفع صورة
-                                  <input type="file" className="hidden" accept="image/*" onChange={async (e) => {
+                                  <input type="file" className="hidden" accept="image/*" onChange={(e) => {
                                     const file = e.target.files?.[0];
                                     if (file) {
-                                      const url = await handleFileUpload(file, 'services');
-                                      if (url) setSThumbnail(url);
+                                      setSImageFile(file);
+                                      setSThumbnail(URL.createObjectURL(file));
                                     }
                                   }} />
                                 </label>
@@ -3480,11 +3492,11 @@ export default function AdminDashboard() {
                             <label className="cursor-pointer bg-slate-900 text-white px-6 h-14 rounded-2xl flex items-center gap-2 hover:bg-emerald-600 transition-all font-bold text-sm whitespace-nowrap">
                               {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
                               رفع صورة
-                              <input type="file" className="hidden" accept="image/*" onChange={async (e) => {
+                              <input type="file" className="hidden" accept="image/*" onChange={(e) => {
                                 const file = e.target.files?.[0];
                                 if (file) {
-                                  const url = await handleFileUpload(file, 'services');
-                                  if (url) setSThumbnail(url);
+                                  setSImageFile(file);
+                                  setSThumbnail(URL.createObjectURL(file));
                                 }
                               }} />
                             </label>
@@ -3792,11 +3804,11 @@ export default function AdminDashboard() {
                           <label className="cursor-pointer bg-slate-900 text-white px-6 h-14 rounded-2xl flex items-center gap-2 hover:bg-emerald-600 transition-all font-bold text-sm whitespace-nowrap">
                             {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
                             رفع صورة
-                            <input type="file" className="hidden" accept="image/*" onChange={async (e) => {
+                            <input type="file" className="hidden" accept="image/*" onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
-                                const url = await handleFileUpload(file, 'products');
-                                if (url) setProdThumbnail(url);
+                                setProdImageFile(file);
+                                setProdThumbnail(URL.createObjectURL(file));
                               }
                             }} />
                           </label>

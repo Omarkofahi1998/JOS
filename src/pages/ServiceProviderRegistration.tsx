@@ -17,38 +17,34 @@ export default function ServiceProviderRegistration() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [fileUrl, setFileUrl] = useState("");
+  const [providerFile, setProviderFile] = useState<File | null>(null);
+  const [providerFileName, setProviderFileName] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-
-  const handleFileUpload = async (file: File) => {
-    if (!supabase) return;
-    try {
-      setIsUploading(true);
-      const fileExt = file.name.split('.').pop();
-      const fileName = `uploads/service_providers/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('academy')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('academy')
-        .getPublicUrl(fileName);
-
-      setFileUrl(publicUrl);
-    } catch (error: any) {
-      alert("فشل رفع الملف: " + error.message);
-    } finally {
-      setIsUploading(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
+        let finalFileUrl = "";
+        if (providerFile) {
+          const formDataUpload = new FormData();
+          formDataUpload.append('file', providerFile);
+          formDataUpload.append('folder', 'uploads/service_providers');
+
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formDataUpload,
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Upload failed');
+          }
+
+          const data = await response.json();
+          finalFileUrl = data.publicUrl;
+        }
+
         const { error } = await supabase.from('system_submissions').insert([
             {
                 type: 'service_provider',
@@ -56,7 +52,7 @@ export default function ServiceProviderRegistration() {
                 email: formData.email,
                 phone: formData.phone,
                 // using JSON payload in content/message field for extras
-                content: `Service Category: ${formData.serviceCategory}\nExperience: ${formData.experience}\nYears in field: ${formData.yearsInField}\nPrevious clients: ${formData.previousClients}${fileUrl ? `\nFile URL: ${fileUrl}` : ''}`,
+                content: `Service Category: ${formData.serviceCategory}\nExperience: ${formData.experience}\nYears in field: ${formData.yearsInField}\nPrevious clients: ${formData.previousClients}${finalFileUrl ? `\nFile URL: ${finalFileUrl}` : ''}`,
                 status: 'pending'
             }
         ]);
@@ -213,9 +209,9 @@ export default function ServiceProviderRegistration() {
                                 <div className="w-6 h-6 border-2 border-slate-300 border-t-blue-600 rounded-full animate-spin" />
                                 <span className="text-xs font-bold text-slate-400">جاري الرفع...</span>
                               </div>
-                            ) : fileUrl ? (
+                            ) : providerFile ? (
                               <div className="flex flex-col items-center gap-1">
-                                <div className="text-green-600 text-xs font-bold">✓ تم رفع المستندات</div>
+                                <span className="text-xs font-bold text-slate-700">{providerFileName}</span>
                                 <span className="text-[10px] text-slate-400">انقر لتغيير الملف</span>
                               </div>
                             ) : (
@@ -228,9 +224,12 @@ export default function ServiceProviderRegistration() {
                               type="file" 
                               className="hidden" 
                               accept=".pdf,image/*" 
-                              onChange={async (e) => {
+                              onChange={(e) => {
                                 const file = e.target.files?.[0];
-                                if (file) await handleFileUpload(file);
+                                if (file) {
+                                  setProviderFile(file);
+                                  setProviderFileName(file.name);
+                                }
                               }}
                             />
                         </label>

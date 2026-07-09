@@ -17,38 +17,34 @@ export default function CompanyRegistration() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [logoUrl, setLogoUrl] = useState("");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoFileName, setLogoFileName] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-
-  const handleFileUpload = async (file: File) => {
-    if (!supabase) return;
-    try {
-      setIsUploading(true);
-      const fileExt = file.name.split('.').pop();
-      const fileName = `uploads/companies/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('academy')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('academy')
-        .getPublicUrl(fileName);
-
-      setLogoUrl(publicUrl);
-    } catch (error: any) {
-      alert("فشل رفع الملف: " + error.message);
-    } finally {
-      setIsUploading(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
+        let finalLogoUrl = "";
+        if (logoFile) {
+          const formDataUpload = new FormData();
+          formDataUpload.append('file', logoFile);
+          formDataUpload.append('folder', 'uploads/companies');
+
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formDataUpload,
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Upload failed');
+          }
+
+          const data = await response.json();
+          finalLogoUrl = data.publicUrl;
+        }
+
         const { error } = await supabase.from('system_submissions').insert([
             {
                 type: 'business',
@@ -61,7 +57,7 @@ export default function CompanyRegistration() {
                   industry: formData.industry,
                   website: formData.website,
                   location: formData.location,
-                  logo_url: logoUrl
+                  logo_url: finalLogoUrl
                 },
                 status: 'pending'
             }
@@ -201,10 +197,10 @@ export default function CompanyRegistration() {
                                         <div className="w-4 h-4 border-2 border-slate-300 border-t-blue-600 rounded-full animate-spin" />
                                         <span className="text-[10px] font-bold text-slate-400">جاري الرفع...</span>
                                       </div>
-                                    ) : logoUrl ? (
+                                    ) : logoFile ? (
                                       <div className="flex items-center justify-center gap-2">
                                         <CheckCircle2 className="w-4 h-4 text-green-600" />
-                                        <span className="text-[10px] font-bold text-slate-900 truncate max-w-[150px]">تم الرفع</span>
+                                        <span className="text-[10px] font-bold text-slate-900 truncate max-w-[150px]">{logoFileName}</span>
                                       </div>
                                     ) : (
                                       <>
@@ -216,9 +212,12 @@ export default function CompanyRegistration() {
                                       type="file" 
                                       className="hidden" 
                                       accept="image/*" 
-                                      onChange={async (e) => {
+                                      onChange={(e) => {
                                         const file = e.target.files?.[0];
-                                        if (file) await handleFileUpload(file);
+                                        if (file) {
+                                          setLogoFile(file);
+                                          setLogoFileName(file.name);
+                                        }
                                       }}
                                     />
                                 </label>

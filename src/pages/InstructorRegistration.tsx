@@ -16,39 +16,35 @@ export default function InstructorRegistration() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [cvUrl, setCvUrl] = useState("");
+  const [cvFile, setCvFile] = useState<File | null>(null);
+  const [cvFileName, setCvFileName] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-
-  const handleFileUpload = async (file: File) => {
-    if (!supabase) return;
-    try {
-      setIsUploading(true);
-      const fileExt = file.name.split('.').pop();
-      const fileName = `uploads/instructors/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('academy')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('academy')
-        .getPublicUrl(fileName);
-
-      setCvUrl(publicUrl);
-    } catch (error: any) {
-      alert("فشل رفع الملف: " + error.message);
-    } finally {
-      setIsUploading(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supabase) return;
     setIsSubmitting(true);
     try {
+      let finalCvUrl = "";
+      if (cvFile) {
+        const formDataUpload = new FormData();
+        formDataUpload.append('file', cvFile);
+        formDataUpload.append('folder', 'uploads/instructors');
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formDataUpload,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Upload failed');
+        }
+
+        const data = await response.json();
+        finalCvUrl = data.publicUrl;
+      }
+
       const { error } = await supabase.from('system_submissions').insert({
         type: 'instructor',
         full_name: formData.fullName,
@@ -60,7 +56,7 @@ export default function InstructorRegistration() {
           degree: formData.degree,
           years_of_experience: formData.yearsOfExperience,
           linkedin_url: formData.linkedin,
-          file_url: cvUrl
+          file_url: finalCvUrl
         },
         status: 'pending'
       });
@@ -173,9 +169,9 @@ export default function InstructorRegistration() {
                                 <div className="w-5 h-5 border-2 border-slate-300 border-t-red-600 rounded-full animate-spin" />
                                 <span className="text-[10px] font-bold text-slate-400">جاري الرفع...</span>
                               </div>
-                            ) : cvUrl ? (
+                            ) : cvFile ? (
                               <div className="flex flex-col items-center gap-1">
-                                <div className="text-green-600 text-xs font-bold">✓ تم الرفع بنجاح</div>
+                                <span className="text-xs font-bold text-slate-700">{cvFileName}</span>
                                 <span className="text-[10px] text-slate-400 truncate max-w-[200px]">تم اختيار الملف</span>
                               </div>
                             ) : (
@@ -185,9 +181,12 @@ export default function InstructorRegistration() {
                               type="file" 
                               className="hidden" 
                               accept=".pdf,image/*" 
-                              onChange={async (e) => {
+                              onChange={(e) => {
                                 const file = e.target.files?.[0];
-                                if (file) await handleFileUpload(file);
+                                if (file) {
+                                  setCvFile(file);
+                                  setCvFileName(file.name);
+                                }
                               }}
                             />
                         </label>
