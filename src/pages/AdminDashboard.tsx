@@ -1014,32 +1014,50 @@ export default function AdminDashboard() {
     try {
       let finalSThumbnailUrl = sThumbnail;
       if (sImageFile) {
-        const formDataUpload = new FormData();
-        formDataUpload.append('file', sImageFile);
-        formDataUpload.append('folder', 'services');
-
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: formDataUpload,
-        });
-
-        const text = await response.text();
-        if (text.trim().startsWith("<") || text.trim().startsWith("The page")) {
-          throw new Error("خطأ في الاتصال بالخادم عند رفع ملف الخدمة. يرجى فتح التطبيق في علامة تبويب مستقلة.");
-        }
-
-        let data;
+        let uploadSuccess = false;
         try {
-          data = JSON.parse(text);
-        } catch {
-          throw new Error("حدث خطأ أثناء قراءة استجابة الخادم لرفع ملف الخدمة.");
+          const fileExt = sImageFile.name.split('.').pop();
+          const fileName = `services/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+          const { error: uploadErr } = await supabase.storage.from('bank_files').upload(fileName, sImageFile);
+          if (!uploadErr) {
+            const { data: { publicUrl } } = supabase.storage.from('bank_files').getPublicUrl(fileName);
+            finalSThumbnailUrl = publicUrl;
+            uploadSuccess = true;
+          } else {
+            console.warn("Direct upload error, falling back to API:", uploadErr.message);
+          }
+        } catch (err) {
+          console.warn("Direct upload failed, falling back to API:", err);
         }
 
-        if (!response.ok) {
-          throw new Error(data.error || 'Upload failed');
-        }
+        if (!uploadSuccess) {
+          const formDataUpload = new FormData();
+          formDataUpload.append('file', sImageFile);
+          formDataUpload.append('folder', 'services');
 
-        finalSThumbnailUrl = data.publicUrl;
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formDataUpload,
+          });
+
+          const text = await response.text();
+          if (text.trim().startsWith("<") || text.trim().startsWith("The page")) {
+            throw new Error("خطأ في الاتصال بالخادم عند رفع ملف الخدمة. يرجى فتح التطبيق في علامة تبويب مستقلة.");
+          }
+
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch {
+            throw new Error("حدث خطأ أثناء قراءة استجابة الخادم لرفع ملف الخدمة.");
+          }
+
+          if (!response.ok) {
+            throw new Error(data.error || 'Upload failed');
+          }
+
+          finalSThumbnailUrl = data.publicUrl;
+        }
       }
 
       const payload = { 
@@ -1266,33 +1284,51 @@ export default function AdminDashboard() {
     try {
       let finalProdThumbnailUrl = prodThumbnail;
       if (prodImageFile) {
-        const formDataUpload = new FormData();
-        formDataUpload.append('file', prodImageFile);
-        formDataUpload.append('folder', 'products');
-
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: formDataUpload,
-        });
-
-        const text = await response.text();
-        if (text.trim().startsWith("<") || text.trim().startsWith("The page")) {
-          throw new Error("خطأ في الاتصال بالخادم عند رفع ملف المنتج. يرجى فتح التطبيق في علامة تبويب مستقلة.");
-        }
-
-        let data;
+        let uploadSuccess = false;
         try {
-          data = JSON.parse(text);
-        } catch {
-          throw new Error("حدث خطأ أثناء قراءة استجابة الخادم لرفع ملف المنتج.");
+          const fileExt = prodImageFile.name.split('.').pop();
+          const fileName = `products/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+          const { error: uploadErr } = await supabase.storage.from('bank_files').upload(fileName, prodImageFile);
+          if (!uploadErr) {
+            const { data: { publicUrl } } = supabase.storage.from('bank_files').getPublicUrl(fileName);
+            finalProdThumbnailUrl = publicUrl;
+            uploadSuccess = true;
+          } else {
+            console.warn("Direct product upload error, falling back to API:", uploadErr.message);
+          }
+        } catch (err) {
+          console.warn("Direct product upload failed, falling back to API:", err);
         }
 
-        if (!response.ok) {
-          throw new Error(data.error || 'Upload failed');
-        }
+        if (!uploadSuccess) {
+          const formDataUpload = new FormData();
+          formDataUpload.append('file', prodImageFile);
+          formDataUpload.append('folder', 'products');
 
-        const dataJson = data;
-        finalProdThumbnailUrl = dataJson.publicUrl;
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formDataUpload,
+          });
+
+          const text = await response.text();
+          if (text.trim().startsWith("<") || text.trim().startsWith("The page")) {
+            throw new Error("خطأ في الاتصال بالخادم عند رفع ملف المنتج. يرجى فتح التطبيق في علامة تبويب مستقلة.");
+          }
+
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch {
+            throw new Error("حدث خطأ أثناء قراءة استجابة الخادم لرفع ملف المنتج.");
+          }
+
+          if (!response.ok) {
+            throw new Error(data.error || 'Upload failed');
+          }
+
+          const dataJson = data;
+          finalProdThumbnailUrl = dataJson.publicUrl;
+        }
       }
 
       const payload = {
