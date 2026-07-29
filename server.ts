@@ -43,10 +43,39 @@ async function startServer() {
         .from('academy')
         .getPublicUrl(fileName);
 
-      res.status(200).json({ publicUrl });
+      // Return both direct publicUrl and proxy relative path
+      const proxyUrl = `/api/files/download?bucket=academy&path=${fileName}`;
+      res.status(200).json({ publicUrl, proxyUrl });
     } catch (error: any) {
       console.error("Server upload error:", error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/files/download", async (req, res) => {
+    const bucket = (req.query.bucket as string) || 'bank_files';
+    const filePath = req.query.path as string;
+    if (!filePath) return res.status(400).json({ error: "Missing file path" });
+
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return res.status(500).json({ error: "Missing Supabase configuration." });
+    }
+
+    try {
+      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+      const { data, error } = await supabaseAdmin.storage.from(bucket).download(filePath);
+      if (error) throw error;
+
+      const buffer = Buffer.from(await data.arrayBuffer());
+      res.setHeader('Content-Type', data.type || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `inline; filename="${path.basename(filePath)}"`);
+      return res.send(buffer);
+    } catch (err: any) {
+      console.error("File proxy error:", err);
+      return res.status(404).json({ error: "File not found or access denied" });
     }
   });
 

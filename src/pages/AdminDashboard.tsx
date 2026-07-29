@@ -966,9 +966,39 @@ export default function AdminDashboard() {
 
     setFUploadFile(file);
     if (!fTitle) setFTitle(file.name.split('.')[0]);
-    setFSize((file.size / 1024 / 1024).toFixed(2) + " MB");
-    
-    setStatus({ type: 'success', msg: 'تم اختيار الملف، سيتم رفعه عند الحفظ.' });
+    const fileSizeStr = (file.size / 1024 / 1024).toFixed(2) + " MB";
+    setFSize(fileSizeStr);
+
+    if (!supabase) {
+      setStatus({ type: 'success', msg: 'تم اختيار الملف. سيتم الرفع وتوليد الرابط عند الحفظ.' });
+      return;
+    }
+
+    setLoading(true);
+    setStatus({ type: 'success', msg: 'جاري رفع الملف في التخزين وتوليد رابط الوصول...' });
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `manual/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from('bank_files')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadErr) throw uploadErr;
+
+      const proxyUrl = `/api/files/download?bucket=bank_files&path=${fileName}`;
+      setFUrl(proxyUrl);
+      setStatus({ type: 'success', msg: `تم رفع الملف وتوليد الرابط غير المباشر بنجاح` });
+    } catch (err: any) {
+      console.warn("Storage auto-upload warn:", err.message);
+      setStatus({ type: 'success', msg: 'تم اختيار الملف. سيتم الرفع وتوليد الرابط النهائي عند الحفظ.' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const addFile = async (e: React.FormEvent) => {
@@ -977,7 +1007,7 @@ export default function AdminDashboard() {
     setLoading(true);
     try {
       let finalFUrl = fUrl;
-      if (fUploadFile) {
+      if (fUploadFile && (!finalFUrl || finalFUrl.trim() === '')) {
         const fileExt = fUploadFile.name.split('.').pop();
         const fileName = `manual/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
         
@@ -985,22 +1015,41 @@ export default function AdminDashboard() {
           .from('bank_files')
           .upload(fileName, fUploadFile, {
             cacheControl: '3600',
-            upsert: false
+            upsert: true
           });
         
         if (uploadErr) throw uploadErr;
 
-        const { data: { publicUrl } } = supabase.storage.from('bank_files').getPublicUrl(fileName);
-        finalFUrl = publicUrl;
+        const proxyUrl = `/api/files/download?bucket=bank_files&path=${fileName}`;
+        finalFUrl = proxyUrl;
+        setFUrl(proxyUrl);
+      }
+
+      if (!finalFUrl || finalFUrl.trim() === '') {
+        throw new Error("يرجى اختيار ملف لرفعه وتوليد الرابط تلقائياً أو إدخال رابط تحميل مباشر.");
       }
 
       const today = new Date().toISOString().split('T')[0].replace(/-/g, '/');
-      const payload = { title: fTitle, category: fCategory, url: finalFUrl, file_size: fSize, file_date: today };
+      const payload = { 
+        title: fTitle || 'ملف أسئلة', 
+        category: fCategory || 'عام', 
+        url: finalFUrl, 
+        file_size: fSize || '1.0 MB', 
+        file_date: today 
+      };
+
       let error;
       if (editingId) ({ error } = await supabase.from('question_files').update(payload).eq('id', editingId));
       else ({ error } = await supabase.from('question_files').insert({ ...payload, download_count: 0 }));
-      if (error) throw error;
-      setStatus({ type: 'success', msg: editingId ? 'تم التعديل بنجاح' : 'تمت إضافة الملف بنجاح' });
+      
+      if (error) {
+        if (error.message.includes('row-level security') || error.code === '42501' || error.message.includes('policy')) {
+          throw new Error(`تم رفع الملف وتوليد الرابط بنجاح (${finalFUrl})، ولكن رفض الحفظ في الجدول بسبب سياسة الأمن RLS. يرجى تطبيق سياسات SQL المرفقة لـ question_files.`);
+        }
+        throw error;
+      }
+
+      setStatus({ type: 'success', msg: editingId ? 'تم التعديل بنجاح' : 'تمت إضافة الملف بنجاح وتوليد رابط الوصول له' });
       resetForms();
       setSubTab('list');
       fetchData();
@@ -3628,7 +3677,42 @@ export default function AdminDashboard() {
                       </div>
                       <div className="border-t border-slate-200 col-span-2 my-2"></div>
                       <div className="space-y-2 col-span-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">اسم الملف</label><input type="text" required className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600" value={fTitle} onChange={e => setFTitle(e.target.value)} /></div>
-                      <div className="space-y-2 text-right"><label className="text-xs font-black text-slate-400 uppercase">رابط التحميل</label><input type="url" required className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none font-mono" value={fUrl} onChange={e => setFUrl(e.target.value)} /></div>
+                      {fUrl && (
+                        <div className="col-span-2 bg-emerald-50 border border-emerald-200 p-4 rounded-2xl flex items-center justify-between gap-4 text-emerald-900 text-xs font-mono dir-ltr text-left">
+                          <span className="truncate flex-1 font-semibold">{fUrl}</span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button 
+                              type="button" 
+                              onClick={() => { 
+                                navigator.clipboard.writeText(fUrl); 
+                                setStatus({ type: 'success', msg: 'تم نسخ الرابط المولّد بنجاح!' }); 
+                              }}
+                              className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg font-sans font-bold text-xs hover:bg-emerald-700 transition-all"
+                            >
+                              نسخ الرابط
+                            </button>
+                            <a 
+                              href={fUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="px-3 py-1.5 bg-white border border-emerald-300 text-emerald-700 rounded-lg font-sans font-bold text-xs hover:bg-emerald-100 transition-all"
+                            >
+                              فتح الملف
+                            </a>
+                          </div>
+                        </div>
+                      )}
+                      <div className="space-y-2 col-span-2 text-right">
+                        <label className="text-xs font-black text-slate-400 uppercase">رابط التحميل (يتولد تلقائياً أو أدخله يدوياً)</label>
+                        <input 
+                          type="url" 
+                          required={!fUploadFile && !fUrl} 
+                          placeholder="https://..."
+                          className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none font-mono text-sm" 
+                          value={fUrl} 
+                          onChange={e => setFUrl(e.target.value)} 
+                        />
+                      </div>
                       <div className="space-y-2 text-right">
                         <label className="text-xs font-black text-slate-400 uppercase">الفئة (أو اكتب فئة جديدة)</label>
                         <input 
