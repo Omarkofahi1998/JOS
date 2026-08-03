@@ -43,7 +43,7 @@ export default function MockExams() {
   }, []);
 
   const handleShare = async (majorId: string, majorName: string) => {
-    const url = `${window.location.origin}/mock-exams/${encodeURIComponent(majorId)}`;
+    const url = `${window.location.origin}/#/mock-exams/${encodeURIComponent(majorId)}`;
     const shareData = {
       title: `امتحان تجريبي - ${majorName}`,
       text: `ألقِ نظرة على الامتحان التجريبي لتخصص ${majorName} على Jo Students!`,

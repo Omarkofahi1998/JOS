@@ -200,8 +200,8 @@ export default function ServiceProviderRegistration() {
                         <label className="block text-xs font-black text-slate-500 uppercase mb-2 mr-1">رابط أعمالك / LinkedIn (مهم جداً) *</label>
                         <input 
                             required
-                            type="url" 
-                            placeholder="https://..."
+                            type="text" 
+                            placeholder="https://... أو اسم حسابك"
                             className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-600 outline-none transition-all font-bold" 
                             onChange={e => setFormData({...formData, portfolioLink: e.target.value})} 
                         />

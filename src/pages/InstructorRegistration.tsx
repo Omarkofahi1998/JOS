@@ -165,7 +165,7 @@ export default function InstructorRegistration() {
 
                 <div>
                     <label className="block text-xs font-black text-slate-400 uppercase mb-2 mr-1">رابط حساب LinkedIn أو CV (رابط)</label>
-                    <input type="url" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-600 outline-none transition-all font-bold" placeholder="https://linkedin.com/in/..." onChange={e => setFormData({...formData, linkedin: e.target.value})} />
+                    <input type="text" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-600 outline-none transition-all font-bold" placeholder="https://linkedin.com/in/... أو رابط السيرة الذاتية" onChange={e => setFormData({...formData, linkedin: e.target.value})} />
                 </div>
 
                 {/* Proof Section */}

@@ -189,7 +189,7 @@ export default function CompanyRegistration() {
                                 <label className="block text-[11px] font-black text-slate-400 uppercase mb-1.5 mr-1 flex items-center gap-1.5">
                                     <Globe className="w-3 h-3" /> الموقع الإلكتروني
                                 </label>
-                                <input type="url" placeholder="www.example.com" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0A66C2] outline-none transition-all font-bold text-sm" onChange={e => setFormData({...formData, website: e.target.value})} />
+                                <input type="text" placeholder="www.example.com" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0A66C2] outline-none transition-all font-bold text-sm" onChange={e => setFormData({...formData, website: e.target.value})} />
                             </div>
                             <div>
                                 <label className="block text-[11px] font-black text-slate-400 uppercase mb-1.5 mr-1 flex items-center gap-1.5">

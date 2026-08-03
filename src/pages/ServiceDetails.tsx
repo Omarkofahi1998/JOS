@@ -273,7 +273,7 @@ export default function ServiceDetails() {
                   <button 
                     onClick={() => {
                         const phone = service?.contact_info || "";
-                        const shareUrl = `${window.location.origin}/service/${service?.id}`;
+                        const shareUrl = `${window.location.origin}/#/service/${service?.id}`;
                         const text = encodeURIComponent(`شاهد هذه الخدمة: ${service?.title}\n${shareUrl}`);
                         window.open(`https://wa.me/${phone.replace(/\+/g, '')}?text=${text}`, '_blank');
                     }}

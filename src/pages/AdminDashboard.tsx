@@ -3571,7 +3571,7 @@ export default function AdminDashboard() {
                             <div className="space-y-2 text-right col-span-2">
                               <label className="text-xs font-black text-slate-500">صورة المنتج / الغلاف</label>
                               <div className="flex gap-4 items-center">
-                                <input type="url" placeholder="رابط الصورة أو ارفع واحدة..." className="flex-1 h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 font-mono text-sm" value={prodThumbnail} onChange={e => setProdThumbnail(e.target.value)} />
+                                <input type="text" placeholder="رابط الصورة أو ارفع واحدة..." className="flex-1 h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 font-mono text-sm" value={prodThumbnail} onChange={e => setProdThumbnail(e.target.value)} />
                                 <label className="cursor-pointer bg-slate-900 hover:bg-slate-800 text-white px-6 h-12 rounded-xl flex items-center gap-2 transition-all font-bold text-xs whitespace-nowrap">
                                   {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
                                   رفع صورة
@@ -3631,7 +3631,7 @@ export default function AdminDashboard() {
                             <div className="space-y-2 text-right col-span-2">
                               <label className="text-xs font-black text-slate-500">صورة الغلاف / الأيقونة التوضيحية</label>
                               <div className="flex gap-4 items-center">
-                                <input type="url" placeholder="رابط الصورة أو ارفع صورة..." className="flex-1 h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 font-mono text-sm" value={sThumbnail} onChange={e => setSThumbnail(e.target.value)} />
+                                <input type="text" placeholder="رابط الصورة أو ارفع صورة..." className="flex-1 h-12 px-4 bg-white border border-slate-200 rounded-xl outline-none focus:border-red-600 font-mono text-sm" value={sThumbnail} onChange={e => setSThumbnail(e.target.value)} />
                                 <label className="cursor-pointer bg-slate-900 hover:bg-slate-800 text-white px-6 h-12 rounded-xl flex items-center gap-2 transition-all font-bold text-xs whitespace-nowrap">
                                   {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
                                   رفع صورة
@@ -3798,9 +3798,9 @@ export default function AdminDashboard() {
                       <div className="space-y-2 col-span-2 text-right">
                         <label className="text-xs font-black text-slate-400 uppercase">رابط التحميل (يتولد تلقائياً أو أدخله يدوياً)</label>
                         <input 
-                          type="url" 
+                          type="text" 
                           required={!fUploadFile && !fUrl} 
-                          placeholder="https://..."
+                          placeholder="https://... أو يتولد تلقائياً عند الرفع"
                           className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none font-mono text-sm" 
                           value={fUrl} 
                           onChange={e => setFUrl(e.target.value)} 
@@ -3908,7 +3908,7 @@ export default function AdminDashboard() {
                       <div className="space-y-2 text-right">
                          <label className="text-xs font-black text-slate-400 uppercase">صورة الخدمة / الغلاف</label>
                          <div className="flex gap-4 items-center">
-                            <input type="url" placeholder="رابط الصورة المباشر أو ارفع صورة..." className="flex-1 h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-mono text-sm" value={sThumbnail} onChange={e => setSThumbnail(e.target.value)} />
+                            <input type="text" placeholder="رابط الصورة المباشر أو ارفع صورة..." className="flex-1 h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-mono text-sm" value={sThumbnail} onChange={e => setSThumbnail(e.target.value)} />
                             <label className="cursor-pointer bg-slate-900 text-white px-6 h-14 rounded-2xl flex items-center gap-2 hover:bg-emerald-600 transition-all font-bold text-sm whitespace-nowrap">
                               {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
                               رفع صورة
@@ -4120,7 +4120,7 @@ export default function AdminDashboard() {
 
                       <div className="space-y-2 text-right">
                         <label className="text-xs font-black text-slate-400 uppercase">رابط الزر (اختياري)</label>
-                        <input type="url" className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none font-mono text-sm" value={annBtnUrl} onChange={e => setAnnBtnUrl(e.target.value)} placeholder="https://..." />
+                        <input type="text" className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none font-mono text-sm" value={annBtnUrl} onChange={e => setAnnBtnUrl(e.target.value)} placeholder="https://..." />
                       </div>
 
                       <div className="space-y-2 text-right col-span-2">
@@ -4128,7 +4128,7 @@ export default function AdminDashboard() {
                         <div className="flex flex-col gap-4">
                           <div className="relative">
                             <input 
-                              type="url" 
+                              type="text" 
                               className="w-full h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none font-mono text-sm" 
                               value={annImageUrl} 
                               onChange={e => setAnnImageUrl(e.target.value)} 
@@ -4220,7 +4220,7 @@ export default function AdminDashboard() {
                     <div className="space-y-2 text-right col-span-2">
                        <label className="text-xs font-black text-slate-400 uppercase">صورة المنتج / الغلاف</label>
                        <div className="flex gap-4 items-center">
-                          <input type="url" placeholder="رابط الصورة أو ارفع واحدة..." className="flex-1 h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-mono text-sm" value={prodThumbnail} onChange={e => setProdThumbnail(e.target.value)} />
+                          <input type="text" placeholder="رابط الصورة أو ارفع واحدة..." className="flex-1 h-14 px-6 bg-white border border-slate-200 rounded-2xl outline-none focus:border-red-600 font-mono text-sm" value={prodThumbnail} onChange={e => setProdThumbnail(e.target.value)} />
                           <label className="cursor-pointer bg-slate-900 text-white px-6 h-14 rounded-2xl flex items-center gap-2 hover:bg-emerald-600 transition-all font-bold text-sm whitespace-nowrap">
                             {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
                             رفع صورة

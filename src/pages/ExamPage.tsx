@@ -79,6 +79,20 @@ export default function ExamPage() {
     return () => clearInterval(timer);
   }, [finished, timeLeft]);
 
+  const handleExitExam = () => {
+    localStorage.removeItem("current_exam");
+    try {
+      window.close();
+    } catch {}
+    navigate("/mock-exams");
+  };
+
+  const handleConfirmExit = () => {
+    if (confirm("تحذير: الخروج سيؤدي إلى إلغاء جلستك الحالية. هل تود المتابعة؟")) {
+      handleExitExam();
+    }
+  };
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -190,8 +204,8 @@ export default function ExamPage() {
 
               <div className="mt-12 text-center pb-20">
                  <button
-                    onClick={() => window.close()}
-                    className="bg-slate-900 text-white px-12 py-5 rounded-2xl font-black text-lg hover:bg-red-600 transition-all shadow-2xl"
+                    onClick={handleExitExam}
+                    className="bg-slate-900 text-white px-12 py-5 rounded-2xl font-black text-lg hover:bg-red-600 transition-all shadow-2xl cursor-pointer"
                   >
                     إنهاء المراجعة وإغلاق البوابة
                   </button>
@@ -235,8 +249,8 @@ export default function ExamPage() {
               </button>
               
               <button
-                onClick={() => window.close()}
-                className="w-full bg-slate-100 text-slate-600 py-4 rounded-xl font-bold text-lg hover:bg-slate-200 transition-all"
+                onClick={handleExitExam}
+                className="w-full bg-slate-100 text-slate-600 py-4 rounded-xl font-bold text-lg hover:bg-slate-200 transition-all cursor-pointer"
               >
                 إغلاق بوابة الامتحان
               </button>
@@ -308,12 +322,8 @@ export default function ExamPage() {
           <div className="h-8 w-px bg-slate-200 mx-1" />
 
           <button 
-            onClick={() => {
-              if(confirm("تحذير: الخروج سيؤدي إلى إلغاء جلستك الحالية. هل تود المتابعة؟")) {
-                window.close();
-              }
-            }}
-            className="bg-slate-100 text-slate-600 px-4 py-2.5 rounded-lg font-bold text-xs hover:bg-red-50 hover:text-red-600 transition-all"
+            onClick={handleConfirmExit}
+            className="bg-slate-100 text-slate-600 px-4 py-2.5 rounded-lg font-bold text-xs hover:bg-red-50 hover:text-red-600 transition-all cursor-pointer"
           >
             خروج
           </button>
