@@ -73,7 +73,7 @@ export default function Marketplace() {
 
   const handleShare = async (e: React.MouseEvent, product: Product) => {
     e.stopPropagation();
-    const url = `${window.location.origin}/#/marketplace?id=${product.id}`;
+    const url = `${window.location.origin}/marketplace?id=${product.id}`;
     const text = `شاهد دورة ${product.title} من تقديم ${product.instructor_name} على منصة طلاب الأردن - أكاديمية المسار المهني.`;
 
     if (navigator.share) {

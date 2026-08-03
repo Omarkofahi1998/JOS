@@ -29,7 +29,7 @@ export default function Questions() {
   const location = useLocation();
 
   const handleShare = async (file: QuestionFile) => {
-    const url = `${window.location.origin}/#/questions/${encodeURIComponent(file.title)}`;
+    const url = `${window.location.origin}/questions/${encodeURIComponent(file.title)}`;
     const shareData = {
       title: "بنك أسئلة - Jo Students",
       text: `ألقِ نظرة على هذا الملف في بنك أسئلة Jo Students: ${file.title}`,

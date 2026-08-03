@@ -191,6 +191,7 @@ export default function AdminDashboard() {
             options: q.options,
             correct: q.correct,
             major: q.major,
+            explanation: q.explanation || "",
             image_url: q.image_url || q.image || q.imageUrl || q.img_url || ""
           });
         });
@@ -946,10 +947,19 @@ export default function AdminDashboard() {
       const data = JSON.parse(bulkText);
       if (!Array.isArray(data)) throw new Error("يجب أن يكون النص مصفوفة JSON [{}, {}]");
       
-      const { error } = await supabase.from('questions').insert(data);
+      const mappedData = data.map((q: any) => ({
+        text: q.text,
+        options: q.options,
+        correct: typeof q.correct === 'number' ? q.correct : parseInt(q.correct || '0', 10),
+        major: q.major || "عام",
+        explanation: q.explanation || "",
+        image_url: q.image_url || q.image || q.imageUrl || ""
+      }));
+
+      const { error } = await supabase.from('questions').insert(mappedData);
       if (error) throw error;
       
-      setStatus({ type: 'success', msg: `تم رفع ${data.length} سؤال بنجاح` });
+      setStatus({ type: 'success', msg: `تم رفع ${mappedData.length} سؤال بنجاح` });
       setBulkText("");
       setSubTab('list');
       fetchData();
@@ -1745,6 +1755,7 @@ export default function AdminDashboard() {
           options: q.options,
           correct: q.correct,
           major: q.major || bulkCategory,
+          explanation: q.explanation || "",
           image_url: q.image_url || ""
         }));
         const { error } = await supabase.from('questions').insert(mappedData);
@@ -4249,7 +4260,7 @@ export default function AdminDashboard() {
                       </p>
                       <div className="bg-white/80 p-4 rounded-2xl border border-blue-100 font-mono text-[11px] text-blue-900 text-left ltr">
                         <span className="text-blue-400">// التنسيق المطلوب:</span><br/>
-                        [{"{"} "text": "السؤال", "options": ["أ", "ب", "ج", "د"], "correct": 0, "major": "رياضيات" {"}"}]
+                        [{"{"} "text": "السؤال؟", "options": ["أ", "ب", "ج", "د"], "correct": 0, "major": "رياضيات", "explanation": "تفسير اختياري" {"}"}]
                       </div>
                     </div>
                   </div>
