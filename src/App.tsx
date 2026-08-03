@@ -36,7 +36,6 @@ function LoadingFallback() {
 }
 
 function VisitorTracker() {
-// ... existing code ...
   const location = useLocation();
 
   useEffect(() => {
@@ -48,13 +47,31 @@ function VisitorTracker() {
       
       if (!sessionVisited) {
         try {
+          // 1. Total visitors count
           const { data: current } = await supabase.from('visitor_stats').select('count').eq('id', 1).single();
           if (current) {
             await supabase.from('visitor_stats').update({ count: (current.count || 0) + 1 }).eq('id', 1);
           } else {
-            // New: Handle case where record id=1 doesn't exist yet
             await supabase.from('visitor_stats').upsert({ id: 1, count: 1 });
           }
+
+          // 2. Daily visitors count for today
+          const todayDate = new Date().toISOString().split('T')[0];
+          const { data: dailySetting } = await supabase.from('site_settings').select('value').eq('key', 'daily_visitors').single();
+          
+          let dailyObj = { date: todayDate, count: 1 };
+          if (dailySetting && dailySetting.value) {
+            try {
+              const parsed = JSON.parse(dailySetting.value);
+              if (parsed && parsed.date === todayDate) {
+                dailyObj = { date: todayDate, count: (Number(parsed.count) || 0) + 1 };
+              }
+            } catch (e) {
+              console.error("Parse daily visitors error", e);
+            }
+          }
+          await supabase.from('site_settings').upsert({ key: 'daily_visitors', value: JSON.stringify(dailyObj) });
+
           sessionStorage.setItem('jo_student_visited', 'true');
         } catch (err) {
           console.error("Visitor tracking error:", err);

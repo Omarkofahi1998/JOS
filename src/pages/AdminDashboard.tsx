@@ -6,7 +6,7 @@ import {
   CheckCircle2, AlertCircle, Sparkles, Trash2, Edit3, Layers, 
   Search, X, MessageSquare, Shield, Settings, Menu, Bell, User, Clock, ChevronRight, Megaphone,
   Download, Image as ImageIcon, Eye, EyeOff, UserCheck, Mail, UploadCloud, Share2, Briefcase, MapPin,
-  Building2
+  Building2, BarChart3, Users, TrendingUp
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import * as XLSX from "xlsx";
@@ -51,6 +51,8 @@ export default function AdminDashboard() {
   const [userBookings, setUserBookings] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [onlineCount, setOnlineCount] = useState<number>(0);
+  const [dailyVisitorsCount, setDailyVisitorsCount] = useState<number>(0);
+  const [showVisitorModal, setShowVisitorModal] = useState<boolean>(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [majorFilter, setMajorFilter] = useState("all");
@@ -618,6 +620,21 @@ export default function AdminDashboard() {
       if (settings.data) {
         const obj: any = {};
         settings.data.forEach(item => obj[item.key] = item.value);
+
+        const todayDate = new Date().toISOString().split('T')[0];
+        let todayVal = 0;
+        if (obj.daily_visitors) {
+          try {
+            const parsed = JSON.parse(obj.daily_visitors);
+            if (parsed && parsed.date === todayDate) {
+              todayVal = Number(parsed.count) || 0;
+            }
+          } catch (e) {
+            todayVal = 0;
+          }
+        }
+        setDailyVisitorsCount(todayVal);
+
         setSiteSet({
           hero_title: obj.hero_title || "",
           hero_subtitle: obj.hero_subtitle || "",
@@ -2072,6 +2089,21 @@ export default function AdminDashboard() {
                     </div>
                 )}
             </div>
+
+            <button 
+              onClick={() => setShowVisitorModal(true)}
+              className="flex items-center gap-2 bg-gradient-to-r from-red-50 to-orange-50 hover:from-red-100 hover:to-orange-100 text-red-700 border border-red-200/80 px-3 py-1.5 rounded-2xl transition-all cursor-pointer group shadow-sm"
+              title="انقر لفتح نافذة إحصائيات زوار اليوم"
+            >
+              <div className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
+              <div className="flex flex-col text-right">
+                <span className="text-[9px] font-black text-red-600 uppercase tracking-widest leading-none">زوار اليوم</span>
+                <span className="text-xs font-black text-slate-900 group-hover:text-red-700 transition-colors">
+                  {dailyVisitorsCount} زائر
+                </span>
+              </div>
+              <BarChart3 className="w-4 h-4 text-red-500 mr-0.5 group-hover:scale-110 transition-transform" />
+            </button>
 
             <div className="hidden sm:flex flex-col text-left">
               <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-none">تاريخ الجلسة</span>
@@ -4677,6 +4709,112 @@ export default function AdminDashboard() {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Daily Visitors Modal Window for Admins and Content Managers */}
+      <AnimatePresence>
+        {showVisitorModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden"
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-red-950 p-6 text-white flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-red-600/20 border border-red-500/30 flex items-center justify-center text-red-400">
+                    <Eye className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black tracking-tight">إحصائيات زوار الموقع اليومية</h3>
+                    <p className="text-xs text-slate-300 font-bold">خاص بمدراء المحتوى والإدارة</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowVisitorModal(false)}
+                  className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300 hover:text-white transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 space-y-6">
+                {/* Today Count Card */}
+                <div className="bg-gradient-to-br from-red-50 to-orange-50/60 border border-red-100 rounded-2xl p-5 relative overflow-hidden">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-black text-red-600 uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" />
+                      إحصائية اليوم الحالية
+                    </span>
+                    <span className="text-xs font-bold text-slate-500 bg-white/80 px-2.5 py-1 rounded-full border border-slate-200/60">
+                      {new Date().toLocaleDateString('ar-JO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-3 my-2">
+                    <span className="text-5xl font-black text-slate-900 tracking-tight">{dailyVisitorsCount}</span>
+                    <span className="text-base font-bold text-slate-600">زيارة فريدة اليوم</span>
+                  </div>
+                  <p className="text-xs text-slate-500 font-medium">تُسجل وتُحدث تلقائياً مع كل جلسة زيارة جديدة للموقع</p>
+                </div>
+
+                {/* Grid Stats */}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Live Online Users */}
+                  <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4">
+                    <div className="flex items-center gap-2 text-emerald-600 mb-1">
+                      <Users className="w-4 h-4" />
+                      <span className="text-xs font-black uppercase">المتواجدون الآن</span>
+                    </div>
+                    <div className="text-2xl font-black text-slate-900">{onlineCount}</div>
+                    <span className="text-[11px] text-slate-400 font-bold">متصفح نشط في الوقت الحالي</span>
+                  </div>
+
+                  {/* Total Overall Visitors */}
+                  <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4">
+                    <div className="flex items-center gap-2 text-blue-600 mb-1">
+                      <TrendingUp className="w-4 h-4" />
+                      <span className="text-xs font-black uppercase">إجمالي الزوار الكلي</span>
+                    </div>
+                    <div className="text-2xl font-black text-slate-900">{Number(siteSet.visitor_count || 0).toLocaleString('ar-JO')}</div>
+                    <span className="text-[11px] text-slate-400 font-bold">مجموع التصفحات المسجلة</span>
+                  </div>
+                </div>
+
+                {/* Info Bar */}
+                <div className="bg-slate-900 text-white rounded-2xl p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Shield className="w-5 h-5 text-amber-400" />
+                    <div>
+                      <div className="text-xs font-bold text-slate-200">صلاحيات مدراء المحتوى والإدارة</div>
+                      <div className="text-[10px] text-slate-400">تتبع حصري ومباشر لحركة الزوار اليومية</div>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      fetchData();
+                    }}
+                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition-colors"
+                  >
+                    تحديث
+                  </button>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-end">
+                <button
+                  onClick={() => setShowVisitorModal(false)}
+                  className="px-5 py-2.5 bg-slate-900 text-white font-bold text-xs rounded-xl hover:bg-slate-800 transition-colors"
+                >
+                  إغلاق النافذة
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
