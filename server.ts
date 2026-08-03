@@ -339,10 +339,27 @@ async function startServer() {
       appType: "spa",
     });
     app.use(vite.middlewares);
+
+    app.get('*', async (req, res, next) => {
+      if (req.originalUrl.startsWith('/api')) return next();
+      try {
+        const fs = await import('fs');
+        const indexHtmlPath = path.resolve(process.cwd(), 'index.html');
+        let template = fs.readFileSync(indexHtmlPath, 'utf-8');
+        template = await vite.transformIndexHtml(req.originalUrl, template);
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+      } catch (e) {
+        vite.ssrFixStacktrace(e as Error);
+        next(e);
+      }
+    });
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
+      if (req.originalUrl.startsWith('/api')) {
+        return res.status(404).json({ error: "API route not found" });
+      }
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
