@@ -97,10 +97,10 @@ export default function Questions() {
             id: item.id,
             title: item.title,
             category: item.category,
-            date: item.file_date || item.date,
-            size: item.file_size || item.size,
-            downloadCount: item.download_count || 0,
-            shareCount: item.share_count || 0,
+            date: item.file_date || item.date || "اليوم",
+            size: item.file_size || item.size || "1 MB",
+            downloadCount: Number(item.download_count ?? item.downloads ?? item.downloadCount ?? 0),
+            shareCount: Number(item.share_count ?? item.shares ?? item.shareCount ?? 0),
             url: item.url
           }));
           setFilesList(mapped);
@@ -155,28 +155,39 @@ export default function Questions() {
   });
 
   const handleDownload = async (file: QuestionFile) => {
+    const nextCount = (Number(file.downloadCount) || 0) + 1;
     try {
       // Optimistic update
       setFilesList(prev => prev.map(f => 
-        f.id === file.id ? { ...f, downloadCount: f.downloadCount + 1 } : f
+        f.id === file.id ? { ...f, downloadCount: nextCount } : f
       ));
 
       // Update in Supabase
       if (supabase) {
-        // Increment the count in the database
         const { error } = await supabase
           .from('question_files')
-          .update({ download_count: file.downloadCount + 1 })
+          .update({ 
+            download_count: nextCount,
+            downloads: nextCount
+          })
           .eq('id', file.id);
         
-        if (error) throw error;
+        if (error) {
+          console.warn("Retrying download_count update with standard column:", error);
+          await supabase
+            .from('question_files')
+            .update({ download_count: nextCount })
+            .eq('id', file.id);
+        }
       }
     } catch (err) {
       console.error("Error updating download count:", err);
     }
     
-    // Open in new tab
-    window.open(file.url, '_blank');
+    // Open in new tab if URL exists
+    if (file.url) {
+      window.open(file.url, '_blank');
+    }
   };
 
   return (
@@ -260,40 +271,46 @@ export default function Questions() {
             key={idx}
             className="bg-white rounded-2xl border border-slate-200 p-6 transition-all hover:shadow-xl hover:shadow-slate-500/10 group flex flex-col h-full"
           >
-            <div className="flex items-start justify-between mb-4">
+            <div className="flex items-start justify-between mb-3">
               <div className="w-12 h-12 bg-red-50 text-red-600 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-red-600 group-hover:text-white transition-colors">
                 <FileText className="w-6 h-6" />
               </div>
-              <button 
-                onClick={() => handleShare(file)}
-                className={`w-10 h-10 flex items-center justify-center transition-colors rounded-xl relative ${
-                  searchTerm === file.title ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-50 text-slate-300 hover:text-red-600'
-                }`}
-                title="مشاركة"
-              >
-                {sharedId === file.title ? <Check className="w-5 h-5 text-white" /> : <Share2 className="w-5 h-5" />}
-                {sharedId === file.title && (
-                  <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-2 py-1 rounded-full whitespace-nowrap animate-in fade-in zoom-in">
-                    تم النسخ!
-                  </span>
-                )}
-              </button>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-xs">
+                  <Download className="w-3.5 h-3.5 text-emerald-600" />
+                  {file.downloadCount} تحميل
+                </span>
+                <button 
+                  onClick={() => handleShare(file)}
+                  className={`w-10 h-10 flex items-center justify-center transition-colors rounded-xl relative ${
+                    searchTerm === file.title ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 hover:text-red-600'
+                  }`}
+                  title="مشاركة"
+                >
+                  {sharedId === file.title ? <Check className="w-5 h-5 text-white" /> : <Share2 className="w-5 h-5" />}
+                  {sharedId === file.title && (
+                    <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-2 py-1 rounded-full whitespace-nowrap animate-in fade-in zoom-in">
+                      تم النسخ!
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
             
             <h3 className="text-base font-bold text-slate-900 mb-4 h-12 line-clamp-2 leading-relaxed">
               {file.title}
             </h3>
 
-            <div className="grid grid-cols-4 gap-2 pt-4 border-t border-slate-50 mt-auto">
+            <div className="grid grid-cols-4 gap-2 pt-4 border-t border-slate-100 mt-auto">
               <div className="flex items-center gap-1.5 text-slate-400">
                 <Calendar className="w-3.5 h-3.5" />
                 <span className="text-[10px] font-bold text-center truncate">{file.date}</span>
               </div>
-              <div className="flex items-center gap-1.5 text-slate-400 justify-center">
+              <div className="flex items-center gap-1.5 text-emerald-600 font-black justify-center">
                 <Download className="w-3.5 h-3.5" />
-                <span className="text-[10px] font-bold">{file.downloadCount}</span>
+                <span className="text-xs font-extrabold">{file.downloadCount}</span>
               </div>
-              <div className="flex items-center gap-1.5 text-slate-400 justify-center">
+              <div className="flex items-center gap-1.5 text-blue-600 font-bold justify-center">
                 <Share2 className="w-3.5 h-3.5" />
                 <span className="text-[10px] font-bold">{file.shareCount}</span>
               </div>
@@ -305,10 +322,10 @@ export default function Questions() {
 
             <button 
               onClick={() => handleDownload(file)}
-              className="mt-6 w-full bg-red-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-700 transition-all active:scale-95 no-underline"
+              className="mt-6 w-full bg-red-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-700 transition-all active:scale-95 no-underline shadow-sm"
             >
               <Download className="w-4 h-4" />
-              تحميل الملف
+              تحميل الملف ({file.downloadCount})
             </button>
           </div>
         ))}

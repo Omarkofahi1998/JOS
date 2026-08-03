@@ -52,7 +52,55 @@ export default function AdminDashboard() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [onlineCount, setOnlineCount] = useState<number>(0);
   const [dailyVisitorsCount, setDailyVisitorsCount] = useState<number>(0);
+  const [dailyVisitorsList, setDailyVisitorsList] = useState<Array<{ date: string; count: number }>>([]);
+  const [visitorSearchTerm, setVisitorSearchTerm] = useState<string>("");
+  const [editingVisitorDate, setEditingVisitorDate] = useState<string | null>(null);
+  const [editingVisitorCount, setEditingVisitorCount] = useState<number>(0);
   const [showVisitorModal, setShowVisitorModal] = useState<boolean>(false);
+  const handleSaveVisitorCount = async (targetDate: string, newCount: number) => {
+    try {
+      let updatedList = dailyVisitorsList.map(item => 
+        item.date === targetDate ? { ...item, count: newCount } : item
+      );
+      if (!updatedList.some(item => item.date === targetDate)) {
+        updatedList.push({ date: targetDate, count: newCount });
+      }
+      updatedList.sort((a, b) => b.date.localeCompare(a.date));
+      setDailyVisitorsList(updatedList);
+
+      const historyMap: Record<string, number> = {};
+      updatedList.forEach(item => { historyMap[item.date] = item.count; });
+
+      await supabase.from('site_settings').upsert({
+        key: 'daily_visitors_history',
+        value: JSON.stringify(historyMap)
+      });
+
+      const todayDate = new Date().toISOString().split('T')[0];
+      if (targetDate === todayDate) {
+        setDailyVisitorsCount(newCount);
+        await supabase.from('site_settings').upsert({
+          key: 'daily_visitors',
+          value: JSON.stringify({ date: todayDate, count: newCount })
+        });
+      }
+      setEditingVisitorDate(null);
+    } catch (err) {
+      console.error("Error saving visitor count:", err);
+    }
+  };
+
+  const exportVisitorReport = () => {
+    const exportData = dailyVisitorsList.map(item => ({
+      "التاريخ": item.date,
+      "عدد الزوار": item.count,
+      "اليوم": new Date(item.date).toLocaleDateString('ar-JO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+    }));
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "تقرير الزوار اليومي");
+    XLSX.writeFile(wb, `تقرير_الزوار_اليومي_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [majorFilter, setMajorFilter] = useState("all");
@@ -622,6 +670,26 @@ export default function AdminDashboard() {
         settings.data.forEach(item => obj[item.key] = item.value);
 
         const todayDate = new Date().toISOString().split('T')[0];
+        let historyArray: Array<{ date: string; count: number }> = [];
+
+        if (obj.daily_visitors_history) {
+          try {
+            const parsed = JSON.parse(obj.daily_visitors_history);
+            if (typeof parsed === 'object' && parsed !== null) {
+              if (Array.isArray(parsed)) {
+                historyArray = parsed;
+              } else {
+                historyArray = Object.keys(parsed).map(d => ({
+                  date: d,
+                  count: Number(parsed[d]) || 0
+                }));
+              }
+            }
+          } catch (e) {
+            console.error("Error parsing history array", e);
+          }
+        }
+
         let todayVal = 0;
         if (obj.daily_visitors) {
           try {
@@ -629,10 +697,24 @@ export default function AdminDashboard() {
             if (parsed && parsed.date === todayDate) {
               todayVal = Number(parsed.count) || 0;
             }
-          } catch (e) {
-            todayVal = 0;
+          } catch (e) {}
+        }
+
+        if (historyArray.length === 0 && todayVal > 0) {
+          historyArray = [{ date: todayDate, count: todayVal }];
+        } else {
+          const todayIdx = historyArray.findIndex(i => i.date === todayDate);
+          if (todayIdx >= 0) {
+            todayVal = Math.max(historyArray[todayIdx].count, todayVal);
+            historyArray[todayIdx].count = todayVal;
+          } else if (todayVal > 0) {
+            historyArray.unshift({ date: todayDate, count: todayVal });
           }
         }
+
+        historyArray.sort((a, b) => b.date.localeCompare(a.date));
+
+        setDailyVisitorsList(historyArray);
         setDailyVisitorsCount(todayVal);
 
         setSiteSet({
@@ -4715,100 +4797,247 @@ export default function AdminDashboard() {
       {/* Daily Visitors Modal Window for Admins and Content Managers */}
       <AnimatePresence>
         {showVisitorModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-md">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden"
+              className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden"
             >
               {/* Header */}
-              <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-red-950 p-6 text-white flex items-center justify-between">
+              <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-red-950 p-6 text-white flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-2xl bg-red-600/20 border border-red-500/30 flex items-center justify-center text-red-400">
-                    <Eye className="w-6 h-6" />
+                    <BarChart3 className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black tracking-tight">إحصائيات زوار الموقع اليومية</h3>
-                    <p className="text-xs text-slate-300 font-bold">خاص بمدراء المحتوى والإدارة</p>
+                    <h3 className="text-lg font-black tracking-tight">سجل وجداول الزوار اليومي</h3>
+                    <p className="text-xs text-slate-300 font-bold">تتبع شامل لحركة الدخول وزيارات الموقع لكل يوم</p>
                   </div>
                 </div>
-                <button 
-                  onClick={() => setShowVisitorModal(false)}
-                  className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300 hover:text-white transition-all"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Content */}
-              <div className="p-6 space-y-6">
-                {/* Today Count Card */}
-                <div className="bg-gradient-to-br from-red-50 to-orange-50/60 border border-red-100 rounded-2xl p-5 relative overflow-hidden">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-black text-red-600 uppercase tracking-wider flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" />
-                      إحصائية اليوم الحالية
-                    </span>
-                    <span className="text-xs font-bold text-slate-500 bg-white/80 px-2.5 py-1 rounded-full border border-slate-200/60">
-                      {new Date().toLocaleDateString('ar-JO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                    </span>
-                  </div>
-                  <div className="flex items-baseline gap-3 my-2">
-                    <span className="text-5xl font-black text-slate-900 tracking-tight">{dailyVisitorsCount}</span>
-                    <span className="text-base font-bold text-slate-600">زيارة فريدة اليوم</span>
-                  </div>
-                  <p className="text-xs text-slate-500 font-medium">تُسجل وتُحدث تلقائياً مع كل جلسة زيارة جديدة للموقع</p>
-                </div>
-
-                {/* Grid Stats */}
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Live Online Users */}
-                  <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4">
-                    <div className="flex items-center gap-2 text-emerald-600 mb-1">
-                      <Users className="w-4 h-4" />
-                      <span className="text-xs font-black uppercase">المتواجدون الآن</span>
-                    </div>
-                    <div className="text-2xl font-black text-slate-900">{onlineCount}</div>
-                    <span className="text-[11px] text-slate-400 font-bold">متصفح نشط في الوقت الحالي</span>
-                  </div>
-
-                  {/* Total Overall Visitors */}
-                  <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4">
-                    <div className="flex items-center gap-2 text-blue-600 mb-1">
-                      <TrendingUp className="w-4 h-4" />
-                      <span className="text-xs font-black uppercase">إجمالي الزوار الكلي</span>
-                    </div>
-                    <div className="text-2xl font-black text-slate-900">{Number(siteSet.visitor_count || 0).toLocaleString('ar-JO')}</div>
-                    <span className="text-[11px] text-slate-400 font-bold">مجموع التصفحات المسجلة</span>
-                  </div>
-                </div>
-
-                {/* Info Bar */}
-                <div className="bg-slate-900 text-white rounded-2xl p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Shield className="w-5 h-5 text-amber-400" />
-                    <div>
-                      <div className="text-xs font-bold text-slate-200">صلاحيات مدراء المحتوى والإدارة</div>
-                      <div className="text-[10px] text-slate-400">تتبع حصري ومباشر لحركة الزوار اليومية</div>
-                    </div>
-                  </div>
+                <div className="flex items-center gap-2">
                   <button 
-                    onClick={() => {
-                      fetchData();
-                    }}
-                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition-colors"
+                    onClick={() => fetchData()}
+                    className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all"
+                    title="تحديث البيانات"
                   >
+                    <Clock className="w-3.5 h-3.5 text-red-400" />
                     تحديث
+                  </button>
+                  <button 
+                    onClick={() => setShowVisitorModal(false)}
+                    className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300 hover:text-white transition-all"
+                  >
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
               </div>
 
+              {/* Body */}
+              <div className="p-6 overflow-y-auto custom-scrollbar space-y-6">
+                {/* Metrics Summary Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* Today Count */}
+                  <div className="bg-gradient-to-br from-red-50 to-orange-50/60 border border-red-100 rounded-2xl p-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-black text-red-600 uppercase tracking-wider flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
+                        زيارات اليوم
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-400">
+                        {new Date().toISOString().split('T')[0]}
+                      </span>
+                    </div>
+                    <div className="text-3xl font-black text-slate-900 tracking-tight my-1">
+                      {dailyVisitorsCount}
+                    </div>
+                    <p className="text-[11px] text-slate-500 font-medium">إجمالي التصفحات المسجلة اليوم</p>
+                  </div>
+
+                  {/* Online Now */}
+                  <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4">
+                    <div className="flex items-center gap-1.5 text-emerald-600 mb-1">
+                      <Users className="w-4 h-4" />
+                      <span className="text-[10px] font-black uppercase">المتواجدون الآن</span>
+                    </div>
+                    <div className="text-3xl font-black text-slate-900 my-1">{onlineCount}</div>
+                    <span className="text-[11px] text-slate-400 font-bold">متصفح نشط في الوقت الحالي</span>
+                  </div>
+
+                  {/* Total Visitors */}
+                  <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4">
+                    <div className="flex items-center gap-1.5 text-blue-600 mb-1">
+                      <TrendingUp className="w-4 h-4" />
+                      <span className="text-[10px] font-black uppercase">إجمالي الزوار الكلي</span>
+                    </div>
+                    <div className="text-3xl font-black text-slate-900 my-1">{Number(siteSet.visitor_count || 0).toLocaleString('ar-JO')}</div>
+                    <span className="text-[11px] text-slate-400 font-bold">مجموع كافة زيارات الموقع</span>
+                  </div>
+                </div>
+
+                {/* Table Header Controls */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                  <div className="relative flex-1 max-w-sm">
+                    <Search className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
+                    <input 
+                      type="text"
+                      placeholder="بحث بتاريخ اليوم (مثال 2026-08-03)..."
+                      value={visitorSearchTerm}
+                      onChange={(e) => setVisitorSearchTerm(e.target.value)}
+                      className="w-full pr-10 pl-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:border-red-500 transition-colors"
+                    />
+                  </div>
+                  
+                  <button 
+                    onClick={exportVisitorReport}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-sm transition-all"
+                  >
+                    <Download className="w-4 h-4" />
+                    تصدير تقرير Excel
+                  </button>
+                </div>
+
+                {/* Daily Visitor Table */}
+                <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-right border-collapse">
+                      <thead>
+                        <tr className="bg-slate-900 text-white text-[11px] font-black uppercase tracking-wider">
+                          <th className="py-3.5 px-4">التاريخ واليوم</th>
+                          <th className="py-3.5 px-4">عدد الزوار</th>
+                          <th className="py-3.5 px-4 hidden sm:table-cell">نسبة النشاط</th>
+                          <th className="py-3.5 px-4">الحالة</th>
+                          <th className="py-3.5 px-4 text-left">التحكم</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-xs font-bold text-slate-700">
+                        {(() => {
+                          const todayStr = new Date().toISOString().split('T')[0];
+                          const yesterdayObj = new Date();
+                          yesterdayObj.setDate(yesterdayObj.getDate() - 1);
+                          const yesterdayStr = yesterdayObj.toISOString().split('T')[0];
+
+                          const filteredList = dailyVisitorsList.filter(item => 
+                            item.date.includes(visitorSearchTerm) ||
+                            new Date(item.date).toLocaleDateString('ar-JO', { weekday: 'long' }).includes(visitorSearchTerm)
+                          );
+
+                          const maxVal = Math.max(...dailyVisitorsList.map(i => i.count), 1);
+
+                          if (filteredList.length === 0) {
+                            return (
+                              <tr>
+                                <td colSpan={5} className="py-12 text-center text-slate-400 font-bold">
+                                  لا توجد سجلات زوار تطابق معايير البحث
+                                </td>
+                              </tr>
+                            );
+                          }
+
+                          return filteredList.map((item, idx) => {
+                            const isToday = item.date === todayStr;
+                            const isYesterday = item.date === yesterdayStr;
+                            const dateFormatted = new Date(item.date).toLocaleDateString('ar-JO', { 
+                              weekday: 'long', 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            });
+                            const percent = Math.min(Math.round((item.count / maxVal) * 100), 100);
+
+                            return (
+                              <tr key={idx} className={isToday ? "bg-red-50/40" : "hover:bg-slate-50/80 transition-colors"}>
+                                <td className="py-3.5 px-4">
+                                  <div className="flex flex-col">
+                                    <span className="font-black text-slate-900 text-xs">{item.date}</span>
+                                    <span className="text-[10px] text-slate-400 font-medium">{dateFormatted}</span>
+                                  </div>
+                                </td>
+                                <td className="py-3.5 px-4">
+                                  {editingVisitorDate === item.date ? (
+                                    <div className="flex items-center gap-2">
+                                      <input 
+                                        type="number" 
+                                        value={editingVisitorCount}
+                                        onChange={(e) => setEditingVisitorCount(Number(e.target.value))}
+                                        className="w-20 px-2 py-1 border border-red-500 rounded-lg text-xs font-bold bg-white focus:outline-none"
+                                        min="0"
+                                      />
+                                      <button 
+                                        onClick={() => handleSaveVisitorCount(item.date, editingVisitorCount)}
+                                        className="px-2 py-1 bg-red-600 text-white rounded-lg text-[10px] font-bold"
+                                      >
+                                        حفظ
+                                      </button>
+                                      <button 
+                                        onClick={() => setEditingVisitorDate(null)}
+                                        className="px-2 py-1 bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold"
+                                      >
+                                        إلغاء
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm font-black text-slate-900">{item.count}</span>
+                                      <span className="text-[10px] text-slate-400 font-bold">زيارة</span>
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="py-3.5 px-4 hidden sm:table-cell">
+                                  <div className="w-32 bg-slate-100 h-2 rounded-full overflow-hidden">
+                                    <div 
+                                      className={`h-full rounded-full transition-all duration-500 ${isToday ? 'bg-red-600' : 'bg-slate-700'}`}
+                                      style={{ width: `${Math.max(percent, 4)}%` }}
+                                    />
+                                  </div>
+                                </td>
+                                <td className="py-3.5 px-4">
+                                  {isToday ? (
+                                    <span className="px-2.5 py-1 bg-red-100 text-red-700 rounded-full text-[10px] font-black border border-red-200 flex items-center gap-1 w-fit">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
+                                      اليوم (نشط)
+                                    </span>
+                                  ) : isYesterday ? (
+                                    <span className="px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full text-[10px] font-bold border border-amber-200 w-fit inline-block">
+                                      أمس
+                                    </span>
+                                  ) : (
+                                    <span className="px-2.5 py-1 bg-slate-100 text-slate-500 rounded-full text-[10px] font-bold w-fit inline-block">
+                                      سابق
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="py-3.5 px-4 text-left">
+                                  <button 
+                                    onClick={() => {
+                                      setEditingVisitorDate(item.date);
+                                      setEditingVisitorCount(item.count);
+                                    }}
+                                    className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold transition-colors inline-flex items-center gap-1"
+                                    title="تعديل القيمة"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                    <span className="text-[10px]">تعديل</span>
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          });
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
               {/* Footer */}
-              <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-end">
+              <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 flex items-center justify-between shrink-0">
+                <span className="text-xs text-slate-400 font-bold">
+                  إجمالي الأيام الموثقة: {dailyVisitorsList.length} يوم
+                </span>
                 <button
                   onClick={() => setShowVisitorModal(false)}
-                  className="px-5 py-2.5 bg-slate-900 text-white font-bold text-xs rounded-xl hover:bg-slate-800 transition-colors"
+                  className="px-6 py-2.5 bg-slate-900 text-white font-bold text-xs rounded-xl hover:bg-slate-800 transition-colors shadow-sm"
                 >
                   إغلاق النافذة
                 </button>

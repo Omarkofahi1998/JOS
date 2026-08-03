@@ -40,46 +40,67 @@ function VisitorTracker() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+  }, [location.pathname]);
+
+  useEffect(() => {
     async function trackVisitor() {
       if (!supabase) return;
-
-      const sessionVisited = sessionStorage.getItem('jo_student_visited');
-      
-      if (!sessionVisited) {
-        try {
-          // 1. Total visitors count
-          const { data: current } = await supabase.from('visitor_stats').select('count').eq('id', 1).single();
-          if (current) {
-            await supabase.from('visitor_stats').update({ count: (current.count || 0) + 1 }).eq('id', 1);
-          } else {
-            await supabase.from('visitor_stats').upsert({ id: 1, count: 1 });
-          }
-
-          // 2. Daily visitors count for today
-          const todayDate = new Date().toISOString().split('T')[0];
-          const { data: dailySetting } = await supabase.from('site_settings').select('value').eq('key', 'daily_visitors').single();
-          
-          let dailyObj = { date: todayDate, count: 1 };
-          if (dailySetting && dailySetting.value) {
-            try {
-              const parsed = JSON.parse(dailySetting.value);
-              if (parsed && parsed.date === todayDate) {
-                dailyObj = { date: todayDate, count: (Number(parsed.count) || 0) + 1 };
-              }
-            } catch (e) {
-              console.error("Parse daily visitors error", e);
-            }
-          }
-          await supabase.from('site_settings').upsert({ key: 'daily_visitors', value: JSON.stringify(dailyObj) });
-
-          sessionStorage.setItem('jo_student_visited', 'true');
-        } catch (err) {
-          console.error("Visitor tracking error:", err);
+      try {
+        // 1. Total visitors count
+        const { data: current } = await supabase.from('visitor_stats').select('count').eq('id', 1).single();
+        if (current) {
+          await supabase.from('visitor_stats').update({ count: (Number(current.count) || 0) + 1 }).eq('id', 1);
+        } else {
+          await supabase.from('visitor_stats').upsert({ id: 1, count: 1 });
         }
+
+        // 2. Daily visitors history map (e.g. { "YYYY-MM-DD": count })
+        const todayDate = new Date().toISOString().split('T')[0];
+        const { data: historySetting } = await supabase.from('site_settings').select('value').eq('key', 'daily_visitors_history').single();
+        
+        let historyMap: Record<string, number> = {};
+        if (historySetting && historySetting.value) {
+          try {
+            const parsed = JSON.parse(historySetting.value);
+            if (typeof parsed === 'object' && parsed !== null) {
+              if (Array.isArray(parsed)) {
+                parsed.forEach((item: any) => {
+                  if (item && item.date) historyMap[item.date] = Number(item.count) || 0;
+                });
+              } else {
+                historyMap = parsed;
+              }
+            }
+          } catch (e) {
+            console.error("Parse daily history error", e);
+          }
+        }
+
+        // Increment today's count
+        historyMap[todayDate] = (historyMap[todayDate] || 0) + 1;
+
+        // Keep last 180 days
+        const dates = Object.keys(historyMap).sort().reverse().slice(0, 180);
+        const cleanedMap: Record<string, number> = {};
+        dates.forEach(d => { cleanedMap[d] = historyMap[d]; });
+
+        await supabase.from('site_settings').upsert({
+          key: 'daily_visitors_history',
+          value: JSON.stringify(cleanedMap)
+        });
+
+        // Also update 'daily_visitors' key
+        await supabase.from('site_settings').upsert({
+          key: 'daily_visitors',
+          value: JSON.stringify({ date: todayDate, count: cleanedMap[todayDate] })
+        });
+      } catch (err) {
+        console.error("Visitor tracking error:", err);
       }
     }
+
     trackVisitor();
-  }, [location.pathname]);
+  }, []);
 
   return null;
 }
