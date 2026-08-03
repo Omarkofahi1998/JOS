@@ -14,6 +14,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Document, Packer, Paragraph, TextRun, Header, Footer, Table, TableRow, TableCell, WidthType, AlignmentType, ImageRun, BorderStyle } from "docx";
 import { saveAs } from "file-saver";
+import { parseQuestionsInput } from "../utils/questionParser";
 
 const CATEGORIES = ["مختبرات", "تمريض", "قانون", "معلم صف", "IT", "الإدارة العامة"];
 
@@ -228,23 +229,8 @@ export default function AdminDashboard() {
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const jsonData = JSON.parse(event.target?.result as string);
-        if (!Array.isArray(jsonData)) throw new Error("الملف يجب أن يحتوي على مصفوفة أسئلة");
-
-        const validQuestions: any[] = [];
-        jsonData.forEach((q, idx) => {
-          if (!q.text || !Array.isArray(q.options) || q.options.length < 2 || typeof q.correct !== 'number' || !q.major) {
-            throw new Error(`خطأ في تنسيق السؤال رقم ${idx + 1}`);
-          }
-          validQuestions.push({
-            text: q.text,
-            options: q.options,
-            correct: q.correct,
-            major: q.major,
-            explanation: q.explanation || "",
-            image_url: q.image_url || q.image || q.imageUrl || q.img_url || ""
-          });
-        });
+        const rawContent = event.target?.result as string;
+        const validQuestions = parseQuestionsInput(rawContent);
 
         setPreviewQuestions(validQuestions);
         e.target.value = ""; // Reset input
@@ -1043,27 +1029,16 @@ export default function AdminDashboard() {
     if (!supabase) return;
     setLoading(true);
     try {
-      const data = JSON.parse(bulkText);
-      if (!Array.isArray(data)) throw new Error("يجب أن يكون النص مصفوفة JSON [{}, {}]");
-      
-      const mappedData = data.map((q: any) => ({
-        text: q.text,
-        options: q.options,
-        correct: typeof q.correct === 'number' ? q.correct : parseInt(q.correct || '0', 10),
-        major: q.major || "عام",
-        explanation: q.explanation || "",
-        image_url: q.image_url || q.image || q.imageUrl || ""
-      }));
-
+      const mappedData = parseQuestionsInput(bulkText);
       const { error } = await supabase.from('questions').insert(mappedData);
       if (error) throw error;
       
-      setStatus({ type: 'success', msg: `تم رفع ${mappedData.length} سؤال بنجاح` });
+      setStatus({ type: 'success', msg: `تم رفع ${mappedData.length} سؤال بنجاح إلى قاعدة البيانات` });
       setBulkText("");
       setSubTab('list');
       fetchData();
     } catch (err: any) {
-      setStatus({ type: 'error', msg: "خطأ في التنسيق: تأكد من صحة نص JSON" });
+      setStatus({ type: 'error', msg: `خطأ في المعالجة: ${err.message}` });
     } finally {
       setLoading(false);
     }
@@ -1559,15 +1534,8 @@ export default function AdminDashboard() {
 
   const handleBulkGen = async (type: 'pdf' | 'docx') => {
     try {
-      if (!bulkGenText.trim()) throw new Error("يرجى لصق نص JSON أولاً");
-      let data;
-      try {
-        data = JSON.parse(bulkGenText);
-      } catch (e) {
-        throw new Error("خطأ في تنسيق JSON. تأكد من صحة النص الملصق.");
-      }
-      
-      if (!Array.isArray(data)) throw new Error("يجب أن يكون النص مصفوفة JSON تحتوي على كائنات الأسئلة.");
+      if (!bulkGenText.trim()) throw new Error("يرجى لصق نص الأسئلة أولاً");
+      const data = parseQuestionsInput(bulkGenText);
       
       setLoading(true);
       if (type === 'pdf') {
@@ -4329,24 +4297,37 @@ export default function AdminDashboard() {
               {/* BULK ADD VIEW */}
               {subTab === 'bulk' && activeTab === 'questions' && (
                 <form onSubmit={handleBulkAdd} className="space-y-8 animate-in fade-in duration-500">
-                  <div className="bg-amber-50 border border-amber-200 p-6 rounded-3xl text-right">
-                    <h3 className="text-amber-900 font-black mb-2 flex items-center justify-end gap-2 text-sm">
-                      تعليمات الرفع الجماعي
-                      <AlertCircle className="w-4 h-4" />
-                    </h3>
-                    <p className="text-amber-700 text-xs leading-relaxed">
-                      يجب أن يكون النص بصيغة مصفوفة JSON صحيحة. مثال: <br/>
-                      <code className="bg-white/50 p-1 rounded font-mono text-[10px]">
-                        [{ "{" } "text": "السؤال؟", "options": ["أ", "ب", "ج", "د"], "correct": 0, "major": "رياضيات", "explanation": "تفسير اختياري" { "}" }]
-                      </code>
+                  <div className="bg-amber-50 border border-amber-200 p-6 rounded-3xl text-right space-y-3">
+                    <div className="flex items-center justify-between">
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const sample = `[\n  {\n    "text": "ما هي عاصمة المملكة الأردنية الهاشمية؟",\n    "options": ["عمان", "إربد", "الزرقاء", "العقبة"],\n    "correct": 0,\n    "major": "عام",\n    "explanation": "عمان هي العاصمة السياسية والإدارية للأردن."\n  },\n  {\n    "question": "كم عدد أضلاع المربع؟",\n    "choices": ["3", "4", "5", "6"],\n    "answer": "ب",\n    "major": "رياضيات"\n  }\n]`;
+                          setBulkText(sample);
+                        }}
+                        className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        تعبئة صيغة نموذجية للتجربة
+                      </button>
+                      <h3 className="text-amber-900 font-black flex items-center gap-2 text-sm">
+                        تعليمات وإرشادات الرفع الجماعي للأسئلة
+                        <AlertCircle className="w-4 h-4 text-amber-600" />
+                      </h3>
+                    </div>
+                    <p className="text-amber-800 text-xs leading-relaxed">
+                      النظام أصبح يقبل التنسيق بمرونة فائقة! يمكنك إلصاق مصفوفة JSON مع أي مسميات متداولة (مثل <code className="bg-white/70 px-1 py-0.5 rounded text-amber-900">text</code> أو <code className="bg-white/70 px-1 py-0.5 rounded text-amber-900">question</code>، أو <code className="bg-white/70 px-1 py-0.5 rounded text-amber-900">options</code> أو <code className="bg-white/70 px-1 py-0.5 rounded text-amber-900">choices</code>، والإجابة رقم أو حرف <code className="bg-white/70 px-1 py-0.5 rounded text-amber-900">أ / ب / ج / د</code>).
                     </p>
+                    <div className="bg-white/80 p-3 rounded-2xl border border-amber-200 font-mono text-[11px] text-amber-900 text-left ltr overflow-x-auto">
+                      [{ "{" } "text": "نص السؤال؟", "options": ["خيار 1", "خيار 2", "خيار 3", "خيار 4"], "correct": 0, "major": "عام", "explanation": "شرح اختياري" { "}" }]
+                    </div>
                   </div>
                   <textarea 
                     value={bulkText}
                     onChange={(e) => setBulkText(e.target.value)}
                     required
-                    placeholder="الصق نص JSON هنا..."
-                    className="w-full h-[400px] p-6 bg-slate-50 border border-slate-200 rounded-[2.5rem] outline-none focus:bg-white focus:border-red-600 font-mono text-sm leading-relaxed"
+                    placeholder="الصق نص الأسئلة أو مصفوفة JSON هنا..."
+                    className="w-full h-[380px] p-6 bg-slate-50 border border-slate-200 rounded-[2.5rem] outline-none focus:bg-white focus:border-red-600 font-mono text-sm leading-relaxed"
                   />
                   <button 
                     type="submit" 
