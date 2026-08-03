@@ -1,9 +1,11 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Building2, Globe, Mail, User, ShieldCheck, MapPin, CheckCircle2, Search, Briefcase, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
 import { supabase } from "../lib/supabase";
 
 export default function CompanyRegistration() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({ 
     companyName: '', 
     industry: '', 
@@ -157,7 +159,7 @@ export default function CompanyRegistration() {
                             شكراً لتزويدنا ببيانات المنشأة. سيقوم فريقنا بمراجعة طلبك وتفعيل حسابك خلال يوم عمل لتبدأ بنشر الوظائف.
                         </p>
                         <button 
-                            onClick={() => window.location.href = '/job-board'}
+                            onClick={() => navigate('/job-board')}
                             className="mt-8 bg-[#0A66C2] text-white px-8 py-3 rounded-full font-black hover:bg-[#004182] transition-all"
                         >
                             العودة لصفحة الوظائف

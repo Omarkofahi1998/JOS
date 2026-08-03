@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Briefcase, MessageSquare, DollarSign, 
   Settings, LogOut, Plus, Edit3, 
@@ -17,6 +18,7 @@ interface ServiceRequest {
 }
 
 export default function ProfessionalDashboard() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
@@ -63,7 +65,7 @@ export default function ProfessionalDashboard() {
           .subscribe();
 
       } else {
-        window.location.href = "/professional-services/login";
+        navigate("/professional-services/login");
       }
     });
 
@@ -224,7 +226,7 @@ export default function ProfessionalDashboard() {
 
   const handleLogout = async () => {
     await supabase!.auth.signOut();
-    window.location.href = "/professional-services/login";
+    navigate("/professional-services/login");
   };
 
   if (loading) return <div className="h-screen flex items-center justify-center">جاري تحميل اللوحة...</div>;

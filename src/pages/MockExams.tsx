@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { CheckCircle2, Clock, Search, ChevronDown, ShieldCheck, Loader2, Share2, Check } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
@@ -22,6 +22,7 @@ const MAJORS = [
 ];
 
 export default function MockExams() {
+  const navigate = useNavigate();
   const { majorId } = useParams();
   const [selectedMajor, setSelectedMajor] = useState<string>("عام");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -69,15 +70,29 @@ export default function MockExams() {
   useEffect(() => {
     // Handle URL parameters from dynamic route
     if (majorId) {
-      const found = availableMajors.find(m => m.id === majorId || m.name === majorId);
+      let decoded = majorId;
+      try {
+        decoded = decodeURIComponent(majorId);
+      } catch {
+        decoded = majorId;
+      }
+      const found = availableMajors.find(m => m.id === decoded || m.name === decoded || m.id === majorId || m.name === majorId);
       if (found) setSelectedMajor(found.id);
+      else setSelectedMajor(decoded);
     } else {
       // Fallback to query params if any
       const params = new URLSearchParams(window.location.search);
       const majorParam = params.get('major');
       if (majorParam) {
-        const found = availableMajors.find(m => m.name === majorParam || m.id === majorParam);
+        let decodedParam = majorParam;
+        try {
+          decodedParam = decodeURIComponent(majorParam);
+        } catch {
+          decodedParam = majorParam;
+        }
+        const found = availableMajors.find(m => m.name === decodedParam || m.id === decodedParam || m.name === majorParam || m.id === majorParam);
         if (found) setSelectedMajor(found.id);
+        else setSelectedMajor(decodedParam);
       }
     }
   }, [majorId, availableMajors]);
@@ -255,19 +270,19 @@ export default function MockExams() {
 
       <div className="text-center">
         <div className="inline-flex flex-col items-center gap-6">
-          <a
-            href={`${window.location.origin}/exam`}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={prepareExam}
-            className="bg-slate-900 text-white px-8 md:px-20 py-4 md:py-6 rounded-2xl md:rounded-[2rem] font-black text-lg md:text-2xl hover:bg-red-600 transition-all shadow-2xl shadow-slate-900/30 hover:-translate-y-2 group flex items-center gap-4 no-underline"
+          <button
+            onClick={() => {
+              prepareExam();
+              navigate('/exam');
+            }}
+            className="bg-slate-900 text-white px-8 md:px-20 py-4 md:py-6 rounded-2xl md:rounded-[2rem] font-black text-lg md:text-2xl hover:bg-red-600 transition-all shadow-2xl shadow-slate-900/30 hover:-translate-y-2 group flex items-center gap-4 cursor-pointer border-0"
           >
             <ShieldCheck className="w-8 h-8 text-red-500 group-hover:text-white transition-colors" />
             الدخول الى الامتحان
             <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
                <ChevronDown className="w-5 h-5 -rotate-90" />
             </div>
-          </a>
+          </button>
           
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2 text-slate-400 text-sm font-bold bg-slate-50 px-6 py-3 rounded-full border border-slate-100">

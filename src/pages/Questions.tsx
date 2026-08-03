@@ -72,12 +72,20 @@ export default function Questions() {
   useEffect(() => {
     // Handle Shared File from dynamic route or search params
     if (fileParam) {
-      setSearchTerm(decodeURIComponent(fileParam));
+      try {
+        setSearchTerm(decodeURIComponent(fileParam));
+      } catch {
+        setSearchTerm(fileParam);
+      }
     } else {
       const params = new URLSearchParams(location.search);
-      const fileSearch = params.get('file');
+      const fileSearch = params.get('file') || params.get('search') || params.get('title');
       if (fileSearch) {
-        setSearchTerm(fileSearch);
+        try {
+          setSearchTerm(decodeURIComponent(fileSearch));
+        } catch {
+          setSearchTerm(fileSearch);
+        }
       }
     }
   }, [fileParam, location.search]);
@@ -148,10 +156,27 @@ export default function Questions() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
+  useEffect(() => {
+    if (debouncedTerm.trim() && filesList.length > 0) {
+      const term = debouncedTerm.trim().toLowerCase();
+      const matchedFile = filesList.find(f => 
+        f.title.toLowerCase().includes(term) || (f.url && f.url.toLowerCase().includes(term))
+      );
+      if (matchedFile && matchedFile.category) {
+        setActiveCategory(matchedFile.category);
+      }
+    }
+  }, [debouncedTerm, filesList]);
+
   const filtered = filesList.filter(f => {
-    const matchesSearch = f.title.includes(debouncedTerm) || f.category.includes(debouncedTerm);
-    const matchesCategory = f.category === activeCategory;
-    return matchesSearch && matchesCategory;
+    const term = debouncedTerm.trim().toLowerCase();
+    if (!term) {
+      return f.category === activeCategory;
+    }
+    return (
+      f.title.toLowerCase().includes(term) || 
+      f.category.toLowerCase().includes(term)
+    );
   });
 
   const handleDownload = async (file: QuestionFile) => {

@@ -256,7 +256,7 @@ export default function InstructorDashboard() {
 
   const handleLogout = async () => {
     await supabase!.auth.signOut();
-    window.location.href = "/instructor/login";
+    navigate("/instructor/login");
   };
 
   return (
