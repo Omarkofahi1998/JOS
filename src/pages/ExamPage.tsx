@@ -247,7 +247,25 @@ export default function ExamPage() {
   }
 
   const q = questions[currentIdx];
-  if (!q) return null;
+  if (!q) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center font-sans p-6" dir="rtl">
+        <div className="text-center bg-white p-8 rounded-3xl border border-slate-200 shadow-xl max-w-md w-full space-y-4">
+          <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto animate-bounce border border-red-100">
+            <BookOpen className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-black text-slate-900">جاري تحميل بوابة الامتحان...</h2>
+          <p className="text-xs text-slate-500 font-bold leading-relaxed">إذا لم تكن اخترت امتحاناً بعد، يمكنك الانتقال مباشرة إلى قائمة الامتحانات التجريبية المتاحة.</p>
+          <button 
+            onClick={() => navigate('/mock-exams')}
+            className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs transition-all shadow-sm"
+          >
+            الانتقال للامتحانات التجريبية
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const currentIsRTL = isRTL(q.text);
 

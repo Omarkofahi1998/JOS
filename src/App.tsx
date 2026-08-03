@@ -1,8 +1,51 @@
 import { useEffect, lazy, Suspense } from "react";
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation, Link } from "react-router-dom";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import { supabase } from "./lib/supabase";
+import { AlertTriangle, Home as HomeIcon, BookOpen, HelpCircle } from "lucide-react";
+
+function NotFound() {
+  return (
+    <div className="min-h-[70vh] flex items-center justify-center p-6 text-center" dir="rtl">
+      <div className="max-w-md w-full bg-white border border-slate-200 p-8 rounded-3xl shadow-xl space-y-6">
+        <div className="w-20 h-20 bg-red-50 text-red-600 rounded-3xl flex items-center justify-center mx-auto border border-red-100">
+          <AlertTriangle className="w-10 h-10 animate-pulse" />
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">404</h1>
+          <h2 className="text-lg font-black text-slate-800">الصفحة غير موجودة</h2>
+          <p className="text-xs text-slate-500 font-bold leading-relaxed">
+            عذراً، الرابط الذي تحاول الوصول إليه غير موجود أو تم نقله. يمكنك العودة للصفحة الرئيسية أو تصفح بنك الأسئلة والامتحانات.
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <Link
+            to="/"
+            className="w-full sm:w-auto px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all shadow-sm"
+          >
+            <HomeIcon className="w-4 h-4 text-red-400" />
+            الرئيسية
+          </Link>
+          <Link
+            to="/mock-exams"
+            className="w-full sm:w-auto px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all shadow-sm"
+          >
+            <BookOpen className="w-4 h-4" />
+            الامتحانات
+          </Link>
+          <Link
+            to="/questions"
+            className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all"
+          >
+            <HelpCircle className="w-4 h-4 text-slate-500" />
+            الأسئلة
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Lazy load non-critical pages
 import InstructorRegistration from "./pages/InstructorRegistration";
@@ -141,6 +184,7 @@ export default function App() {
                   <Route path="/professional-services/login" element={<ProfessionalServicesLogin />} />
                   <Route path="/professional/dashboard" element={<ProfessionalDashboard />} />
                   <Route path="/service/:id" element={<ServiceDetails />} />
+                  <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
             </Layout>
